@@ -3,6 +3,7 @@ from .environments import (
     SMAX,
     SUBMODULE_ENVIRONMENTS,
     CoinGame,
+    DynamicOvercooked,
     Hanabi,
     HeuristicEnemySMAX,
     InTheGrid,
@@ -132,6 +133,8 @@ def make(env_id: str, **env_kwargs) -> MultiAgentEnv:
     # 7. Overcooked
     elif env_id == "overcooked":
         env = Overcooked(**env_kwargs)
+    elif env_id == "overcooked_dynamic":
+        env = DynamicOvercooked(**env_kwargs)
     elif env_id == "overcooked_v2":
         env = OvercookedV2(**env_kwargs)
 
@@ -197,6 +200,7 @@ registered_envs = [
     "storm_np",
     "hanabi",
     "overcooked",
+    "overcooked_dynamic",
     "overcooked_v2",
     "coin_game",
     "jaxnav",

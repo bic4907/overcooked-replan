@@ -1,39 +1,57 @@
-FROM nvcr.io/nvidia/jax:26.04-py3
+ARG BASE_IMAGE=nvcr.io/nvidia/jax:26.04-py3
+FROM ${BASE_IMAGE}
 
-# Create user
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 ARG UID=1000
-ARG MYUSER=myuser
-RUN useradd -u $UID -o --create-home ${MYUSER}
+ARG GID=1000
+ARG USERNAME=runner
+ARG INSTALL_EXTRAS=algs
 
-# Install system deps before COPY so this layer is cached across source changes
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends tmux && \
-    rm -rf /var/lib/apt/lists/*
+ENV DEBIAN_FRONTEND=noninteractive
 
-USER ${MYUSER}
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        fontconfig \
+        fonts-dejavu-core \
+        git \
+        libgl1 \
+        libglib2.0-0 \
+        tmux \
+    && rm -rf /var/lib/apt/lists/*
 
-# default workdir
-WORKDIR /home/${MYUSER}/
-COPY --chown=${MYUSER} . .
+# Match the host UID/GID so bind-mounted checkpoints are not owned by root.
+RUN groupadd --non-unique --gid "${GID}" "${USERNAME}" \
+    && useradd \
+        --create-home \
+        --no-log-init \
+        --non-unique \
+        --uid "${UID}" \
+        --gid "${GID}" \
+        --shell /bin/bash \
+        "${USERNAME}"
 
-USER root
+WORKDIR /workspace
+COPY --chown=${UID}:${GID} . /workspace
 
-# Install jaxmarl and dependencies, pinning jax/jaxlib to the base image versions
-RUN pip freeze | grep -iE '^(jax|jaxlib|jax-cuda13)' > /tmp/jax-pins.txt && \
-    pip install --no-cache-dir --constraint /tmp/jax-pins.txt -e .[algs,dev] && \
-    git config --global --add safe.directory /home/${MYUSER} && \
-    git config --global --add safe.directory /home/${MYUSER}/jaxmarl/environments/robotarium && \
-    git config --global --add safe.directory /home/${MYUSER}/jaxmarl/environments/robotarium/jaxrobotarium/robotarium_python_simulator && \
-    git submodule update --init --recursive --depth 1 && \
-    pip install --no-cache-dir --constraint /tmp/jax-pins.txt -e jaxmarl/environments/robotarium && \
-    pip install --no-cache-dir --constraint /tmp/jax-pins.txt -e jaxmarl/environments/robotarium/jaxrobotarium/robotarium_python_simulator && \
-    rm /tmp/jax-pins.txt
+# Preserve the CUDA-enabled JAX stack supplied by the NVIDIA base image while
+# installing this project and its algorithm dependencies.
+RUN python -m pip freeze \
+        | grep -iE '^(jax|jaxlib|jax-cuda[0-9]+)' \
+        > /tmp/jax-constraints.txt \
+    && python -m pip install \
+        --no-cache-dir \
+        --constraint /tmp/jax-constraints.txt \
+        -e ".[${INSTALL_EXTRAS}]" \
+    && python -m pip check \
+    && rm /tmp/jax-constraints.txt
 
-USER ${MYUSER}
+ENV PYTHONUNBUFFERED=1 \
+    MPLCONFIGDIR=/tmp/matplotlib \
+    XLA_PYTHON_CLIENT_PREALLOCATE=false \
+    TF_FORCE_GPU_ALLOW_GROWTH=true
 
-ENV XLA_PYTHON_CLIENT_PREALLOCATE=false TF_FORCE_GPU_ALLOW_GROWTH=true
+USER ${USERNAME}
 
-# Uncomment below if you want jupyter
-# RUN pip install jupyterlab
-
-ENV WANDB_API_KEY="" WANDB_ENTITY=""
+CMD ["/bin/bash"]

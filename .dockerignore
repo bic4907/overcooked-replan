@@ -4,6 +4,7 @@ tmp/
 outputs/
 results/
 models/
+evaluation/
 
 # python artifacts
 __pycache__/
@@ -21,6 +22,8 @@ dist/
 .cache/
 .config/
 .nv/
+.docker-cache/
+.git/
 
 # large non-essential files
 docs/

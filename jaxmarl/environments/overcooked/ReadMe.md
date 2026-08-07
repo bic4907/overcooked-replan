@@ -23,6 +23,23 @@ layout = layout_grid_to_dict(custom_layout_grid)
 
 The implementation aims to be as close as possible to the original Overcooked-AI environment, including dynamics, collision logic, and action and observation spaces.
 
+## Dynamic layouts
+
+`overcooked_dynamic` extends this single-onion-recipe environment with cyclic
+maps. Layout data is stored as `[[map_string, steps], ...]` in
+`dynamic_layout_data.py`; both `0` and `O` denote an onion pile.
+
+```python
+from jaxmarl import make
+
+env = make("overcooked_dynamic", layout="dynamic_easy_0")
+```
+
+On a phase boundary, movement is allowed only through cells that are empty in
+both maps. Objects on changed tiles are removed. An agent covered by a new
+block is moved opposite its facing direction, then clockwise through adjacent
+cells, and finally to an `A` start position. Direction and inventory are kept.
+
 #### A note on dynamics
 In the original Overcooked-AI environment and in this JAX implementation, the pot starts cooking as soon as 3 onions are placed in the pot.
 An update to Overcooked-AI has since changed the dynamics to require an additional pot interaction to start cooking. 

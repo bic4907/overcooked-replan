@@ -5,6 +5,7 @@ from typing import Optional
 import imageio
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 import jaxmarl.viz.grid_rendering_v2 as rendering
 from jaxmarl.environments.overcooked_v2.common import DynamicObject, StaticObject
@@ -91,17 +92,54 @@ class OvercookedV2Visualizer:
 
         window.show_img(img)
 
-    def animate(self, state_seq, filename="animation.gif", agent_view_size=None):
+    def animate(
+        self,
+        state_seq,
+        filename="animation.gif",
+        agent_view_size=None,
+        captions=None,
+    ):
         """Animate a gif give a state sequence and save if to file."""
 
         frame_seq = jax.vmap(self._render_state, in_axes=(0, None))(
             state_seq, agent_view_size
         )
-        # print("frame_seq", frame_seq)
-        # print("frame_seq.shape", frame_seq.shape)
-        # print("frame_seq.dtype", frame_seq.dtype)
+        frame_seq = [np.asarray(frame) for frame in frame_seq]
 
-        imageio.mimsave(filename, frame_seq, "GIF", duration=0.5)
+        if captions is not None:
+            from PIL import Image, ImageDraw, ImageFont
+
+            if len(captions) != len(frame_seq):
+                raise ValueError("captions and state_seq must have the same length")
+
+            font = ImageFont.load_default()
+            measure = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+            text_boxes = [
+                measure.textbbox((0, 0), caption, font=font) for caption in captions
+            ]
+            text_width = max(box[2] - box[0] for box in text_boxes)
+            text_height = max(box[3] - box[1] for box in text_boxes)
+            canvas_width = max(frame_seq[0].shape[1], text_width + 12)
+            canvas_height = frame_seq[0].shape[0] + text_height + 12
+
+            captioned_frames = []
+            for frame, caption in zip(frame_seq, captions):
+                image = Image.fromarray(frame)
+                canvas = Image.new("RGB", (canvas_width, canvas_height), "white")
+                canvas.paste(image, ((canvas_width - image.width) // 2, 0))
+                draw = ImageDraw.Draw(canvas)
+                draw.text(
+                    (6, image.height + 6),
+                    caption,
+                    fill="black",
+                    font=font,
+                )
+                captioned_frames.append(np.asarray(canvas))
+            frame_seq = captioned_frames
+
+        durations = [200] * len(frame_seq)
+        durations[-1] += 3000
+        imageio.mimsave(filename, frame_seq, "GIF", duration=durations, loop=0)
 
     def render_sequence(self, state_seq, agent_view_size=None):
         frame_seq = jax.vmap(self._render_state, in_axes=(0, None))(

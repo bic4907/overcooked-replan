@@ -89,6 +89,7 @@ class Overcooked(MultiAgentEnv):
         self,
         layout: FrozenDict[str, Any] = FrozenDict(layouts["cramped_room"]),
         random_reset: bool = False,
+        random_agent_positions: bool = False,
         max_steps: int = 400,
     ):
         warnings.warn(
@@ -107,7 +108,7 @@ class Overcooked(MultiAgentEnv):
         # explicitly, they are Python ints that feed static shapes downstream
         self.height = cast(int, layout["height"])
         self.width = cast(int, layout["width"])
-        self.obs_shape = (self.width, self.height, 26)
+        self.obs_shape = (self.height, self.width, 26)
 
         self.agent_view_size = (
             5  # Hard coded. Only affects map padding -- not observations.
@@ -127,6 +128,7 @@ class Overcooked(MultiAgentEnv):
         )
 
         self.random_reset = random_reset
+        self.random_agent_positions = random_agent_positions
         self.max_steps = max_steps
 
         self.observation_spaces = {
@@ -207,9 +209,11 @@ class Overcooked(MultiAgentEnv):
         )
 
         # Replace with fixed layout if applicable. Also randomize if agent position not provided
-        agent_idx = random_reset * agent_idx + (1 - random_reset) * layout.get(
-            "agent_idx", agent_idx
-        )
+        randomize_positions = random_reset or self.random_agent_positions
+        if not randomize_positions:
+            agent_idx = jnp.asarray(
+                layout.get("agent_idx", agent_idx), dtype=agent_idx.dtype
+            )
         agent_pos = jnp.array(
             [agent_idx % w, agent_idx // w], dtype=jnp.uint32
         ).transpose()  # dim = n_agents x 2
@@ -357,8 +361,8 @@ class Overcooked(MultiAgentEnv):
         25. Urgency. The entire layer is 1 there are 40 or fewer remaining time steps. 0 otherwise
         """
 
-        width = self.obs_shape[0]
-        height = self.obs_shape[1]
+        width = self.width
+        height = self.height
         n_channels = self.obs_shape[2]
         maze_map_arr = jnp.asarray(state.maze_map)
         padding = (maze_map_arr.shape[0] - height) // 2
@@ -466,6 +470,8 @@ class Overcooked(MultiAgentEnv):
         action: jax.Array,
     ) -> Tuple[State, jax.Array, Tuple[jax.Array, jax.Array]]:
 
+        move_area = self._get_move_area(state)
+
         # Update agent position (forward action)
         is_move_action = jnp.logical_and(
             action != OvercookedActions.stay, action != OvercookedActions.interact
@@ -484,27 +490,9 @@ class Overcooked(MultiAgentEnv):
             jnp.array((self.width - 1, self.height - 1), dtype=jnp.uint32),
         )
 
-        # Can't go past wall or goal
-        def _wall_or_goal(fwd_position, wall_map, goal_pos):
-            fwd_wall = wall_map.at[fwd_position[1], fwd_position[0]].get()
-
-            def goal_collision(pos, goal):
-                return jnp.logical_and(pos[0] == goal[0], pos[1] == goal[1])
-
-            fwd_goal = jax.vmap(goal_collision, in_axes=(None, 0))(
-                fwd_position, goal_pos
-            )
-            # fwd_goal = jnp.logical_and(fwd_position[0] == goal_pos[0], fwd_position[1] == goal_pos[1])
-            fwd_goal = jnp.any(fwd_goal)
-            return fwd_wall, fwd_goal
-
-        fwd_pos_has_wall, fwd_pos_has_goal = jax.vmap(
-            _wall_or_goal, in_axes=(0, None, None)
-        )(fwd_pos, state.wall_map, state.goal_pos)
-
-        fwd_pos_blocked = jnp.logical_or(fwd_pos_has_wall, fwd_pos_has_goal).reshape(
-            (self.num_agents, 1)
-        )
+        fwd_pos_blocked = jax.vmap(
+            lambda position: ~move_area[position[1], position[0]]
+        )(fwd_pos).reshape((self.num_agents, 1))
 
         bounced = jnp.logical_or(fwd_pos_blocked, ~is_move_action_transposed)
 
@@ -591,7 +579,7 @@ class Overcooked(MultiAgentEnv):
         empty = jnp.array([OBJECT_TO_INDEX["empty"], 0, 0], dtype=jnp.uint8)
 
         # Compute padding, added automatically by map maker function
-        height = self.obs_shape[1]
+        height = self.height
         padding = (jnp.asarray(state.maze_map).shape[0] - height) // 2
 
         maze_map = maze_map.at[padding + agent_y_prev, padding + agent_x_prev, :].set(
@@ -645,7 +633,7 @@ class Overcooked(MultiAgentEnv):
 
         shaped_reward = 0.0
 
-        height = self.obs_shape[1]
+        height = self.height
         padding = (jnp.asarray(maze_map).shape[0] - height) // 2
 
         # Get object in front of agent (on the "table")
@@ -800,6 +788,11 @@ class Overcooked(MultiAgentEnv):
         # Reward of 20 for a soup delivery
         reward = jnp.array(successful_delivery, dtype=float) * DELIVERY_REWARD
         return maze_map, inventory, reward, shaped_reward
+
+    def _get_move_area(self, state: State) -> jax.Array:
+        """Return cells agents may enter during the current transition."""
+
+        return ~state.wall_map
 
     def is_terminal(self, state: State) -> jax.Array:
         """Check whether state is terminal."""

@@ -1,4 +1,6 @@
 import functools
+import os
+from datetime import datetime
 from typing import Any, Callable, Dict, NamedTuple, Sequence
 
 import distrax
@@ -14,7 +16,35 @@ from omegaconf import OmegaConf
 
 import jaxmarl
 import wandb
-from jaxmarl.wrappers.baselines import OvercookedV2LogWrapper
+from jaxmarl.environments.overcooked import overcooked_layouts
+from jaxmarl.wrappers.baselines import LogWrapper
+
+
+def _timestamp():
+    return datetime.now().strftime("%H:%M:%S")
+
+
+def _architecture(config):
+    architecture = config.get("ARCHITECTURE", "rnn").lower()
+    if architecture not in {"cnn", "rnn"}:
+        raise ValueError("ARCHITECTURE must be either 'cnn' or 'rnn'")
+    return architecture
+
+
+def _checkpoint_prefix(config):
+    return f"ippo_{_architecture(config)}"
+
+
+def _checkpoint_metadata(config):
+    layout_name = config["ENV_KWARGS"]["layout"]
+    layout_suffix = layout_name
+    if config["ENV_NAME"].endswith("_dynamic"):
+        layout_suffix = layout_suffix.removeprefix("dynamic_")
+    experiment_name = f"{config['ENV_NAME']}_{layout_suffix}"
+    save_dir = os.path.join(
+        config["SAVE_PATH"], "ippo_v1", _architecture(config), experiment_name
+    )
+    return experiment_name, save_dir
 
 
 class ScannedRNN(nn.Module):
@@ -163,6 +193,56 @@ class ActorCriticRNN(nn.Module):
         return hidden, pi, jnp.squeeze(critic, axis=-1)
 
 
+class ActorCriticCNN(nn.Module):
+    """Feed-forward CNN policy with the same call signature as the RNN policy."""
+
+    action_dim: Sequence[int]
+    config: Dict
+
+    @nn.compact
+    def __call__(self, hidden, x):
+        obs, _dones = x
+
+        if self.config["ACTIVATION"] == "relu":
+            activation = nn.relu
+        else:
+            activation = nn.tanh
+
+        embedding = jax.vmap(
+            CNN(
+                output_size=self.config["FC_DIM_SIZE"],
+                activation=activation,
+            )
+        )(obs)
+
+        actor = nn.Dense(
+            self.config["FC_DIM_SIZE"],
+            kernel_init=orthogonal(2),
+            bias_init=constant(0.0),
+        )(embedding)
+        actor = activation(actor)
+        logits = nn.Dense(
+            self.action_dim,
+            kernel_init=orthogonal(0.01),
+            bias_init=constant(0.0),
+        )(actor)
+        pi = distrax.Categorical(logits=logits)
+
+        critic = nn.Dense(
+            self.config["FC_DIM_SIZE"],
+            kernel_init=orthogonal(2),
+            bias_init=constant(0.0),
+        )(embedding)
+        critic = activation(critic)
+        critic = nn.Dense(
+            1,
+            kernel_init=orthogonal(1.0),
+            bias_init=constant(0.0),
+        )(critic)
+
+        return hidden, pi, jnp.squeeze(critic, axis=-1)
+
+
 class ActorCritic(nn.Module):
     action_dim: Sequence[int]
     activation: str = "tanh"
@@ -218,7 +298,40 @@ def unbatchify(x: jnp.ndarray, agent_list, num_envs, num_actors):
 
 
 def make_train(config):
-    env = jaxmarl.make(config["ENV_NAME"], **config["ENV_KWARGS"])
+    env_kwargs = dict(config["ENV_KWARGS"])
+    if config["ENV_NAME"] == "overcooked" and isinstance(
+        env_kwargs.get("layout"), str
+    ):
+        env_kwargs["layout"] = overcooked_layouts[env_kwargs["layout"]]
+    env = jaxmarl.make(config["ENV_NAME"], **env_kwargs)
+    architecture = _architecture(config)
+    checkpoint_prefix = _checkpoint_prefix(config)
+
+    checkpoint_interval = int(config.get("CHECKPOINT_INTERVAL", 0))
+    if checkpoint_interval < 0:
+        raise ValueError("CHECKPOINT_INTERVAL must be greater than or equal to 0")
+    checkpoint_enabled = (
+        checkpoint_interval > 0 and config.get("SAVE_PATH") is not None
+    )
+    if checkpoint_enabled:
+        experiment_name, save_dir = _checkpoint_metadata(config)
+
+        def save_intermediate_checkpoint(params, update_step, seed_index):
+            from jaxmarl.wrappers.baselines import save_params
+
+            update = int(update_step)
+            vmap_index = int(seed_index)
+            checkpoint_path = os.path.join(
+                save_dir,
+                f"{checkpoint_prefix}_{experiment_name}_seed{config['SEED']}_"
+                f"vmap{vmap_index}_update{update:06d}.safetensors",
+            )
+            save_params(params, checkpoint_path)
+            print(
+                f"[{_timestamp()}] Saved intermediate checkpoint: "
+                f"{checkpoint_path}",
+                flush=True,
+            )
 
     config["NUM_ACTORS"] = env.num_agents * config["NUM_ENVS"]
     config["NUM_UPDATES"] = (
@@ -228,7 +341,7 @@ def make_train(config):
         config["NUM_ACTORS"] * config["NUM_STEPS"] // config["NUM_MINIBATCHES"]
     )
 
-    env = OvercookedV2LogWrapper(env, replace_info=False)
+    env = LogWrapper(env, replace_info=False)
 
     def create_learning_rate_fn():
         base_learning_rate = config["LR"]
@@ -246,9 +359,9 @@ def make_train(config):
         )
         cosine_epochs = max(update_steps - warmup_steps, 1)
 
-        print("Update steps: ", update_steps)
-        print("Warmup epochs: ", warmup_steps)
-        print("Cosine epochs: ", cosine_epochs)
+        print(f"[{_timestamp()}] Update steps: {update_steps}")
+        print(f"[{_timestamp()}] Warmup epochs: {warmup_steps}")
+        print(f"[{_timestamp()}] Cosine epochs: {cosine_epochs}")
 
         cosine_fn = optax.cosine_decay_schedule(
             init_value=base_learning_rate, decay_steps=cosine_epochs * steps_per_epoch
@@ -263,13 +376,20 @@ def make_train(config):
         init_value=1.0, end_value=0.0, transition_steps=config["REW_SHAPING_HORIZON"]
     )
 
-    def train(rng):
+    def train(rng, seed_index):
         # INIT NETWORK
-        network = ActorCriticRNN(env.action_space(env.agents[0]).n, config=config)
+        network_class = ActorCriticRNN if architecture == "rnn" else ActorCriticCNN
+        network = network_class(env.action_space(env.agents[0]).n, config=config)
 
         rng, _rng = jax.random.split(rng)
         init_x = (
-            jnp.zeros((1, config["NUM_ENVS"], *env.observation_space().shape)),
+            jnp.zeros(
+                (
+                    1,
+                    config["NUM_ENVS"],
+                    *env.observation_space(env.agents[0]).shape,
+                )
+            ),
             jnp.zeros((1, config["NUM_ENVS"])),
         )
         init_hstate = ScannedRNN.initialize_carry(
@@ -320,7 +440,7 @@ def make_train(config):
 
                 # obs_batch = batchify(last_obs, env.agents, config["NUM_ACTORS"])
                 obs_batch = jnp.stack([last_obs[a] for a in env.agents]).reshape(
-                    -1, *env.observation_space().shape
+                    -1, *env.observation_space(env.agents[0]).shape
                 )
                 ac_in = (
                     obs_batch[np.newaxis, :],
@@ -396,7 +516,7 @@ def make_train(config):
                 runner_state
             )
             last_obs_batch = jnp.stack([last_obs[a] for a in env.agents]).reshape(
-                -1, *env.observation_space().shape
+                -1, *env.observation_space(env.agents[0]).shape
             )
             ac_in = (
                 last_obs_batch[np.newaxis, :],
@@ -547,12 +667,56 @@ def make_train(config):
 
             def callback(metric):
                 wandb.log(metric)
+                update = int(metric["update_step"])
+                log_interval = int(config.get("LOG_INTERVAL", 10))
+                if (
+                    update == 1
+                    or update % log_interval == 0
+                    or update == config["NUM_UPDATES"]
+                ):
+                    env_step = int(metric["env_step"])
+                    progress = 100.0 * update / config["NUM_UPDATES"]
+                    sparse_episode_return = float(
+                        metric["returned_episode_returns"]
+                    )
+                    sparse_step_reward = float(metric["original_reward"])
+                    print(
+                        f"[{_timestamp()}] "
+                        f"update={update}/{config['NUM_UPDATES']} "
+                        f"env_step={env_step} progress={progress:.1f}% "
+                        f"sparse_episode_return={sparse_episode_return:.2f} "
+                        f"sparse_step_reward={sparse_step_reward:.4f}",
+                        flush=True,
+                    )
 
             update_step = update_step + 1
             metric = jax.tree.map(lambda x: x.mean(), metric)
             metric["update_step"] = update_step
             metric["env_step"] = update_step * config["NUM_STEPS"] * config["NUM_ENVS"]
             jax.debug.callback(callback, metric)
+
+            if checkpoint_enabled:
+                should_save = jnp.logical_and(
+                    update_step % checkpoint_interval == 0,
+                    update_step < config["NUM_UPDATES"],
+                )
+
+                def checkpoint_branch(_):
+                    jax.debug.callback(
+                        save_intermediate_checkpoint,
+                        train_state.params,
+                        update_step,
+                        seed_index,
+                        ordered=True,
+                    )
+                    return jnp.int32(0)
+
+                jax.lax.cond(
+                    should_save,
+                    checkpoint_branch,
+                    lambda _: jnp.int32(0),
+                    operand=None,
+                )
 
             runner_state = (
                 train_state,
@@ -583,29 +747,61 @@ def make_train(config):
     return train
 
 
-@hydra.main(
-    version_base=None, config_path="config", config_name="ippo_rnn_overcooked_v2"
-)
-def main(config):
+def run(config):
     config = OmegaConf.to_container(config)
 
     layout_name = config["ENV_KWARGS"]["layout"]
     num_seeds = config["NUM_SEEDS"]
+    architecture = _architecture(config)
+    checkpoint_prefix = _checkpoint_prefix(config)
+
+    if config.get("SAVE_PATH") is not None:
+        experiment_name, save_dir = _checkpoint_metadata(config)
+        os.makedirs(save_dir, exist_ok=True)
+        config_path = os.path.join(
+            save_dir,
+            f"{checkpoint_prefix}_{experiment_name}_seed{config['SEED']}_config.yaml",
+        )
+        OmegaConf.save(OmegaConf.create(config), config_path)
 
     wandb.init(
         entity=config["ENTITY"],
         project=config["PROJECT"],
-        tags=["IPPO", "RNN", "OvercookedV2"],
+        tags=["IPPO", architecture.upper(), "Overcooked"],
         config=config,
         mode=config["WANDB_MODE"],
-        name=f"ippo_rnn_overcooked_v2_{layout_name}",
+        name=f"{checkpoint_prefix}_overcooked_{layout_name}",
     )
 
     with jax.disable_jit(False):
         rng = jax.random.PRNGKey(config["SEED"])
         rngs = jax.random.split(rng, num_seeds)
+        seed_indices = jnp.arange(num_seeds)
         train_jit = jax.jit(make_train(config))
-        jax.vmap(train_jit)(rngs)
+        out = jax.block_until_ready(jax.vmap(train_jit)(rngs, seed_indices))
+
+    if config.get("SAVE_PATH") is not None:
+        from jaxmarl.wrappers.baselines import save_params
+
+        model_state = out["runner_state"][0]
+        for i in range(num_seeds):
+            params = jax.tree.map(lambda x: x[i], model_state.params)
+            checkpoint_path = os.path.join(
+                save_dir,
+                f"{checkpoint_prefix}_{experiment_name}_seed{config['SEED']}_"
+                f"vmap{i}.safetensors",
+            )
+            save_params(params, checkpoint_path)
+            print(f"[{_timestamp()}] Saved checkpoint: {checkpoint_path}")
+
+    wandb.finish()
+
+
+@hydra.main(
+    version_base=None, config_path="config", config_name="ippo_overcooked"
+)
+def main(config):
+    run(config)
 
 
 if __name__ == "__main__":

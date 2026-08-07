@@ -17,7 +17,7 @@ from .mpe import (
     SimpleWorldCommMPE,
 )
 from .multi_agent_env import MultiAgentEnv, State
-from .overcooked import Overcooked, overcooked_layouts
+from .overcooked import DynamicOvercooked, Overcooked, dynamic_layouts, overcooked_layouts
 from .overcooked_v2 import OvercookedV2, overcooked_v2_layouts
 from .smax import SMAX, HeuristicEnemySMAX, LearnedPolicyEnemySMAX
 from .storm import InTheGrid, InTheGrid_2p, InTheMatrix
@@ -78,6 +78,8 @@ __all__ = [
     "MultiAgentEnv",
     "State",
     "Overcooked",
+    "DynamicOvercooked",
+    "dynamic_layouts",
     "overcooked_layouts",
     "OvercookedV2",
     "overcooked_v2_layouts",
