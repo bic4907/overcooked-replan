@@ -12,20 +12,53 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 
-LOG_NAME_PATTERN = re.compile(
+LEGACY_LOG_NAME_PATTERN = re.compile(
     r"^(dynamic_(easy|medium|hard)_(\d+))_"
+    r"(same_seed0|same_seed1|cross_seed0_seed1|cross_seed1_seed0)\.log$"
+)
+NUMBERED_LOG_NAME_PATTERN = re.compile(
+    r"^(dynamic_(\d{2}))_"
     r"(same_seed0|same_seed1|cross_seed0_seed1|cross_seed1_seed0)\.log$"
 )
 EPISODE_PATTERN = re.compile(
     r"^episode=(\d+)\s+return=(-?\d+(?:\.\d+)?)\s+length=(\d+)$"
 )
-DIFFICULTIES = ("easy", "medium", "hard")
 PAIRINGS = {
     "same_seed0": ("Same 0/0", 0, 0, "same", "#3569b5"),
     "same_seed1": ("Same 1/1", 1, 1, "same", "#79a7dc"),
     "cross_seed0_seed1": ("Cross 0/1", 0, 1, "cross", "#e07a1f"),
     "cross_seed1_seed0": ("Cross 1/0", 1, 0, "cross", "#f2b36f"),
 }
+
+
+def parse_log_name(filename):
+    legacy_match = LEGACY_LOG_NAME_PATTERN.fullmatch(filename)
+    if legacy_match is not None:
+        layout, layout_group, index, pairing = legacy_match.groups()
+        return {
+            "layout": layout,
+            "layout_group": layout_group,
+            "group_order": ("easy", "medium", "hard").index(layout_group),
+            "index": int(index),
+            "pairing": pairing,
+            "scheme": "legacy",
+        }
+
+    numbered_match = NUMBERED_LOG_NAME_PATTERN.fullmatch(filename)
+    if numbered_match is not None:
+        layout, index, pairing = numbered_match.groups()
+        index = int(index)
+        group_start = (index // 5) * 5
+        return {
+            "layout": layout,
+            "layout_group": f"{group_start:02d}-{group_start + 4:02d}",
+            "group_order": group_start // 5,
+            "index": index,
+            "pairing": pairing,
+            "scheme": "numbered",
+        }
+
+    return None
 
 
 def parse_args():
@@ -49,11 +82,12 @@ def parse_args():
 def load_results(input_dir):
     results = {}
     for path in sorted(input_dir.glob("dynamic_*/*.log")):
-        match = LOG_NAME_PATTERN.fullmatch(path.name)
-        if match is None:
+        metadata = parse_log_name(path.name)
+        if metadata is None:
             continue
 
-        layout, difficulty, index, pairing = match.groups()
+        layout = metadata["layout"]
+        pairing = metadata["pairing"]
         returns = []
         lengths = []
         for line in path.read_text(encoding="utf-8").splitlines():
@@ -68,10 +102,7 @@ def load_results(input_dir):
             raise ValueError(f"No episode results found in {path}")
 
         results[(layout, pairing)] = {
-            "layout": layout,
-            "difficulty": difficulty,
-            "index": int(index),
-            "pairing": pairing,
+            **metadata,
             "returns": np.asarray(returns, dtype=np.float64),
             "lengths": np.asarray(lengths, dtype=np.int64),
             "path": path,
@@ -82,23 +113,42 @@ def load_results(input_dir):
     return results
 
 
-def ordered_layouts(results, difficulty):
+def layout_groups(results):
+    groups = {
+        item["layout_group"]: item["group_order"] for item in results.values()
+    }
+    return sorted(groups, key=lambda group: groups[group])
+
+
+def ordered_layouts(results, layout_group):
     layouts = {
         item["layout"]: item["index"]
         for item in results.values()
-        if item["difficulty"] == difficulty
+        if item["layout_group"] == layout_group
     }
     return sorted(layouts, key=lambda layout: layouts[layout])
 
 
 def validate_results(results):
+    schemes = {item["scheme"] for item in results.values()}
+    if len(schemes) != 1:
+        raise ValueError(f"Mixed layout naming schemes found: {sorted(schemes)}")
+
+    scheme = schemes.pop()
+    if scheme == "legacy":
+        expected_layouts = [
+            f"dynamic_{difficulty}_{index}"
+            for difficulty in ("easy", "medium", "hard")
+            for index in range(5)
+        ]
+    else:
+        expected_layouts = [f"dynamic_{index:02d}" for index in range(15)]
+
     missing = []
-    for difficulty in DIFFICULTIES:
-        for index in range(5):
-            layout = f"dynamic_{difficulty}_{index}"
-            for pairing in PAIRINGS:
-                if (layout, pairing) not in results:
-                    missing.append(f"{layout}/{pairing}")
+    for layout in expected_layouts:
+        for pairing in PAIRINGS:
+            if (layout, pairing) not in results:
+                missing.append(f"{layout}/{pairing}")
     if missing:
         formatted = "\n".join(f"  - {item}" for item in missing)
         raise FileNotFoundError(f"Missing evaluation logs:\n{formatted}")
@@ -107,7 +157,7 @@ def validate_results(results):
 def write_pairing_csv(results, output_path):
     fieldnames = (
         "layout",
-        "difficulty",
+        "layout_group",
         "pairing",
         "agent_0_seed",
         "agent_1_seed",
@@ -126,7 +176,7 @@ def write_pairing_csv(results, output_path):
         for item in sorted(
             results.values(),
             key=lambda value: (
-                DIFFICULTIES.index(value["difficulty"]),
+                value["group_order"],
                 value["index"],
                 tuple(PAIRINGS).index(value["pairing"]),
             ),
@@ -136,7 +186,7 @@ def write_pairing_csv(results, output_path):
             writer.writerow(
                 {
                     "layout": item["layout"],
-                    "difficulty": item["difficulty"],
+                    "layout_group": item["layout_group"],
                     "pairing": item["pairing"],
                     "agent_0_seed": agent_0_seed,
                     "agent_1_seed": agent_1_seed,
@@ -155,7 +205,7 @@ def write_pairing_csv(results, output_path):
 def write_same_cross_csv(results, output_path):
     fieldnames = (
         "layout",
-        "difficulty",
+        "layout_group",
         "group",
         "samples",
         "mean_return",
@@ -166,8 +216,8 @@ def write_same_cross_csv(results, output_path):
     with output_path.open("w", encoding="utf-8", newline="") as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
         writer.writeheader()
-        for difficulty in DIFFICULTIES:
-            for layout in ordered_layouts(results, difficulty):
+        for layout_group in layout_groups(results):
+            for layout in ordered_layouts(results, layout_group):
                 for group in ("same", "cross"):
                     values = np.concatenate(
                         [
@@ -179,7 +229,7 @@ def write_same_cross_csv(results, output_path):
                     writer.writerow(
                         {
                             "layout": layout,
-                            "difficulty": difficulty,
+                            "layout_group": layout_group,
                             "group": group,
                             "samples": len(values),
                             "mean_return": f"{np.mean(values):.6g}",
@@ -190,20 +240,20 @@ def write_same_cross_csv(results, output_path):
                     )
 
 
-def grouped_returns(results, difficulty, group):
+def grouped_returns(results, layout_group, group):
     return np.concatenate(
         [
             item["returns"]
             for item in results.values()
-            if (difficulty is None or item["difficulty"] == difficulty)
+            if (layout_group is None or item["layout_group"] == layout_group)
             and PAIRINGS[item["pairing"]][3] == group
         ]
     )
 
 
-def write_difficulty_csv(results, output_path):
+def write_group_csv(results, output_path):
     fieldnames = (
-        "difficulty",
+        "layout_group",
         "group",
         "samples",
         "mean_return",
@@ -214,13 +264,13 @@ def write_difficulty_csv(results, output_path):
     with output_path.open("w", encoding="utf-8", newline="") as csv_file:
         writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
         writer.writeheader()
-        for difficulty in (*DIFFICULTIES, "overall"):
-            selected_difficulty = None if difficulty == "overall" else difficulty
+        for layout_group in (*layout_groups(results), "overall"):
+            selected_group = None if layout_group == "overall" else layout_group
             for group in ("same", "cross"):
-                values = grouped_returns(results, selected_difficulty, group)
+                values = grouped_returns(results, selected_group, group)
                 writer.writerow(
                     {
-                        "difficulty": difficulty,
+                        "layout_group": layout_group,
                         "group": group,
                         "samples": len(values),
                         "mean_return": f"{np.mean(values):.6g}",
@@ -240,11 +290,15 @@ def add_bar_labels(axis, bars):
 
 
 def plot_pairings(results, output_path, dpi):
-    figure, axes = plt.subplots(3, 1, figsize=(13, 12), constrained_layout=True)
+    groups = layout_groups(results)
+    figure, axes = plt.subplots(
+        len(groups), 1, figsize=(13, 4 * len(groups)), constrained_layout=True
+    )
+    axes = np.atleast_1d(axes)
     bar_width = 0.2
 
-    for axis, difficulty in zip(axes, DIFFICULTIES):
-        layouts = ordered_layouts(results, difficulty)
+    for axis, layout_group in zip(axes, groups):
+        layouts = ordered_layouts(results, layout_group)
         positions = np.arange(len(layouts))
         for pairing_index, (pairing, metadata) in enumerate(PAIRINGS.items()):
             label, _, _, _, color = metadata
@@ -262,7 +316,7 @@ def plot_pairings(results, output_path, dpi):
             )
             add_bar_labels(axis, bars)
 
-        axis.set_title(f"{difficulty.capitalize()} layouts")
+        axis.set_title(f"Layout group {layout_group}")
         axis.set_ylabel("Episode return")
         axis.set_xticks(positions, [layout.removeprefix("dynamic_") for layout in layouts])
         axis.grid(axis="y", alpha=0.25)
@@ -275,12 +329,19 @@ def plot_pairings(results, output_path, dpi):
 
 
 def plot_same_cross(results, output_path, dpi):
-    figure, axes = plt.subplots(3, 1, figsize=(13, 11), constrained_layout=True)
+    layout_group_names = layout_groups(results)
+    figure, axes = plt.subplots(
+        len(layout_group_names),
+        1,
+        figsize=(13, 4 * len(layout_group_names)),
+        constrained_layout=True,
+    )
+    axes = np.atleast_1d(axes)
     groups = (("same", "Same-seed", "#4c78a8"), ("cross", "Cross-seed", "#f58518"))
     bar_width = 0.36
 
-    for axis, difficulty in zip(axes, DIFFICULTIES):
-        layouts = ordered_layouts(results, difficulty)
+    for axis, layout_group in zip(axes, layout_group_names):
+        layouts = ordered_layouts(results, layout_group)
         positions = np.arange(len(layouts))
         for group_index, (group, label, color) in enumerate(groups):
             grouped_returns = []
@@ -308,7 +369,7 @@ def plot_same_cross(results, output_path, dpi):
             )
             add_bar_labels(axis, bars)
 
-        axis.set_title(f"{difficulty.capitalize()} layouts")
+        axis.set_title(f"Layout group {layout_group}")
         axis.set_ylabel("Episode return")
         axis.set_xticks(positions, [layout.removeprefix("dynamic_") for layout in layouts])
         axis.grid(axis="y", alpha=0.25)
@@ -320,21 +381,21 @@ def plot_same_cross(results, output_path, dpi):
     plt.close(figure)
 
 
-def plot_difficulty_summary(results, output_path, dpi):
+def plot_group_summary(results, output_path, dpi):
     figure, axis = plt.subplots(figsize=(10, 6), constrained_layout=True)
-    difficulties = (*DIFFICULTIES, "overall")
+    layout_group_names = (*layout_groups(results), "overall")
     groups = (("same", "Same-seed", "#4c78a8"), ("cross", "Cross-seed", "#f58518"))
-    positions = np.arange(len(difficulties))
+    positions = np.arange(len(layout_group_names))
     bar_width = 0.36
 
     for group_index, (group, label, color) in enumerate(groups):
         values = [
             grouped_returns(
                 results,
-                None if difficulty == "overall" else difficulty,
+                None if layout_group == "overall" else layout_group,
                 group,
             )
-            for difficulty in difficulties
+            for layout_group in layout_group_names
         ]
         means = [np.mean(group_values) for group_values in values]
         stds = [np.std(group_values) for group_values in values]
@@ -350,9 +411,12 @@ def plot_difficulty_summary(results, output_path, dpi):
         )
         add_bar_labels(axis, bars)
 
-    axis.set_title("Same-seed vs cross-seed return by difficulty")
+    axis.set_title("Same-seed vs cross-seed return by layout group")
     axis.set_ylabel("Episode return")
-    axis.set_xticks(positions, [value.capitalize() for value in difficulties])
+    axis.set_xticks(
+        positions,
+        [value.capitalize() for value in layout_group_names],
+    )
     axis.grid(axis="y", alpha=0.25)
     axis.margins(y=0.18)
     axis.legend()
@@ -361,12 +425,12 @@ def plot_difficulty_summary(results, output_path, dpi):
 
 
 def print_summary(results):
-    for difficulty in (*DIFFICULTIES, "overall"):
-        selected_difficulty = None if difficulty == "overall" else difficulty
-        same = grouped_returns(results, selected_difficulty, "same")
-        cross = grouped_returns(results, selected_difficulty, "cross")
+    for layout_group in (*layout_groups(results), "overall"):
+        selected_group = None if layout_group == "overall" else layout_group
+        same = grouped_returns(results, selected_group, "same")
+        cross = grouped_returns(results, selected_group, "cross")
         print(
-            f"{difficulty}: same={np.mean(same):.2f}±{np.std(same):.2f} "
+            f"{layout_group}: same={np.mean(same):.2f}±{np.std(same):.2f} "
             f"cross={np.mean(cross):.2f}±{np.std(cross):.2f} "
             f"gap={np.mean(same) - np.mean(cross):.2f}"
         )
@@ -380,26 +444,26 @@ def main():
 
     pairing_csv = args.output_dir / "evaluation_pairing_statistics.csv"
     same_cross_csv = args.output_dir / "evaluation_same_cross_statistics.csv"
-    difficulty_csv = args.output_dir / "evaluation_difficulty_statistics.csv"
+    group_csv = args.output_dir / "evaluation_group_statistics.csv"
     pairing_plot = args.output_dir / "pairing_returns_by_map.png"
     same_cross_plot = args.output_dir / "same_vs_cross_by_map.png"
-    difficulty_plot = args.output_dir / "same_vs_cross_by_difficulty.png"
+    group_plot = args.output_dir / "same_vs_cross_by_group.png"
 
     write_pairing_csv(results, pairing_csv)
     write_same_cross_csv(results, same_cross_csv)
-    write_difficulty_csv(results, difficulty_csv)
+    write_group_csv(results, group_csv)
     plot_pairings(results, pairing_plot, args.dpi)
     plot_same_cross(results, same_cross_plot, args.dpi)
-    plot_difficulty_summary(results, difficulty_plot, args.dpi)
+    plot_group_summary(results, group_plot, args.dpi)
     print_summary(results)
 
     for path in (
         pairing_csv,
         same_cross_csv,
-        difficulty_csv,
+        group_csv,
         pairing_plot,
         same_cross_plot,
-        difficulty_plot,
+        group_plot,
     ):
         print(f"Saved: {path}")
 
