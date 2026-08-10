@@ -5,29 +5,35 @@ set -Eeuo pipefail
 PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "${PROJECT_DIR}"
 
-MODELS_DIR="${MODELS_DIR:-models}"
-EVALUATION_DIR="${EVALUATION_DIR:-evaluation/ippo_v1/cnn}"
+MODELS_DIR="${MODELS_DIR:-/mnt/nas/overcooked-replan}"
+EVALUATION_DIR="${EVALUATION_DIR:-evaluation/ippo_v2/cnn}"
 EPISODES="${EPISODES:-3}"
 MAX_STEPS="${MAX_STEPS:-400}"
 EVAL_SEED="${EVAL_SEED:-0}"
 JAX_PLATFORM="${JAX_PLATFORM:-cpu}"
 
+if [[ ! -d "${MODELS_DIR}" ]]; then
+    echo "Model directory does not exist: ${MODELS_DIR}" >&2
+    echo "Make sure the NAS directory is mounted in the container." >&2
+    exit 2
+fi
+
 layouts=(
-    dynamic_easy_0
-    dynamic_easy_1
-    dynamic_easy_2
-    dynamic_easy_3
-    dynamic_easy_4
-    dynamic_medium_0
-    dynamic_medium_1
-    dynamic_medium_2
-    dynamic_medium_3
-    dynamic_medium_4
-    dynamic_hard_0
-    dynamic_hard_1
-    dynamic_hard_2
-    dynamic_hard_3
-    dynamic_hard_4
+    dynamic_00
+    dynamic_01
+    dynamic_02
+    dynamic_03
+    dynamic_04
+    dynamic_05
+    dynamic_06
+    dynamic_07
+    dynamic_08
+    dynamic_09
+    dynamic_10
+    dynamic_11
+    dynamic_12
+    dynamic_13
+    dynamic_14
 )
 
 # label:agent_0_training_seed:agent_1_training_seed

@@ -42,8 +42,11 @@ def parse_args(default_architecture="cnn"):
     parser.add_argument(
         "--models-dir",
         type=Path,
-        default=Path("models"),
-        help="Model root used for automatic checkpoint selection (default: models).",
+        default=Path("/mnt/nas/overcooked-replan"),
+        help=(
+            "Model root used for automatic checkpoint selection "
+            "(default: /mnt/nas/overcooked-replan)."
+        ),
     )
     parser.add_argument(
         "--architecture",

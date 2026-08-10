@@ -1,6 +1,6 @@
 # Dynamic V1 Overcooked layouts. Both ``0`` and ``O`` denote an onion pile.
-# dynamic-easy
-dynamic_easy_0 = [
+
+dynamic_00 = [
     [
         """
 WWWWWWW
@@ -9,7 +9,7 @@ W  W  W
 B     P
 WWWWWWW
 """,
-        200,
+        100,
     ],
     [
         """
@@ -19,34 +19,36 @@ W  W  W
 B  W  P
 WWWWWWW
 """,
-        201,
+        100,
     ],
 ]
 
-dynamic_easy_1  = [
+dynamic_01  = [
     [
         """
-WWWPWWW
-W W W W
-XAW  AB
-W W W W
 WWWOWWW
+W     W
+XAWWWAB
+W WWW W
+W     W
+WWWPWWW
 """,
-        200,
+        100,
     ],
     [
         """
+WWWWWWW
+W WWW W
+XAWOWAB
+W     W
+W     W
 WWWPWWW
-W W W W
-XA  WAB
-W W W W
-WWWOWWW
 """,
-        201,
+        100,
     ],
 ]
 
-dynamic_easy_2  = [
+dynamic_02  = [
     [
         """
 WWWWW
@@ -55,7 +57,7 @@ W W W
 B W P
 WWWWW
 """,
-        200,
+        100,
     ],
     [
         """
@@ -65,11 +67,11 @@ WWWWW
 B   P
 WWWWW
 """,
-        201,
+        100,
     ],
 ]
 
-dynamic_easy_3 = [
+dynamic_03 = [
     [
         """
 WWWWW
@@ -78,7 +80,7 @@ W   W
 B   P
 WWXWW
 """,
-        200,
+        100,
     ],
     [
         """
@@ -88,20 +90,20 @@ W   W
 B   P
 WWXWW
 """,
-        201,
+        100,
     ],
 ]
 
-dynamic_easy_4  = [
+dynamic_04  = [
     [
         """
-WWWPPWWW
+WWWOOWWW
 W      W
 XAWWWWAB
 W      W
-WWWOOWWW
+WWWPPWWW
 """,
-        200,
+        100,
     ],
     [
         """
@@ -111,13 +113,12 @@ BAWWWWAX
 W      W
 WWWOOWWW
 """,
-        201,
+        100,
     ],
 ]
 
 
-#dynamic-medium
-dynamic_medium_0 = [
+dynamic_05 = [
     [
         """
 WWWWWOW
@@ -140,60 +141,52 @@ WWWWWOW
     ],
 ]
 
-dynamic_medium_1 = [
+dynamic_06 = [
     [
         """
-WWWWWWW
-WWWPWWW
-WW   WW
-WBA AOW
-WW   WW
-WWWXWWW
-WWWWWWW
+WWPWW
+W   W
+BA AO
+W   W
+WWXWW
 """,
         100,
     ],
 
     [
         """
-WWOWWWW
-W     W
-W     B
-W A A W
-X     W
-W     W
-WWWWPWW
+WWOWW
+W   W
+PA AX
+W   W
+WWBWW
 """,
         100,
     ],
     [
         """
-WWWWOWW
-W  W  W
-W  W  B
-W AWA W
-X  W  W
-W  W  W
-WWPWWWW
+WWXWW
+W   W
+OA AB
+W   W
+WWPWW
 """,
         100,
     ],
     [
         """
-WWWWOWW
-W     W
-W A   B
-WWWWWWW
-X   A W
-W     W
-WWPWWWW
+WWBWW
+W   W
+XA AP
+W   W
+WWOWW
 """,
         100,
     ],
 ]
 
 
-dynamic_medium_2 = [
+dynamic_07 = [
     [
         """
 WWWWW
@@ -227,30 +220,30 @@ WWWWW
 
 ]
 
-dynamic_medium_3 = [
+dynamic_08 = [
     [
         """
 WWWPWWW
-W     W
+WW   WW
 WW A WW
 WBWWWOW
 W  A  W
 W     W
 WWWXWWW
 """,
-        5,
+        100,
     ],
     [
         """
 WWWPWWW
-W     W
+W    WW
 W  A WW
 WBWWWOW
 WW A  W
-W     W
+WW    W
 WWWXWWW
 """,
-        5,
+        100,
     ],
     [
         """
@@ -259,29 +252,29 @@ W     W
 W  A  W
 WBWWWOW
 WW A WW
-W     W
+WW   WW
 WWWXWWW
 """,
-        5,
+        100,
     ],
     [
         """
 WWWPWWW
-W     W
+WW    W
 WW A  W
 WBWWWOW
 W  A WW
-W     W
+W    WW
 WWWXWWW
 """,
-        5,
+        100,
     ],
 
 ]
 
    
 
-dynamic_medium_4 = [
+dynamic_09 = [
     [
         """
 WWWWW
@@ -290,105 +283,117 @@ W W W
 B W P
 WWWWW
 """,
-        10,
+        100,
     ],
     [
         """
 WWWWW
-0A AX
-WWWWW
-B   P
+XAWAO
+W W W
+P W B
 WWWWW
 """,
-        10,
+        100,
+    ],
+]
+
+dynamic_10 = [
+    [
+        """
+WWWWWWWWWWW
+0A  B     W
+W   W     W
+XA  P     W
+WWWWWWWWWWW
+""",
+        100,
+    ],
+    [
+        """
+WWWWWWWWWWW
+0A        B
+W         W
+XA        P
+WWWWWWWWWWW
+""",
+        100,
+    ],
+]
+
+dynamic_11 = [
+
+    [
+        """
+WWWWWWWWWWWW
+B          O
+BAWWWPPWWWAO
+B    WW    O
+WWWWXWWXWWWW
+""",
+        50,
+    ],
+    [
+        """
+WWWWXWWXWWWW
+B    WW    O
+BAWWWPPWWWAO
+B          O
+WWWWWWWWWWWW
+""",
+        50,
     ],
 ]
 
 
 
-#dynamic-hard
-
-
-dynamic_hard_0 = [
+dynamic_12 = [
     [
         """
-WWWWW
-0A AX
-W WWW
-B  WP
-WWWWW
+WOWWWXW
+0A    X
+W WWW W
+W WWW W
+W WWW W
+B  W AP
+WBWWWPW
 """,
-        2,
+        20,
     ],
     [
         """
-WWWWW
-0A AX
-W W W
-B WWP
-WWWWW
+WOWWWXW
+0A    X
+W WWW W
+WWWWW W
+W WWW W
+B    AP
+WBWWWPW
 """,
-        2,
+        20,
     ],
     [
         """
-WWWWW
-0A AX
-W W W
-BWW P
-WWWWW
+WOWWWXW
+0A W  X
+W WWW W
+W WWW W
+W WWW W
+B    AP
+WBWWWPW
 """,
-        2,
+        20,
     ],
     [
         """
-WWWWW
-0A AX
-WWW W
-BW  P
-WWWWW
+WOWWWXW
+0A    X
+W WWW W
+W WWWWW
+W WWW W
+B    AP
+WBWWWPW
 """,
-        2,
-    ],
-    [
-        """
-WWWWW
-0WAAX
-WWW W
-B   P
-WWWWW
-""",
-        2,
-    ],
-    [
-        """
-WWWWW
-0WWAX
-WAW W
-B   P
-WWWWW
-""",
-        2,
-    ],
-    [
-        """
-WWWWW
-0AWWX
-W WAW
-B   P
-WWWWW
-""",
-        2,
-    ],
-    [
-        """
-WWWWW
-0AAWX
-W WWW
-B   P
-WWWWW
-""",
-        2,
+        20,
     ],
 ]
 
@@ -397,7 +402,19 @@ WWWWW
 
 
 
-dynamic_hard_1 = [
+dynamic_13 = [
+    [
+        """
+WWWWWWW
+0 AWA X
+W  W  W
+W  WWWW
+W     W
+B     P
+WWWWWWW
+""",
+        10,
+    ],
     [
         """
 WWWWWWW
@@ -413,21 +430,9 @@ WWWWWWW
     [
         """
 WWWWWWW
-0WA A X
-W W   W
+0 AWA X
 W  W  W
-W   W W
-B    WP
-WWWWWWW
-""",
-        10,
-    ],
-    [
-        """
-WWWWWWW
-0 A A X
-W     W
-WWWWWWW
+WWWW  W
 W     W
 B     P
 WWWWWWW
@@ -437,11 +442,11 @@ WWWWWWW
     [
         """
 WWWWWWW
-0 A AWX
-W   W W
+0 AWA X
 W  W  W
-W W   W
-BW    P
+W  W  W
+W  W  W
+B  W  P
 WWWWWWW
 """,
         10,
@@ -450,30 +455,9 @@ WWWWWWW
     
     
     
-dynamic_hard_2 = [
-    [
-        """
-WWWWW
-0A WX
-W   W
-BA  P
-WWWWW
-""",
-        180,
-    ],
-    [
-        """
-WWWWW
-0A  X
-W   W
-BA  P
-WWWWW
-""",
-        20,
-    ],
-]
 
-dynamic_hard_3 = [
+
+dynamic_14 = [
     [
         """
 WXWOWBWPW
@@ -482,7 +466,7 @@ W W   W W
 W W W  AW
 WXWOWBWPW
 """,
-        5,
+        10,
     ],
     [
         """
@@ -492,7 +476,7 @@ W   W W W
 W W   WAW
 WXWOWBWPW
 """,
-        5,
+        10,
     ],
     [
         """
@@ -502,52 +486,10 @@ W W W   W
 W   W WAW
 WXWOWBWPW
 """,
-        5,
+        10,
     ],
 ]
 
-dynamic_hard_4 = [
 
-    [
-        """
-WWWWW
-0A AX
-W WWW
-B W P
-WWWWW
-""",
-        20,
-    ],
-    [
-        """
-WWWWW
-0A AX
-WWW W
-B W P
-WWWWW
-""",
-        20,
-    ],
-    [
-        """
-WWWWW
-0AWAX
-WWW W
-B   P
-WWWWW
-""",
-        20,
-    ],
-    [
-        """
-WWWWW
-0AWAX
-W WWW
-B   P
-WWWWW
-""",
-        20,
-    ],
-]
 
 

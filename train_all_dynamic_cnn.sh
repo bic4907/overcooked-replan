@@ -9,7 +9,7 @@ TRAIN_SEEDS="${TRAIN_SEEDS:-0 1}"
 TOTAL_TIMESTEPS="${TOTAL_TIMESTEPS:-3e7}"
 LOG_INTERVAL="${LOG_INTERVAL:-10}"
 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:-50}"
-SAVE_PATH="${SAVE_PATH:-models}"
+SAVE_PATH="${SAVE_PATH:-/mnt/nas/overcooked-replan}"
 WANDB_MODE="${WANDB_MODE:-disabled}"
 GPU_ID="${GPU_ID:-0}"
 
@@ -19,22 +19,31 @@ if [[ ${#train_seeds[@]} -eq 0 ]]; then
     exit 2
 fi
 
+if ! mkdir -p "${SAVE_PATH}"; then
+    echo "Could not create model directory: ${SAVE_PATH}" >&2
+    exit 2
+fi
+if [[ ! -w "${SAVE_PATH}" ]]; then
+    echo "Model directory is not writable: ${SAVE_PATH}" >&2
+    exit 2
+fi
+
 layouts=(
-    dynamic_easy_0
-    dynamic_easy_1
-    dynamic_easy_2
-    dynamic_easy_3
-    dynamic_easy_4
-    dynamic_medium_0
-    dynamic_medium_1
-    dynamic_medium_2
-    dynamic_medium_3
-    dynamic_medium_4
-    dynamic_hard_0
-    dynamic_hard_1
-    dynamic_hard_2
-    dynamic_hard_3
-    dynamic_hard_4
+    dynamic_00
+    dynamic_01
+    dynamic_02
+    dynamic_03
+    dynamic_04
+    dynamic_05
+    dynamic_06
+    dynamic_07
+    dynamic_08
+    dynamic_09
+    dynamic_10
+    dynamic_11
+    dynamic_12
+    dynamic_13
+    dynamic_14
 )
 
 for layout in "${layouts[@]}"; do
@@ -54,7 +63,7 @@ for layout in "${layouts[@]}"; do
                 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL}" \
                 WANDB_MODE="${WANDB_MODE}" \
                 SAVE_PATH="${SAVE_PATH}" \
-                hydra.run.dir="outputs/ippo_v1/cnn/${layout}/seed${seed}" \
+                hydra.run.dir="outputs/ippo_v2/cnn/${layout}/seed${seed}" \
                 2>&1 | sed -u "s/^/[GPU ${GPU_ID}][seed ${seed}] /"
         then
             echo "[GPU ${GPU_ID}][seed ${seed}] Training failed: ${layout}" >&2

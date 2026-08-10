@@ -9,6 +9,7 @@ INSTALL_EXTRAS="${INSTALL_EXTRAS:-algs}"
 DOCKER_SHM_SIZE="${DOCKER_SHM_SIZE:-16g}"
 DOCKER_GPUS="${DOCKER_GPUS:-all}"
 REBUILD_IMAGE="${REBUILD_IMAGE:-0}"
+NAS_PROJECT_DIR="${NAS_PROJECT_DIR:-/mnt/nas/overcooked-replan}"
 
 build_image() {
     docker build \
@@ -37,6 +38,13 @@ docker_args=(
     --volume "${PROJECT_DIR}:/workspace"
     --workdir /workspace
 )
+
+if [[ -d "${NAS_PROJECT_DIR}" ]]; then
+    docker_args+=(--volume "${NAS_PROJECT_DIR}:${NAS_PROJECT_DIR}")
+else
+    echo "Warning: NAS model directory was not found: ${NAS_PROJECT_DIR}" >&2
+    echo "Training and automatic evaluation require this directory." >&2
+fi
 
 if [[ -t 0 && -t 1 ]]; then
     docker_args+=(-it)
