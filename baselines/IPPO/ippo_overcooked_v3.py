@@ -120,7 +120,7 @@ def _record_final_episode(config, params, video_path):
     from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
 
     max_steps = int(config.get("RECORD_MAX_STEPS", 400))
-    fps = int(config.get("RECORD_VIDEO_FPS", 5))
+    fps = int(config.get("RECORD_VIDEO_FPS", 10))
     quality = int(config.get("RECORD_VIDEO_QUALITY", 5))
     if max_steps <= 0:
         raise ValueError("RECORD_MAX_STEPS must be greater than zero")

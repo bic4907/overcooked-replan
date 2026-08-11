@@ -30,7 +30,7 @@ def test_default_training_config_preserves_dynamic_00():
     assert config.get("WANDB_DIR") is None
     assert config.RECORD_FINAL_EPISODE is True
     assert config.RECORD_MAX_STEPS == 400
-    assert config.RECORD_VIDEO_FPS == 5
+    assert config.RECORD_VIDEO_FPS == 10
     assert config.RECORD_VIDEO_QUALITY == 5
 
 
@@ -114,8 +114,6 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
     assert sweep["parameters"]["EXPERIMENT_FOLDER"]["value"] == "role-scenarios"
     assert sweep["parameters"]["SAVES_DIR"]["value"] == "saves"
     assert sweep["parameters"]["recording"]["value"] == "enabled"
-    assert sweep["parameters"]["RECORD_MAX_STEPS"]["value"] == 400
-    assert sweep["parameters"]["RECORD_VIDEO_FPS"]["value"] == 5
     assert "${args_no_hyphens}" in sweep["command"]
 
 

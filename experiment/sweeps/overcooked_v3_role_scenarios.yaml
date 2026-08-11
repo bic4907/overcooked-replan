@@ -31,12 +31,6 @@ parameters:
     value: role-scenarios
   recording:
     value: enabled
-  RECORD_MAX_STEPS:
-    value: 400
-  RECORD_VIDEO_FPS:
-    value: 5
-  RECORD_VIDEO_QUALITY:
-    value: 5
 
 command:
   - ${env}

@@ -253,7 +253,7 @@ the latest rollout; `debug/layout_change_events` counts all phase transitions
 observed during that rollout batch.
 
 At the end of training, the first trained seed runs one deterministic episode.
-A compact 5 FPS MP4 is saved in the experiment directory and uploaded as
+A compact 10 FPS MP4 is saved in the experiment directory and uploaded as
 `visualization/final_episode`. The Hydra default is `recording=enabled`; pass
 `recording=disabled` to turn it off. With recording enabled, customize it using
 `RECORD_MAX_STEPS`, `RECORD_VIDEO_FPS`, and `RECORD_VIDEO_QUALITY`. Recording is
