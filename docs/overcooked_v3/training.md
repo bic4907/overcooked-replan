@@ -100,7 +100,8 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
 saves/
 └── split_sig_cnn_seed0/
     ├── ippo_cnn_overcooked_v3_split_sig_seed0_config.yaml
-    └── ippo_cnn_overcooked_v3_split_sig_seed0_vmap0.safetensors
+    ├── ippo_cnn_overcooked_v3_split_sig_seed0_vmap0.safetensors
+    └── ippo_cnn_split_sig_seed0_vmap0_final_episode.mp4
 ```
 
 `saves/`에는 실험 config와 checkpoint만 저장한다. Hydra와 W&B는 별도 경로
@@ -171,11 +172,20 @@ W&B 지표는 `/` namespace로 구분한다.
 | --- | --- |
 | `train/...` | episode return/length, sparse·shaped·combined reward, PPO loss, entropy, learning rate, update, environment step |
 | `debug/...` | layout phase, 전환 비율·횟수, countdown, 변경 예정 tile 수, wall/resource/signal tile 수 |
+| `eval/...` | 학습 종료 후 녹화한 episode의 return과 length |
+| `visualization/...` | 최종 episode MP4와 녹화 상태 |
 
 Sweep 최적화 지표는 `train/episode_return`이다. `debug/layout_index`와
 `debug/transition_countdown` 등 layout snapshot은 최근 rollout의 마지막 시점을
 나타내며, `debug/layout_change_events`는 rollout batch 중 발생한 전체 phase 전환
 수를 나타낸다.
+
+학습이 끝나면 첫 번째 학습 seed의 deterministic policy로 episode 하나를 실행한다.
+기본 5 FPS MP4는 해당 `saves/<experiment-folder>/`에 저장되고
+`visualization/final_episode`로 업로드된다. `WANDB_MODE=disabled`일 때는 녹화를
+건너뛴다. 온라인·오프라인 W&B run에서도 끄려면
+`RECORD_FINAL_EPISODE=false`를 사용한다. 길이, FPS, 압축 품질은 각각
+`RECORD_MAX_STEPS`, `RECORD_VIDEO_FPS`, `RECORD_VIDEO_QUALITY`로 바꿀 수 있다.
 
 ## 테스트
 

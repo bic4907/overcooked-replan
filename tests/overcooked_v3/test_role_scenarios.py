@@ -102,6 +102,26 @@ def test_visualizer_formats_transition_countdown_in_seconds():
     )
 
 
+def test_visualizer_saves_low_resolution_mp4(tmp_path):
+    env = OvercookedV3(layout="split_no_sig", max_steps=2)
+    _, state = env.reset(jax.random.PRNGKey(0))
+    actions = {agent: jnp.array(0) for agent in env.agents}
+    _, next_state, _, _, _ = env.step_env(jax.random.PRNGKey(1), state, actions)
+    video_path = tmp_path / "episode.mp4"
+
+    OvercookedV3Visualizer(tile_size=8).save_video(
+        [state, next_state],
+        video_path,
+        captions=["step=0", "step=1"],
+        fps=2,
+        quality=3,
+    )
+
+    assert video_path.is_file()
+    assert video_path.stat().st_size > 0
+    assert video_path.read_bytes()[4:8] == b"ftyp"
+
+
 @pytest.mark.parametrize("layout_name", ("outage_no_sig", "outage_sig"))
 def test_resource_outage_removes_right_onion_station(layout_name):
     layout = dynamic_layouts[layout_name]

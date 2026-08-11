@@ -1,6 +1,8 @@
 import functools
 import os
+import tempfile
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Callable, Dict, NamedTuple, Sequence
 
 import distrax
@@ -110,6 +112,111 @@ def _wandb_metadata(config):
         f"{_checkpoint_prefix(config)}_{condition}_seed{config['SEED']}"
     )
     return name, group, tags
+
+
+def _record_final_episode(config, params, video_path):
+    """Roll out the final shared policy once, save an MP4, and upload it."""
+    from jaxmarl.environments.overcooked_v3.common import OvercookedActionsEnum
+    from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
+
+    max_steps = int(config.get("RECORD_MAX_STEPS", 400))
+    fps = int(config.get("RECORD_VIDEO_FPS", 5))
+    quality = int(config.get("RECORD_VIDEO_QUALITY", 5))
+    if max_steps <= 0:
+        raise ValueError("RECORD_MAX_STEPS must be greater than zero")
+    if fps <= 0:
+        raise ValueError("RECORD_VIDEO_FPS must be greater than zero")
+    if not 0 <= quality <= 10:
+        raise ValueError("RECORD_VIDEO_QUALITY must be between 0 and 10")
+
+    env_kwargs = dict(config["ENV_KWARGS"])
+    env_kwargs["max_steps"] = max_steps
+    env = jaxmarl.make(config["ENV_NAME"], **env_kwargs)
+    architecture = _architecture(config)
+    network_class = ActorCriticRNN if architecture == "rnn" else ActorCriticCNN
+    network = network_class(env.action_space(env.agents[0]).n, config=config)
+
+    @jax.jit
+    def select_actions(params, hidden, obs, dones):
+        hidden, pi, _ = network.apply(params, hidden, (obs, dones))
+        return hidden, pi.mode()
+
+    env_step = jax.jit(env.step_env)
+    key = jax.random.PRNGKey(int(config["SEED"]) + 1_000_000)
+    key, reset_key = jax.random.split(key)
+    obs, state = env.reset(reset_key)
+    hidden = ScannedRNN.initialize_carry(env.num_agents, config["GRU_HIDDEN_DIM"])
+    last_done = jnp.zeros((env.num_agents,), dtype=jnp.bool_)
+
+    states = [jax.device_get(state)]
+    captions = ["step=0 score=0 actions=-/-"]
+    episode_return = 0.0
+    episode_length = 0
+
+    for step in range(max_steps):
+        obs_batch = jnp.stack([obs[agent] for agent in env.agents])
+        hidden, actions = select_actions(
+            params,
+            hidden,
+            obs_batch[jnp.newaxis, :],
+            last_done[jnp.newaxis, :],
+        )
+        actions = actions.squeeze(0)
+        env_actions = {agent: actions[index] for index, agent in enumerate(env.agents)}
+        key, step_key = jax.random.split(key)
+        obs, state, rewards, dones, _ = env_step(step_key, state, env_actions)
+
+        episode_return += float(rewards[env.agents[0]])
+        episode_length = step + 1
+        action_names = [
+            OvercookedActionsEnum(int(actions[index])).name
+            for index in range(env.num_agents)
+        ]
+        states.append(jax.device_get(state))
+        captions.append(
+            f"step={episode_length} score={episode_return:g} "
+            f"actions={'/'.join(action_names)}"
+        )
+        last_done = jnp.asarray([dones[agent] for agent in env.agents])
+        if bool(dones["__all__"]):
+            break
+
+    video_path = Path(video_path)
+    video_path.parent.mkdir(parents=True, exist_ok=True)
+    visualizer = OvercookedV3Visualizer(
+        tile_size=24,
+        seconds_per_step=1.0 / fps,
+    )
+    visualizer.save_video(
+        states,
+        filename=str(video_path),
+        agent_view_size=env.agent_view_size,
+        captions=captions,
+        fps=fps,
+        quality=quality,
+    )
+
+    layout = config["ENV_KWARGS"]["layout"]
+    wandb.log(
+        {
+            "visualization/final_episode": wandb.Video(
+                str(video_path),
+                format="mp4",
+                caption=(
+                    f"{layout} | seed={config['SEED']} | "
+                    f"return={episode_return:g} | length={episode_length}"
+                ),
+            ),
+            "eval/final_episode_return": episode_return,
+            "eval/final_episode_length": episode_length,
+        }
+    )
+    print(
+        f"[{_timestamp()}] Saved and logged final episode: {video_path} "
+        f"(return={episode_return:.2f}, length={episode_length})",
+        flush=True,
+    )
+    return video_path, episode_return, episode_length
 
 
 class ScannedRNN(nn.Module):
@@ -836,6 +943,7 @@ def run(config):
     num_seeds = config["NUM_SEEDS"]
     architecture = _architecture(config)
     checkpoint_prefix = _checkpoint_prefix(config)
+    save_dir = None
 
     if config.get("SAVES_DIR") is not None:
         experiment_name, save_dir = _checkpoint_metadata(config)
@@ -861,6 +969,7 @@ def run(config):
     wandb.define_metric("train/env_step")
     wandb.define_metric("train/*", step_metric="train/env_step")
     wandb.define_metric("debug/*", step_metric="train/env_step")
+    wandb.define_metric("eval/*")
 
     with jax.disable_jit(False):
         rng = jax.random.PRNGKey(config["SEED"])
@@ -869,10 +978,10 @@ def run(config):
         train_jit = jax.jit(make_train(config))
         out = jax.block_until_ready(jax.vmap(train_jit)(rngs, seed_indices))
 
-    if config.get("SAVES_DIR") is not None:
+    model_state = out["runner_state"][0]
+    if save_dir is not None:
         from jaxmarl.wrappers.baselines import save_params
 
-        model_state = out["runner_state"][0]
         for i in range(num_seeds):
             params = jax.tree.map(lambda x: x[i], model_state.params)
             checkpoint_path = os.path.join(
@@ -882,6 +991,39 @@ def run(config):
             )
             save_params(params, checkpoint_path)
             print(f"[{_timestamp()}] Saved checkpoint: {checkpoint_path}")
+
+    recording_enabled = bool(config.get("RECORD_FINAL_EPISODE", True))
+    wandb_enabled = str(config.get("WANDB_MODE", "disabled")).lower() != "disabled"
+    if recording_enabled and wandb_enabled:
+        params = jax.tree.map(lambda x: x[0], model_state.params)
+        video_filename = (
+            f"{checkpoint_prefix}_{layout_name}_seed{config['SEED']}_"
+            "vmap0_final_episode.mp4"
+        )
+        try:
+            if save_dir is not None:
+                _record_final_episode(
+                    config,
+                    params,
+                    Path(save_dir) / video_filename,
+                )
+            else:
+                with tempfile.TemporaryDirectory(
+                    prefix="overcooked-v3-final-episode-"
+                ) as temp_dir:
+                    _record_final_episode(
+                        config,
+                        params,
+                        Path(temp_dir) / video_filename,
+                    )
+        except Exception as error:
+            print(
+                f"[{_timestamp()}] WARNING: final episode recording failed: {error}",
+                flush=True,
+            )
+            wandb.log({"debug/final_video_failed": 1})
+            if wandb.run is not None:
+                wandb.run.summary["visualization/final_episode_error"] = str(error)
 
     wandb.finish()
 

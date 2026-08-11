@@ -157,7 +157,8 @@ saves/
 └── <layout>_<architecture>_<experiment-name>_seed<seed>/
     ├── <run>_config.yaml
     ├── <run>_vmap0_update000050.safetensors  # When periodic saves are enabled
-    └── <run>_vmap0.safetensors               # Final checkpoint
+    ├── <run>_vmap0.safetensors               # Final checkpoint
+    └── <run>_vmap0_final_episode.mp4          # Final deterministic rollout
 ```
 
 For example, this configuration:
@@ -198,7 +199,7 @@ Auxiliary outputs use separate default directories:
 
 | Output | Default location |
 | --- | --- |
-| Experiment configurations and checkpoints | `saves/` |
+| Experiment configurations, checkpoints, and final-rollout videos | `saves/` |
 | Hydra single-run logs | `outputs/` |
 | Hydra multirun logs | `multirun/` |
 | Local W&B files | `wandb/` |
@@ -256,11 +257,20 @@ W&B metrics are grouped by slash-delimited namespaces:
 | --- | --- |
 | `train/...` | Episode return and length, sparse/shaped/combined rewards, PPO losses, entropy, learning rate, update, and environment step |
 | `debug/...` | Layout phase, transition fraction and event count, countdown, changed-tile count, and wall/resource/signal tile counts |
+| `eval/...` | Return and length of the final recorded episode |
+| `visualization/...` | Final-episode MP4 and recording diagnostics |
 
 The role-scenario sweep maximizes `train/episode_return`. Layout snapshots such
 as `debug/layout_index` and `debug/transition_countdown` represent the end of
 the latest rollout; `debug/layout_change_events` counts all phase transitions
 observed during that rollout batch.
+
+At the end of training, the first trained seed runs one deterministic episode.
+A compact 5 FPS MP4 is saved in the experiment directory and uploaded as
+`visualization/final_episode`. Configure this behavior with
+`RECORD_FINAL_EPISODE`, `RECORD_MAX_STEPS`, `RECORD_VIDEO_FPS`, and
+`RECORD_VIDEO_QUALITY`. Recording is skipped when `WANDB_MODE=disabled`; set
+`RECORD_FINAL_EPISODE=false` to disable it for an online or offline W&B run.
 
 ## Evaluate and render trained policies
 

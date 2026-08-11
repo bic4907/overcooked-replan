@@ -112,9 +112,15 @@ bash scripts/overcooked_v3/run_wandb_agents.sh \
 ## Outputs
 
 - Checkpoints and resolved configs: `saves/<experiment-folder>/`
+- Final deterministic rollout: `saves/<experiment-folder>/*_final_episode.mp4`
 - Local W&B runtime files: `wandb/`
 - Latest created sweep path: `sweeps/.last_sweep_id`
-- W&B metric groups: `train/...` and `debug/...`
+- W&B metric groups: `train/...`, `debug/...`, `eval/...`, and `visualization/...`
+
+각 run이 끝나면 첫 번째 학습 seed의 deterministic episode 하나를 5 FPS MP4로
+저장하고 `visualization/final_episode`에 업로드한다. 필요하면 sweep YAML의
+`RECORD_MAX_STEPS`, `RECORD_VIDEO_FPS`, `RECORD_VIDEO_QUALITY`를 조정하거나
+`RECORD_FINAL_EPISODE=false`로 비활성화한다.
 
 Sweep 생성 후 `WANDB_ENTITY`, `WANDB_PROJECT`, 또는 sweep metric을 바꾸었다면
 기존 sweep을 재사용하지 말고 새 sweep을 생성한다.

@@ -120,8 +120,42 @@ class OvercookedV3Visualizer:
         agent_view_size=None,
         captions=None,
     ):
-        """Animate a gif give a state sequence and save if to file."""
+        """Render a state sequence and save it as a GIF."""
+        frame_seq = self._animation_frames(state_seq, agent_view_size, captions)
+        frame_duration_ms = int(round(self.seconds_per_step * 1000))
+        durations = [frame_duration_ms] * len(frame_seq)
+        durations[-1] += 3000
+        imageio.mimsave(filename, frame_seq, "GIF", duration=durations, loop=0)
 
+    def save_video(
+        self,
+        state_seq,
+        filename,
+        agent_view_size=None,
+        captions=None,
+        fps=None,
+        quality=5,
+    ):
+        """Render a state sequence and save a compact H.264 MP4."""
+        if fps is None:
+            fps = max(1, int(round(1.0 / self.seconds_per_step)))
+        if fps <= 0:
+            raise ValueError("fps must be greater than zero")
+        if not 0 <= quality <= 10:
+            raise ValueError("quality must be between 0 and 10")
+
+        frame_seq = self._animation_frames(state_seq, agent_view_size, captions)
+        imageio.mimsave(
+            filename,
+            frame_seq,
+            format="FFMPEG",
+            fps=fps,
+            codec="libx264",
+            quality=quality,
+            macro_block_size=2,
+        )
+
+    def _animation_frames(self, state_seq, agent_view_size=None, captions=None):
         if isinstance(state_seq, (list, tuple)):
             frame_seq = [
                 self._render_state(state, agent_view_size) for state in state_seq
@@ -160,6 +194,8 @@ class OvercookedV3Visualizer:
             text_height = max(box[3] - box[1] for box in text_boxes)
             canvas_width = max(frame_seq[0].shape[1], text_width + 12)
             canvas_height = frame_seq[0].shape[0] + text_height + 12
+            canvas_width += canvas_width % 2
+            canvas_height += canvas_height % 2
 
             captioned_frames = []
             for frame, caption in zip(frame_seq, captions):
@@ -175,11 +211,7 @@ class OvercookedV3Visualizer:
                 )
                 captioned_frames.append(np.asarray(canvas))
             frame_seq = captioned_frames
-
-        frame_duration_ms = int(round(self.seconds_per_step * 1000))
-        durations = [frame_duration_ms] * len(frame_seq)
-        durations[-1] += 3000
-        imageio.mimsave(filename, frame_seq, "GIF", duration=durations, loop=0)
+        return frame_seq
 
     def render_sequence(self, state_seq, agent_view_size=None):
         frame_seq = jax.vmap(self._render_state, in_axes=(0, None))(
