@@ -9,7 +9,6 @@ INSTALL_EXTRAS="${INSTALL_EXTRAS:-algs}"
 DOCKER_SHM_SIZE="${DOCKER_SHM_SIZE:-16g}"
 DOCKER_GPUS="${DOCKER_GPUS:-all}"
 REBUILD_IMAGE="${REBUILD_IMAGE:-0}"
-NAS_PROJECT_DIR="${NAS_PROJECT_DIR:-/mnt/nas/overcooked-replan}"
 
 build_image() {
     docker build \
@@ -39,11 +38,12 @@ docker_args=(
     --workdir /workspace
 )
 
-if [[ -d "${NAS_PROJECT_DIR}" ]]; then
-    docker_args+=(--volume "${NAS_PROJECT_DIR}:${NAS_PROJECT_DIR}")
-else
-    echo "Warning: NAS model directory was not found: ${NAS_PROJECT_DIR}" >&2
-    echo "Training and automatic evaluation require this directory." >&2
+if [[ -n "${SAVES_DIR:-}" && "${SAVES_DIR}" == /* ]]; then
+    if [[ ! -d "${SAVES_DIR}" ]]; then
+        echo "SAVES_DIR does not exist: ${SAVES_DIR}" >&2
+        exit 2
+    fi
+    docker_args+=(--volume "${SAVES_DIR}:${SAVES_DIR}")
 fi
 
 if [[ -t 0 && -t 1 ]]; then
@@ -61,11 +61,13 @@ fi
 for variable in \
     CUDA_VISIBLE_DEVICES \
     JAX_PLATFORMS \
+    SAVES_DIR \
     TF_GPU_ALLOCATOR \
     WANDB_API_KEY \
     WANDB_ENTITY \
     WANDB_MODE \
     WANDB_PROJECT \
+    WANDB_DIR \
     XLA_FLAGS
 do
     if printenv "${variable}" >/dev/null 2>&1; then

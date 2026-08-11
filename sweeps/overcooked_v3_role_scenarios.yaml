@@ -25,7 +25,7 @@ parameters:
     value: overcooked-v3-role-coordination
   WANDB_MODE:
     value: online
-  SAVE_PATH:
+  SAVES_DIR:
     value: saves
   EXPERIMENT_FOLDER:
     value: role-scenarios

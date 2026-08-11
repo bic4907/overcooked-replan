@@ -17,6 +17,7 @@ WANDB_ENTITY=your-team-or-user
 WANDB_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
 WANDB_DIR=saves/wandb
+SAVES_DIR=saves
 ```
 
 학습 entrypoint는 `.env`를 자동으로 읽는다. 적용 우선순위는 Hydra 명령줄
@@ -94,7 +95,7 @@ saves/
 └── wandb/                # 로컬 W&B 파일
 ```
 
-NAS 등 다른 루트를 쓰려면 `SAVE_PATH=/mnt/nas/overcooked-replan`처럼 override할
+NAS 등 다른 루트를 쓰려면 `SAVES_DIR=/mnt/nas/overcooked-replan`처럼 override할
 수 있다. 그 경우에도 지정한 경로 바로 아래에 실험 폴더가 만들어진다.
 
 최종 Hydra 설정만 확인할 수 있다.

@@ -42,7 +42,7 @@ def _checkpoint_metadata(config):
     if config["ENV_NAME"] == "overcooked_v3":
         layout_suffix = layout_suffix.removeprefix("dynamic_")
     experiment_name = f"{config['ENV_NAME']}_{layout_suffix}"
-    save_dir = os.path.join(config["SAVE_PATH"], experiment_folder(config))
+    save_dir = os.path.join(config["SAVES_DIR"], experiment_folder(config))
     return experiment_name, save_dir
 
 
@@ -325,7 +325,7 @@ def make_train(config):
     checkpoint_interval = int(config.get("CHECKPOINT_INTERVAL", 0))
     if checkpoint_interval < 0:
         raise ValueError("CHECKPOINT_INTERVAL must be greater than or equal to 0")
-    checkpoint_enabled = checkpoint_interval > 0 and config.get("SAVE_PATH") is not None
+    checkpoint_enabled = checkpoint_interval > 0 and config.get("SAVES_DIR") is not None
     if checkpoint_enabled:
         experiment_name, save_dir = _checkpoint_metadata(config)
 
@@ -765,7 +765,7 @@ def run(config):
     architecture = _architecture(config)
     checkpoint_prefix = _checkpoint_prefix(config)
 
-    if config.get("SAVE_PATH") is not None:
+    if config.get("SAVES_DIR") is not None:
         experiment_name, save_dir = _checkpoint_metadata(config)
         os.makedirs(save_dir, exist_ok=True)
         config_path = os.path.join(
@@ -798,7 +798,7 @@ def run(config):
         train_jit = jax.jit(make_train(config))
         out = jax.block_until_ready(jax.vmap(train_jit)(rngs, seed_indices))
 
-    if config.get("SAVE_PATH") is not None:
+    if config.get("SAVES_DIR") is not None:
         from jaxmarl.wrappers.baselines import save_params
 
         model_state = out["runner_state"][0]

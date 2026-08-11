@@ -23,7 +23,7 @@ def test_default_training_config_preserves_dynamic_00():
 
     assert config.ENV_KWARGS.layout == "dynamic_00"
     assert config.EXPERIMENT == "dynamic_map"
-    assert config.SAVE_PATH == "saves"
+    assert config.SAVES_DIR == "saves"
     assert config.WANDB_DIR == "saves/wandb"
 
 
@@ -48,12 +48,14 @@ def test_dotenv_values_feed_hydra_without_overriding_shell(tmp_path, monkeypatch
         "WANDB_API_KEY=test-key-from-dotenv\n"
         "WANDB_ENTITY=test-entity-from-dotenv\n"
         "WANDB_PROJECT=test-project-from-dotenv\n"
-        "WANDB_MODE=online\n",
+        "WANDB_MODE=online\n"
+        "SAVES_DIR=/tmp/test-saves-from-dotenv\n",
         encoding="utf-8",
     )
     monkeypatch.delenv("WANDB_API_KEY", raising=False)
     monkeypatch.delenv("WANDB_ENTITY", raising=False)
     monkeypatch.delenv("WANDB_PROJECT", raising=False)
+    monkeypatch.delenv("SAVES_DIR", raising=False)
     monkeypatch.setenv("WANDB_MODE", "offline")
 
     assert load_project_env(dotenv_path)
@@ -64,6 +66,7 @@ def test_dotenv_values_feed_hydra_without_overriding_shell(tmp_path, monkeypatch
     assert config.ENTITY == "test-entity-from-dotenv"
     assert config.PROJECT == "test-project-from-dotenv"
     assert config.WANDB_MODE == "offline"
+    assert config.SAVES_DIR == "/tmp/test-saves-from-dotenv"
     assert config.get("WANDB_API_KEY") is None
 
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
@@ -90,7 +93,7 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
     assert set(sweep["parameters"]["scenario"]["values"]) == set(SCENARIOS)
     assert sweep["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4]
     assert sweep["parameters"]["EXPERIMENT_FOLDER"]["value"] == "role-scenarios"
-    assert sweep["parameters"]["SAVE_PATH"]["value"] == "saves"
+    assert sweep["parameters"]["SAVES_DIR"]["value"] == "saves"
     assert "${args_no_hyphens}" in sweep["command"]
 
 
@@ -98,7 +101,7 @@ def test_experiment_folder_changes_with_training_parameters(tmp_path):
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
         hydra_config = compose(
             config_name="ippo_overcooked_v3",
-            overrides=["scenario=split_sig", f"SAVE_PATH={tmp_path}"],
+            overrides=["scenario=split_sig", f"SAVES_DIR={tmp_path}"],
         )
     config = OmegaConf.to_container(hydra_config, resolve=True)
 
@@ -140,6 +143,6 @@ def test_tracking_parameters_do_not_change_experiment_folder():
     changed["PROJECT"] = "another-wandb-project"
     changed["WANDB_MODE"] = "offline"
     changed["WANDB_DIR"] = "/another/wandb/root"
-    changed["SAVE_PATH"] = "/another/model/root"
+    changed["SAVES_DIR"] = "/another/model/root"
 
     assert experiment_folder(config) == experiment_folder(changed)

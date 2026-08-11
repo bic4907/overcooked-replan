@@ -40,10 +40,15 @@ def parse_args(default_architecture="cnn"):
         ),
     )
     parser.add_argument(
+        "--saves-dir",
         "--models-dir",
+        dest="saves_dir",
         type=Path,
         default=Path("saves"),
-        help=("Model root used for automatic checkpoint selection (default: saves)."),
+        help=(
+            "Experiment root used for automatic checkpoint selection "
+            "(default: saves). --models-dir is a deprecated alias."
+        ),
     )
     parser.add_argument(
         "--architecture",
@@ -83,7 +88,7 @@ def parse_args(default_architecture="cnn"):
 
 def resolve_checkpoint(
     checkpoint,
-    models_dir,
+    saves_dir,
     layout,
     architecture,
     training_seed=None,
@@ -95,7 +100,7 @@ def resolve_checkpoint(
 
     experiment_name = f"overcooked_v3_{layout.removeprefix('dynamic_')}"
     checkpoint_prefix = f"ippo_{architecture}"
-    checkpoint_dir = models_dir
+    checkpoint_dir = saves_dir
     seed_pattern = "*" if training_seed is None else str(training_seed)
     pattern = (
         f"{checkpoint_prefix}_{experiment_name}_seed{seed_pattern}_vmap*.safetensors"
@@ -163,7 +168,7 @@ def main(default_architecture="cnn"):
     if args.agent_seeds is None:
         checkpoint = resolve_checkpoint(
             args.checkpoint,
-            args.models_dir,
+            args.saves_dir,
             args.layout,
             args.architecture,
         )
@@ -172,7 +177,7 @@ def main(default_architecture="cnn"):
         checkpoints = tuple(
             resolve_checkpoint(
                 None,
-                args.models_dir,
+                args.saves_dir,
                 args.layout,
                 args.architecture,
                 training_seed=training_seed,

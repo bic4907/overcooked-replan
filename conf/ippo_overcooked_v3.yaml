@@ -36,7 +36,7 @@ NUM_SEEDS: 1
 LOG_INTERVAL: 10
 CHECKPOINT_INTERVAL: 0  # Training updates; 0 disables intermediate checkpoints.
 
-SAVE_PATH: ${oc.env:SAVE_PATH,saves}
+SAVES_DIR: ${oc.env:SAVES_DIR,saves}
 EXPERIMENT_FOLDER: null
 
 ENTITY: ${oc.env:WANDB_ENTITY,''}

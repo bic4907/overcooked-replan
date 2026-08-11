@@ -9,7 +9,7 @@ TRAIN_SEEDS="${TRAIN_SEEDS:-0 1}"
 TOTAL_TIMESTEPS="${TOTAL_TIMESTEPS:-3e7}"
 LOG_INTERVAL="${LOG_INTERVAL:-10}"
 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:-50}"
-SAVE_PATH="${SAVE_PATH:-${PROJECT_DIR}/saves}"
+SAVES_DIR="${SAVES_DIR:-${PROJECT_DIR}/saves}"
 GPU_ID="${GPU_ID:-0}"
 
 read -r -a train_seeds <<< "${TRAIN_SEEDS}"
@@ -18,12 +18,12 @@ if [[ ${#train_seeds[@]} -eq 0 ]]; then
     exit 2
 fi
 
-if ! mkdir -p "${SAVE_PATH}"; then
-    echo "Could not create model directory: ${SAVE_PATH}" >&2
+if ! mkdir -p "${SAVES_DIR}"; then
+    echo "Could not create experiment directory: ${SAVES_DIR}" >&2
     exit 2
 fi
-if [[ ! -w "${SAVE_PATH}" ]]; then
-    echo "Model directory is not writable: ${SAVE_PATH}" >&2
+if [[ ! -w "${SAVES_DIR}" ]]; then
+    echo "Experiment directory is not writable: ${SAVES_DIR}" >&2
     exit 2
 fi
 
@@ -60,8 +60,8 @@ for layout in "${layouts[@]}"; do
                 TOTAL_TIMESTEPS="${TOTAL_TIMESTEPS}" \
                 LOG_INTERVAL="${LOG_INTERVAL}" \
                 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL}" \
-                SAVE_PATH="${SAVE_PATH}" \
-                hydra.run.dir="${SAVE_PATH}/hydra/overcooked_v3/cnn/${layout}/seed${seed}" \
+                SAVES_DIR="${SAVES_DIR}" \
+                hydra.run.dir="${SAVES_DIR}/hydra/overcooked_v3/cnn/${layout}/seed${seed}" \
                 2>&1 | sed -u "s/^/[GPU ${GPU_ID}][seed ${seed}] /"
         then
             echo "[GPU ${GPU_ID}][seed ${seed}] Training failed: ${layout}" >&2

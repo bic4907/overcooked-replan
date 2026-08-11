@@ -281,7 +281,7 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
   LOG_INTERVAL=10 \
   CHECKPOINT_INTERVAL=50 \
   WANDB_MODE=disabled \
-  SAVE_PATH=saves
+  SAVES_DIR=saves
 ```
 
 ### 6.4 모델 및 체크포인트 경로
@@ -475,9 +475,9 @@ JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp python ...
 saves
 ```
 
-NAS를 사용하려면 `SAVE_PATH=/mnt/nas/overcooked-replan` 또는
-`MODELS_DIR=/mnt/nas/overcooked-replan`을 명시한다. 지정한 NAS 경로는 컨테이너를
-열기 전에 호스트에 존재해야 `scripts/run_docker.sh`가 마운트한다.
+NAS를 사용하려면 학습, 평가 또는 Docker 실행 시
+`SAVES_DIR=/mnt/nas/overcooked-replan`을 명시한다. 지정한 경로는 컨테이너를
+열기 전에 호스트에 존재해야 `scripts/run_docker.sh`가 자동으로 마운트한다.
 
 ## 10. 현재 맵 목록
 
