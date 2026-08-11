@@ -1,27 +1,29 @@
 # Overcooked Replan
 
-JaxMARL의 Overcooked V2를 기반으로 동적인 자원 변화와 test-time 역할 재구성을
-연구하기 위한 저장소다. 기존 `overcooked_v2`는 유지하고, 새로운 구현과 실험은
-`overcooked_v3`에 분리되어 있다.
+This repository extends JaxMARL's Overcooked V2 environment to study dynamic
+resource changes and test-time role reconfiguration. The original `overcooked_v2`
+implementation remains intact, while the new environment and experiments live
+under `overcooked_v3`.
 
-현재 제공하는 주요 실험은 다음과 같다.
+The following role-coordination experiments are currently available:
 
-| Hydra scenario | 환경 | Signal counter | 연구 질문 |
+| Hydra scenario | Environment | Signal counter | Research question |
 | --- | --- | --- | --- |
-| `split_no_sig` | Kitchen Split | 없음 | 이동만 보고 서로 다른 구역의 역할을 형성할 수 있는가? |
-| `split_sig` | Kitchen Split | 있음 | 공용 counter가 역할 충돌과 잘못된 구역 선택을 줄이는가? |
-| `outage_no_sig` | Resource Outage | 없음 | 자원 고갈 이후 수집·조리 역할을 재분배할 수 있는가? |
-| `outage_sig` | Resource Outage | 있음 | signal을 이용해 역할 재분배와 복구를 빠르게 할 수 있는가? |
+| `split_no_sig` | Kitchen Split | No | Can agents form complementary spatial roles using movement alone? |
+| `split_sig` | Kitchen Split | Yes | Does a shared counter reduce role conflicts and incorrect area choices? |
+| `outage_no_sig` | Resource Outage | No | Can agents reallocate collection and cooking roles after a resource outage? |
+| `outage_sig` | Resource Outage | Yes | Does signaling accelerate role reallocation and recovery? |
 
-## 빠른 시작
+## Quick start
 
-Python 3.11 이상과 [uv](https://docs.astral.sh/uv/)가 필요하다.
+Python 3.11 or later and [uv](https://docs.astral.sh/uv/) are required.
 
 ```bash
 uv sync --extra algs --extra dev
 ```
 
-환경이 정상적으로 동작하는지 random policy rollout을 GIF로 확인한다.
+Run a random-policy rollout and save it as a GIF to verify that the environment
+works correctly:
 
 ```bash
 uv run python scripts/overcooked_v3/run_role_scenario.py \
@@ -31,17 +33,17 @@ uv run python scripts/overcooked_v3/run_role_scenario.py \
   --gif evaluation/previews/split_sig.gif
 ```
 
-생성된 GIF는 `evaluation/previews/split_sig.gif`에 저장된다.
+The resulting GIF is saved to `evaluation/previews/split_sig.gif`.
 
-## W&B 및 환경변수 설정
+## W&B and environment variables
 
-예제 파일을 복사한다.
+Copy the example environment file:
 
 ```bash
 cp .env.example .env
 ```
 
-`.env`에 필요한 값을 입력한다.
+Add your W&B credentials and settings to `.env`:
 
 ```dotenv
 WANDB_API_KEY=your-api-key
@@ -50,20 +52,20 @@ WANDB_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
 ```
 
-학습 entrypoint는 프로젝트 루트의 `.env`를 자동으로 읽으며 `.env`는 Git에
-포함되지 않는다. W&B를 사용하지 않을 때는 `WANDB_MODE=disabled`로 설정한다.
+The training entrypoint automatically loads `.env` from the project root. The
+file is excluded from Git. Set `WANDB_MODE=disabled` when W&B is not needed.
 
-W&B 관련 환경 설정의 우선순위는 다음과 같다. `SAVES_DIR`에는 이 규칙을
-적용하지 않는다.
+W&B-related settings use the following precedence order. This does not apply to
+`SAVES_DIR`.
 
-1. Hydra 명령줄 override
-2. 현재 shell 환경변수
-3. `.env`
-4. Hydra 기본값
+1. Hydra command-line overrides
+2. Existing shell environment variables
+3. Values from `.env`
+4. Hydra defaults
 
-## 학습
+## Training
 
-### 단일 실험
+### Run one experiment
 
 ```bash
 uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
@@ -73,7 +75,7 @@ uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
   NUM_SEEDS=1
 ```
 
-다른 조건은 `scenario`만 변경하면 된다.
+Change only the `scenario` override to run another condition:
 
 ```bash
 scenario=split_sig
@@ -81,7 +83,7 @@ scenario=outage_no_sig
 scenario=outage_sig
 ```
 
-기본 architecture는 CNN이다. RNN은 다음처럼 선택한다.
+CNN is the default policy architecture. Select the RNN policy as follows:
 
 ```bash
 uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
@@ -91,11 +93,12 @@ uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
   SEED=0
 ```
 
-`scenario`를 생략하면 기존 dynamic map인 `dynamic_00`을 사용한다.
+When `scenario` is omitted, the existing `dynamic_00` map is used.
 
-### 짧은 dry run
+### Short dry run
 
-전체 학습 전에 CPU에서 1 update만 실행해 저장과 학습 경로를 확인할 수 있다.
+Before starting a full training run, use this CPU-only configuration to perform
+one update and verify the training and output paths:
 
 ```bash
 JAX_PLATFORMS=cpu XLA_PYTHON_CLIENT_PREALLOCATE=false \
@@ -112,11 +115,12 @@ uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
   WANDB_MODE=disabled
 ```
 
-위 명령의 실험 결과는 `saves/split_no_sig_cnn_dry-run_seed0/`에 생성된다.
+This command writes the experiment to
+`saves/split_no_sig_cnn_dry-run_seed0/`.
 
-### Hydra 설정 확인
+### Inspect the resolved Hydra configuration
 
-실제로 적용될 설정만 출력하고 학습은 실행하지 않는다.
+Print the effective configuration without starting training:
 
 ```bash
 uv run python baselines/IPPO/ippo_overcooked_v3.py \
@@ -124,40 +128,42 @@ uv run python baselines/IPPO/ippo_overcooked_v3.py \
   --cfg job --resolve
 ```
 
-## 실험 이름과 저장 위치
+## Experiment names and output paths
 
-기본 저장 구조는 다음과 같다.
+Experiments use the following directory structure by default:
 
 ```text
 saves/
 └── <layout>_<architecture>_<experiment-name>_seed<seed>/
     ├── <run>_config.yaml
-    ├── <run>_vmap0_update000050.safetensors  # 중간 저장을 켠 경우
-    └── <run>_vmap0.safetensors               # 최종 checkpoint
+    ├── <run>_vmap0_update000050.safetensors  # When periodic saves are enabled
+    └── <run>_vmap0.safetensors               # Final checkpoint
 ```
 
-예를 들어 아래 설정은
+For example, this configuration:
 
 ```text
 scenario=split_sig ARCHITECTURE=cnn EXPERIMENT_FOLDER=baseline SEED=2
 ```
 
-다음 폴더를 만든다.
+creates the following directory:
 
 ```text
 saves/split_sig_cnn_baseline_seed2/
 ```
 
-`EXPERIMENT_FOLDER`를 생략하면 `saves/split_sig_cnn_seed2/`가 된다. LR처럼
-평소 고정된 값을 ablation 축으로 바꿀 때만 `EXPERIMENT_FOLDER=lr-1e-4`처럼
-중요한 구분값을 실험명에 넣는다.
+If `EXPERIMENT_FOLDER` is omitted, the directory is
+`saves/split_sig_cnn_seed2/`. Include only meaningful experimental axes in the
+name. For example, when a normally fixed learning rate becomes an ablation
+variable, use a name such as `EXPERIMENT_FOLDER=lr-1e-4`.
 
-같은 layout, architecture, experiment name, seed로 다시 실행하면 기존 config와
-checkpoint를 덮어쓸 수 있다.
+Running the same layout, architecture, experiment name, and seed again may
+overwrite the existing configuration and checkpoints.
 
-`SAVES_DIR`는 환경변수나 `.env`가 아니라 Hydra config에서 관리한다. 기본값은
-`conf/ippo_overcooked_v3.yaml`의 `saves`이며, 저장 루트를 변경할 때는 학습
-명령에 Hydra override를 추가한다. `/mnt/nas`는 코드에 하드코딩되어 있지 않다.
+`SAVES_DIR` is managed by Hydra rather than by shell environment variables or
+`.env`. Its default value is `saves` in `conf/ippo_overcooked_v3.yaml`. To change
+the storage root, pass a Hydra override to the training command. `/mnt/nas` is
+not hardcoded anywhere in the training code.
 
 ```bash
 uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
@@ -167,28 +173,28 @@ uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
   SEED=0
 ```
 
-`saves/`에는 실험 config와 checkpoint만 저장한다. 그 외 출력은 각 기본
-디렉터리로 분리된다.
+Only experiment configurations and checkpoints are stored under `saves/`.
+Auxiliary outputs use separate default directories:
 
-| 출력 | 기본 위치 |
+| Output | Default location |
 | --- | --- |
-| 실험 config와 checkpoint | `saves/` |
-| Hydra 단일 실행 로그 | `outputs/` |
-| Hydra multirun 로그 | `multirun/` |
-| W&B 로컬 파일 | `wandb/` |
-| GIF와 평가 통계 | `evaluation/` |
+| Experiment configurations and checkpoints | `saves/` |
+| Hydra single-run logs | `outputs/` |
+| Hydra multirun logs | `multirun/` |
+| Local W&B files | `wandb/` |
+| GIFs and evaluation statistics | `evaluation/` |
 
 ## W&B sweep
 
-`sweeps/overcooked_v3_role_scenarios.yaml`은 네 scenario와 seed 5개를 조합한
-20-run grid다.
+`sweeps/overcooked_v3_role_scenarios.yaml` defines a 20-run grid over four
+scenarios and five seeds.
 
 ```bash
 uv run dotenv run --no-override -- wandb sweep \
   sweeps/overcooked_v3_role_scenarios.yaml
 ```
 
-출력된 sweep ID로 agent를 실행한다.
+Start an agent with the sweep ID printed by W&B:
 
 ```bash
 uv run dotenv run --no-override -- wandb agent \
@@ -196,7 +202,8 @@ uv run dotenv run --no-override -- wandb agent \
   ENTITY/PROJECT/SWEEP_ID
 ```
 
-여러 GPU에서 병렬 실행할 때는 같은 sweep ID로 agent를 하나씩 실행한다.
+To run the sweep on multiple GPUs, start one agent per GPU with the same sweep
+ID:
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 uv run dotenv run --no-override -- \
@@ -206,12 +213,13 @@ CUDA_VISIBLE_DEVICES=1 uv run dotenv run --no-override -- \
   wandb agent ENTITY/PROJECT/SWEEP_ID
 ```
 
-Sweep 결과 폴더는 예를 들어
-`saves/split_sig_cnn_role-scenarios_seed0/` 형태로 저장된다.
+For example, a sweep run is saved under a directory such as
+`saves/split_sig_cnn_role-scenarios_seed0/`.
 
-## 학습된 정책 평가와 렌더링
+## Evaluate and render trained policies
 
-같은 seed의 두 정책을 평가하고 첫 episode를 GIF로 저장한다.
+Evaluate two policies trained with the same seed and save the first episode as
+a GIF:
 
 ```bash
 JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
@@ -224,7 +232,7 @@ uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --gif evaluation/split_no_sig_same_seed0.gif
 ```
 
-Cross-play는 서로 다른 학습 seed를 지정한다.
+For cross-play, select policies trained with different seeds:
 
 ```bash
 JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
@@ -237,9 +245,9 @@ uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --gif evaluation/split_no_sig_cross_seed0_seed1.gif
 ```
 
-`--agent-seeds`를 사용하면 `saves/` 아래에서 해당 layout과 seed의 최신 최종
-checkpoint를 찾는다. 특정 파일을 확실하게 평가하려면 `--checkpoint`에 경로를
-직접 지정한다.
+With `--agent-seeds`, the evaluator finds the newest final checkpoint for the
+requested layout and seed under `saves/`. To evaluate a specific file, provide
+its path explicitly with `--checkpoint`:
 
 ```bash
 uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
@@ -250,11 +258,11 @@ uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --render-delay 0.2
 ```
 
-GUI가 없는 서버에서는 `--render` 대신 `--gif`를 사용한다.
+On a headless server, use `--gif` instead of `--render`.
 
-## 일괄 dynamic map 학습과 평가
+## Batch training and evaluation of dynamic maps
 
-`dynamic_00`부터 `dynamic_14`까지 CNN을 학습한다.
+Train CNN policies on `dynamic_00` through `dynamic_14`:
 
 ```bash
 TRAIN_SEEDS="0 1" \
@@ -263,47 +271,48 @@ bash scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh \
   SAVES_DIR=saves
 ```
 
-학습된 dynamic map 정책의 same-seed/cross-seed 조합을 일괄 평가한다.
+Evaluate same-seed and cross-seed combinations of the trained dynamic-map
+policies:
 
 ```bash
 EVALUATION_DIR=evaluation/overcooked_v3/cnn \
 bash scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh
 ```
 
-## 테스트
+## Tests
 
-Overcooked V2와 V3 회귀 테스트를 실행한다.
+Run the Overcooked V2 and V3 regression tests:
 
 ```bash
 uv run pytest -q tests/overcooked_v3 tests/overcooked_v2
 ```
 
-코드 스타일 검사:
+Run the code-style checks:
 
 ```bash
 uv run ruff check .
 ```
 
-## 코드와 문서 위치
+## Repository layout
 
-| 경로 | 내용 |
+| Path | Contents |
 | --- | --- |
-| `jaxmarl/environments/overcooked_v3/` | Overcooked V3 환경 구현 |
-| `jaxmarl/environments/overcooked_v2/` | 유지되는 기존 V2 구현 |
-| `baselines/IPPO/ippo_overcooked_v3.py` | CNN/RNN IPPO 학습 entrypoint |
-| `conf/` | Hydra 기본값과 scenario 설정 |
-| `sweeps/` | W&B sweep 설정 |
-| `scripts/overcooked_v3/` | rollout, 일괄 학습, 일괄 평가 스크립트 |
-| `docs/overcooked_v3/` | 환경 설계 및 상세 workflow |
+| `jaxmarl/environments/overcooked_v3/` | Overcooked V3 environment implementation |
+| `jaxmarl/environments/overcooked_v2/` | Preserved Overcooked V2 implementation |
+| `baselines/IPPO/ippo_overcooked_v3.py` | CNN/RNN IPPO training entrypoint |
+| `conf/` | Hydra defaults and scenario configurations |
+| `sweeps/` | W&B sweep configurations |
+| `scripts/overcooked_v3/` | Rollout, batch-training, and batch-evaluation scripts |
+| `docs/overcooked_v3/` | Environment design and detailed workflows |
 
-상세 문서:
+Additional documentation:
 
-- [Overcooked V3 문서](docs/overcooked_v3/index.md)
-- [학습 및 W&B 설정](docs/overcooked_v3/training.md)
-- [환경 개발과 평가 workflow](docs/overcooked_v3/workflow.md)
+- [Overcooked V3 documentation](docs/overcooked_v3/index.md)
+- [Training and W&B configuration](docs/overcooked_v3/training.md)
+- [Environment development and evaluation workflow](docs/overcooked_v3/workflow.md)
 
-## 기반 프로젝트
+## Upstream project
 
-이 저장소는 [JaxMARL](https://github.com/FLAIROx/JaxMARL)을 기반으로 한다.
-원 프로젝트의 라이선스와 인용 정보는 [LICENSE](LICENSE) 및 JaxMARL 저장소를
-참고한다.
+This repository is based on [JaxMARL](https://github.com/FLAIROx/JaxMARL). See
+[LICENSE](LICENSE) and the upstream JaxMARL repository for licensing and citation
+information.
