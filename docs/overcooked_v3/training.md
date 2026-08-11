@@ -70,7 +70,7 @@ uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
   SEED=0
 ```
 
-결과 폴더는 `saves/lr-1e-4_split_sig_cnn_seed0`이다. W&B 기본 run 이름은
+결과 폴더는 `saves/split_sig_cnn_lr-1e-4_seed0`이다. W&B 기본 run 이름은
 `ippo_cnn_split_sig_seed0`이다. 동일 layout, architecture, seed를 다시 실행하면
 기존 결과를 덮어쓸 수 있으므로 별도 실행은 `SEED` 또는 `EXPERIMENT_FOLDER`로
 구분한다.

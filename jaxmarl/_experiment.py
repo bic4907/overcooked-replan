@@ -13,7 +13,9 @@ def _path_component(value: object) -> str:
 def experiment_folder(config: Mapping[str, Any]) -> str:
     layout = config["ENV_KWARGS"]["layout"]
     architecture = str(config["ARCHITECTURE"]).lower()
-    context = f"{layout}_{architecture}_seed{config['SEED']}"
-    prefix = config.get("EXPERIMENT_FOLDER")
-    label = f"{prefix}_{context}" if prefix else context
+    experiment_name = config.get("EXPERIMENT_FOLDER")
+    context = f"{layout}_{architecture}"
+    if experiment_name:
+        context = f"{context}_{experiment_name}"
+    label = f"{context}_seed{config['SEED']}"
     return _path_component(label)

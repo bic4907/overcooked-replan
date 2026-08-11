@@ -126,7 +126,7 @@ def test_experiment_folder_uses_only_key_experiment_parameters(tmp_path):
     assert experiment_folder(layout_change) == "outage_sig_cnn_seed0"
 
 
-def test_custom_experiment_folder_is_safe_prefix():
+def test_custom_experiment_name_is_safe_and_precedes_seed():
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
         hydra_config = compose(
             config_name="ippo_overcooked_v3",
@@ -139,12 +139,12 @@ def test_custom_experiment_folder_is_safe_prefix():
     changed = deepcopy(config)
     changed["SEED"] = 1
 
-    assert folder == "learning-rate-sweep-01_outage_no_sig_cnn_seed0"
+    assert folder == "outage_no_sig_cnn_learning-rate-sweep-01_seed0"
     assert "/" not in folder
     assert folder != experiment_folder(changed)
 
     config["EXPERIMENT_FOLDER"] = "양파 실험/01"
-    assert experiment_folder(config) == "양파-실험-01_outage_no_sig_cnn_seed0"
+    assert experiment_folder(config) == "outage_no_sig_cnn_양파-실험-01_seed0"
 
 
 def test_tracking_parameters_do_not_change_experiment_folder():
