@@ -1,0 +1,35 @@
+name: overcooked-v3-role-scenarios
+program: baselines/IPPO/ippo_overcooked_v3.py
+project: overcooked-v3-role-coordination
+method: grid
+run_cap: 20
+
+metric:
+  goal: maximize
+  name: returned_episode_returns
+
+parameters:
+  scenario:
+    values:
+      - split_no_sig
+      - split_sig
+      - outage_no_sig
+      - outage_sig
+  SEED:
+    values: [0, 1, 2, 3, 4]
+  NUM_SEEDS:
+    value: 1
+  ARCHITECTURE:
+    value: cnn
+  PROJECT:
+    value: overcooked-v3-role-coordination
+  WANDB_MODE:
+    value: online
+  SAVE_PATH:
+    value: outputs/checkpoints
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

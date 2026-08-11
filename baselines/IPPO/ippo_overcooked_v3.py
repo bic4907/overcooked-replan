@@ -16,6 +16,7 @@ from omegaconf import OmegaConf
 
 import jaxmarl
 import wandb
+from jaxmarl._env import load_project_env
 from jaxmarl.wrappers.baselines import LogWrapper
 
 
@@ -44,6 +45,25 @@ def _checkpoint_metadata(config):
         config["SAVE_PATH"], "ippo_v3", _architecture(config), experiment_name
     )
     return experiment_name, save_dir
+
+
+def _wandb_metadata(config):
+    """Build stable W&B names while keeping Hydra overrides authoritative."""
+    architecture = _architecture(config)
+    layout_name = config["ENV_KWARGS"]["layout"]
+    condition = layout_name
+    experiment = config.get("EXPERIMENT", "overcooked_v3")
+    signal_tag = "Sig" if config.get("SIGNAL_ENABLED", False) else "NoSig"
+
+    tags = list(config.get("WANDB_TAGS") or [])
+    tags.extend(["IPPO", architecture.upper(), "OvercookedV3", experiment, signal_tag])
+    tags = list(dict.fromkeys(tags))
+
+    group = config.get("WANDB_GROUP") or experiment
+    name = config.get("RUN_NAME") or (
+        f"{_checkpoint_prefix(config)}_{condition}_seed{config['SEED']}"
+    )
+    return name, group, tags
 
 
 class ScannedRNN(nn.Module):
@@ -321,8 +341,7 @@ def make_train(config):
             )
             save_params(params, checkpoint_path)
             print(
-                f"[{_timestamp()}] Saved intermediate checkpoint: "
-                f"{checkpoint_path}",
+                f"[{_timestamp()}] Saved intermediate checkpoint: {checkpoint_path}",
                 flush=True,
             )
 
@@ -755,13 +774,17 @@ def run(config):
         )
         OmegaConf.save(OmegaConf.create(config), config_path)
 
+    wandb_name, wandb_group, wandb_tags = _wandb_metadata(config)
     wandb.init(
-        entity=config["ENTITY"],
+        entity=config.get("ENTITY") or None,
         project=config["PROJECT"],
-        tags=["IPPO", architecture.upper(), "Overcooked"],
+        tags=wandb_tags,
         config=config,
         mode=config["WANDB_MODE"],
-        name=f"{checkpoint_prefix}_overcooked_{layout_name}",
+        name=wandb_name,
+        group=wandb_group,
+        job_type="train",
+        notes=config.get("NOTES"),
     )
 
     with jax.disable_jit(False):
@@ -788,10 +811,13 @@ def run(config):
     wandb.finish()
 
 
-@hydra.main(version_base=None, config_path="config", config_name="ippo_overcooked_v3")
+@hydra.main(
+    version_base=None, config_path="../../conf", config_name="ippo_overcooked_v3"
+)
 def main(config):
     run(config)
 
 
 if __name__ == "__main__":
+    load_project_env()
     main()

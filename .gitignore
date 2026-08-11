@@ -17,3 +17,6 @@ outputs/
 models/
 build/
 .idea
+.env
+.env.*
+!.env.example

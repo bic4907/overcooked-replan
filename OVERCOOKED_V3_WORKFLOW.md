@@ -26,7 +26,7 @@
 | `jaxmarl/environments/overcooked_v3/dynamic_layout_data.py` | 동적 맵 원본 데이터 |
 | `jaxmarl/environments/overcooked_v3/dynamic_layouts.py` | 데이터 파싱 및 유효성 검사 |
 | `jaxmarl/environments/overcooked_v3/dynamic_overcooked.py` | 맵 전환과 캐릭터 재배치 규칙 |
-| `baselines/IPPO/config/ippo_overcooked_v3.yaml` | IPPO 기본 하이퍼파라미터 |
+| `conf/ippo_overcooked_v3.yaml` | IPPO 기본 하이퍼파라미터 |
 | `baselines/IPPO/ippo_overcooked_v3.py` | CNN/RNN 통합 학습 코드 |
 | `train_all_overcooked_v3_cnn.sh` | 15개 맵 CNN 일괄 학습 |
 | `baselines/IPPO/eval_ippo_overcooked_v3.py` | CNN/RNN 통합 평가 코드 |

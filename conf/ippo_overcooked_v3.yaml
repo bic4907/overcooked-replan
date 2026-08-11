@@ -1,0 +1,47 @@
+defaults:
+  - _self_
+  - scenario: dynamic_00
+
+ENV_NAME: overcooked_v3
+ARCHITECTURE: cnn
+ENV_KWARGS:
+  layout: dynamic_00
+  random_agent_positions: false
+
+LR: 0.00025
+ANNEAL_LR: true
+LR_WARMUP: 0.05
+
+NUM_ENVS: 256
+NUM_STEPS: 256
+UPDATE_EPOCHS: 4
+NUM_MINIBATCHES: 64
+
+TOTAL_TIMESTEPS: 3e7
+REW_SHAPING_HORIZON: 1.5e7
+
+FC_DIM_SIZE: 128
+GRU_HIDDEN_DIM: 128
+
+CLIP_EPS: 0.2
+ENT_COEF: 0.01
+GAMMA: 0.99
+GAE_LAMBDA: 0.95
+SCALE_CLIP_EPS: false
+VF_COEF: 0.5
+MAX_GRAD_NORM: 0.25
+ACTIVATION: relu
+SEED: 0
+NUM_SEEDS: 1
+LOG_INTERVAL: 10
+CHECKPOINT_INTERVAL: 0  # Training updates; 0 disables intermediate checkpoints.
+
+SAVE_PATH: /mnt/nas/overcooked-replan
+
+ENTITY: ${oc.env:WANDB_ENTITY,''}
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-role-coordination}
+WANDB_MODE: ${oc.env:WANDB_MODE,disabled}
+WANDB_GROUP: null
+WANDB_TAGS: []
+RUN_NAME: null
+NOTES: null

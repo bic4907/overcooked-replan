@@ -10,7 +10,6 @@ TOTAL_TIMESTEPS="${TOTAL_TIMESTEPS:-3e7}"
 LOG_INTERVAL="${LOG_INTERVAL:-10}"
 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:-50}"
 SAVE_PATH="${SAVE_PATH:-/mnt/nas/overcooked-replan}"
-WANDB_MODE="${WANDB_MODE:-disabled}"
 GPU_ID="${GPU_ID:-0}"
 
 read -r -a train_seeds <<< "${TRAIN_SEEDS}"
@@ -61,7 +60,6 @@ for layout in "${layouts[@]}"; do
                 TOTAL_TIMESTEPS="${TOTAL_TIMESTEPS}" \
                 LOG_INTERVAL="${LOG_INTERVAL}" \
                 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL}" \
-                WANDB_MODE="${WANDB_MODE}" \
                 SAVE_PATH="${SAVE_PATH}" \
                 hydra.run.dir="outputs/overcooked_v3/cnn/${layout}/seed${seed}" \
                 2>&1 | sed -u "s/^/[GPU ${GPU_ID}][seed ${seed}] /"
