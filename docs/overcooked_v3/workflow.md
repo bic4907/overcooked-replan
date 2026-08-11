@@ -475,9 +475,12 @@ JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp python ...
 saves
 ```
 
-NAS를 사용하려면 학습, 평가 또는 Docker 실행 시
-`SAVES_DIR=/mnt/nas/overcooked-replan`을 명시한다. 지정한 경로는 컨테이너를
-열기 전에 호스트에 존재해야 `scripts/run_docker.sh`가 자동으로 마운트한다.
+NAS를 사용하려면 학습 명령에 `SAVES_DIR=/mnt/nas/overcooked-replan`을 Hydra
+override로 전달하고, 평가에는 `--saves-dir /mnt/nas/overcooked-replan`을
+전달한다. Docker에서는 공유 `scripts/run_docker.sh`가 host 경로를 mount하기
+위해서만 `SAVES_DIR` 환경변수를 읽는다. 이 값은 Hydra 학습 설정으로 자동
+적용되지 않으므로 컨테이너 내부 학습 명령에도 같은 경로를 Hydra override로
+전달해야 한다.
 
 ## 10. 현재 맵 목록
 

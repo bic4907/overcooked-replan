@@ -16,12 +16,12 @@ WANDB_API_KEY=your-api-key
 WANDB_ENTITY=your-team-or-user
 WANDB_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
-SAVES_DIR=saves
 ```
 
-학습 entrypoint는 `.env`를 자동으로 읽는다. 적용 우선순위는 Hydra 명령줄
-override, 기존 shell 환경변수, `.env`, Hydra 기본값 순서다. API key는 Hydra
-config나 W&B run config에 기록하지 않는다.
+학습 entrypoint는 `.env`를 자동으로 읽는다. W&B 설정의 적용 우선순위는 Hydra
+명령줄 override, 기존 shell 환경변수, `.env`, Hydra 기본값 순서다. `SAVES_DIR`는
+이 환경변수 규칙을 사용하지 않는다. API key는 Hydra config나 W&B run config에
+기록하지 않는다.
 
 ## 시나리오
 
@@ -93,8 +93,10 @@ saves/
 └── <experiment-folder>/  # config와 checkpoint
 ```
 
-NAS 등 다른 루트를 쓰려면 `SAVES_DIR=/mnt/nas/overcooked-replan`처럼 override할
-수 있다. 그 경우에도 지정한 경로 바로 아래에 실험 폴더가 만들어진다.
+`SAVES_DIR`는 `.env`가 아닌 Hydra config에서 관리하며 기본값은 `saves`다.
+NAS 등 다른 루트를 쓰려면 학습 명령에
+`SAVES_DIR=/mnt/nas/overcooked-replan`을 Hydra override로 추가한다. 그 경우에도
+지정한 경로 바로 아래에 실험 폴더가 만들어진다.
 
 최종 Hydra 설정만 확인할 수 있다.
 

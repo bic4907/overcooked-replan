@@ -42,7 +42,7 @@ def test_hydra_scenario_group_composes_all_conditions():
             assert config.WANDB_MODE == "disabled"
 
 
-def test_dotenv_values_feed_hydra_without_overriding_shell(tmp_path, monkeypatch):
+def test_dotenv_configures_wandb_but_not_hydra_saves_dir(tmp_path, monkeypatch):
     dotenv_path = tmp_path / ".env"
     dotenv_path.write_text(
         "WANDB_API_KEY=test-key-from-dotenv\n"
@@ -55,7 +55,7 @@ def test_dotenv_values_feed_hydra_without_overriding_shell(tmp_path, monkeypatch
     monkeypatch.delenv("WANDB_API_KEY", raising=False)
     monkeypatch.delenv("WANDB_ENTITY", raising=False)
     monkeypatch.delenv("WANDB_PROJECT", raising=False)
-    monkeypatch.delenv("SAVES_DIR", raising=False)
+    monkeypatch.setenv("SAVES_DIR", "/tmp/test-saves-from-shell")
     monkeypatch.setenv("WANDB_MODE", "offline")
 
     assert load_project_env(dotenv_path)
@@ -66,7 +66,7 @@ def test_dotenv_values_feed_hydra_without_overriding_shell(tmp_path, monkeypatch
     assert config.ENTITY == "test-entity-from-dotenv"
     assert config.PROJECT == "test-project-from-dotenv"
     assert config.WANDB_MODE == "offline"
-    assert config.SAVES_DIR == "/tmp/test-saves-from-dotenv"
+    assert config.SAVES_DIR == "saves"
     assert config.get("WANDB_API_KEY") is None
 
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):

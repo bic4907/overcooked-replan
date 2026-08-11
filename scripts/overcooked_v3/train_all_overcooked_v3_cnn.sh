@@ -9,21 +9,12 @@ TRAIN_SEEDS="${TRAIN_SEEDS:-0 1}"
 TOTAL_TIMESTEPS="${TOTAL_TIMESTEPS:-3e7}"
 LOG_INTERVAL="${LOG_INTERVAL:-10}"
 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:-50}"
-SAVES_DIR="${SAVES_DIR:-${PROJECT_DIR}/saves}"
 GPU_ID="${GPU_ID:-0}"
+hydra_overrides=("$@")
 
 read -r -a train_seeds <<< "${TRAIN_SEEDS}"
 if [[ ${#train_seeds[@]} -eq 0 ]]; then
     echo "TRAIN_SEEDS must contain at least one seed" >&2
-    exit 2
-fi
-
-if ! mkdir -p "${SAVES_DIR}"; then
-    echo "Could not create experiment directory: ${SAVES_DIR}" >&2
-    exit 2
-fi
-if [[ ! -w "${SAVES_DIR}" ]]; then
-    echo "Experiment directory is not writable: ${SAVES_DIR}" >&2
     exit 2
 fi
 
@@ -60,7 +51,7 @@ for layout in "${layouts[@]}"; do
                 TOTAL_TIMESTEPS="${TOTAL_TIMESTEPS}" \
                 LOG_INTERVAL="${LOG_INTERVAL}" \
                 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL}" \
-                SAVES_DIR="${SAVES_DIR}" \
+                "${hydra_overrides[@]}" \
                 2>&1 | sed -u "s/^/[GPU ${GPU_ID}][seed ${seed}] /"
         then
             echo "[GPU ${GPU_ID}][seed ${seed}] Training failed: ${layout}" >&2

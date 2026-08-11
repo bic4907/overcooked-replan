@@ -48,13 +48,13 @@ WANDB_API_KEY=your-api-key
 WANDB_ENTITY=your-team-or-user
 WANDB_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
-SAVES_DIR=saves
 ```
 
 학습 entrypoint는 프로젝트 루트의 `.env`를 자동으로 읽으며 `.env`는 Git에
 포함되지 않는다. W&B를 사용하지 않을 때는 `WANDB_MODE=disabled`로 설정한다.
 
-설정 우선순위는 다음과 같다.
+W&B 관련 환경 설정의 우선순위는 다음과 같다. `SAVES_DIR`에는 이 규칙을
+적용하지 않는다.
 
 1. Hydra 명령줄 override
 2. 현재 shell 환경변수
@@ -155,8 +155,9 @@ saves/split_sig_cnn_baseline_seed2/
 같은 layout, architecture, experiment name, seed로 다시 실행하면 기존 config와
 checkpoint를 덮어쓸 수 있다.
 
-저장 루트를 변경하려면 `SAVES_DIR`만 override한다. `/mnt/nas`는 코드에
-하드코딩되어 있지 않다.
+`SAVES_DIR`는 환경변수나 `.env`가 아니라 Hydra config에서 관리한다. 기본값은
+`conf/ippo_overcooked_v3.yaml`의 `saves`이며, 저장 루트를 변경할 때는 학습
+명령에 Hydra override를 추가한다. `/mnt/nas`는 코드에 하드코딩되어 있지 않다.
 
 ```bash
 uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
@@ -258,14 +259,13 @@ GUI가 없는 서버에서는 `--render` 대신 `--gif`를 사용한다.
 ```bash
 TRAIN_SEEDS="0 1" \
 TOTAL_TIMESTEPS=3e7 \
-SAVES_DIR=saves \
-bash scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh
+bash scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh \
+  SAVES_DIR=saves
 ```
 
 학습된 dynamic map 정책의 same-seed/cross-seed 조합을 일괄 평가한다.
 
 ```bash
-SAVES_DIR=saves \
 EVALUATION_DIR=evaluation/overcooked_v3/cnn \
 bash scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh
 ```
