@@ -317,4 +317,8 @@ def test_jitted_step_reports_v2_reward_and_dynamic_layout_info():
         "layout_changed",
         "steps_until_layout_change",
         "transition_countdown",
+        "layout_change_tile_count",
+        "wall_tile_count",
+        "ingredient_pile_count",
+        "signal_tile_count",
     }

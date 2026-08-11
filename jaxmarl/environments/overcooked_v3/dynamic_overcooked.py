@@ -225,6 +225,15 @@ class OvercookedV3(OvercookedV3Base):
         obs = self.get_obs(state)
         steps_until_layout_change = state.steps_until_layout_change
         transition_countdown = self.get_transition_countdown(state.step)
+        static_objects = state.grid[:, :, 0]
+        layout_change_tile_count = jnp.sum(state.layout_change_mask)
+        wall_tile_count = jnp.sum(static_objects == StaticObject.WALL)
+        ingredient_pile_count = jnp.sum(
+            static_objects >= StaticObject.INGREDIENT_PILE_BASE
+        )
+        signal_tile_count = jnp.sum(
+            static_objects == StaticObject.BUTTON_RECIPE_INDICATOR
+        )
         infos = {
             **infos,
             "layout_index": jnp.full((self.num_agents,), layout_index),
@@ -233,6 +242,14 @@ class OvercookedV3(OvercookedV3Base):
                 (self.num_agents,), steps_until_layout_change
             ),
             "transition_countdown": jnp.full((self.num_agents,), transition_countdown),
+            "layout_change_tile_count": jnp.full(
+                (self.num_agents,), layout_change_tile_count
+            ),
+            "wall_tile_count": jnp.full((self.num_agents,), wall_tile_count),
+            "ingredient_pile_count": jnp.full(
+                (self.num_agents,), ingredient_pile_count
+            ),
+            "signal_tile_count": jnp.full((self.num_agents,), signal_tile_count),
         }
         return (
             lax.stop_gradient(obs),

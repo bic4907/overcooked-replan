@@ -250,6 +250,18 @@ GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
 For example, a sweep run is saved under a directory such as
 `saves/split_sig_cnn_role-scenarios_seed0/`.
 
+W&B metrics are grouped by slash-delimited namespaces:
+
+| Namespace | Contents |
+| --- | --- |
+| `train/...` | Episode return and length, sparse/shaped/combined rewards, PPO losses, entropy, learning rate, update, and environment step |
+| `debug/...` | Layout phase, transition fraction and event count, countdown, changed-tile count, and wall/resource/signal tile counts |
+
+The role-scenario sweep maximizes `train/episode_return`. Layout snapshots such
+as `debug/layout_index` and `debug/transition_countdown` represent the end of
+the latest rollout; `debug/layout_change_events` counts all phase transitions
+observed during that rollout batch.
+
 ## Evaluate and render trained policies
 
 Evaluate two policies trained with the same seed and save the first episode as

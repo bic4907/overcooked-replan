@@ -7,6 +7,7 @@ from pathlib import Path
 from hydra import compose, initialize_config_dir
 from omegaconf import OmegaConf
 
+from baselines.IPPO.ippo_overcooked_v3 import _prefixed_wandb_metrics
 from jaxmarl._env import load_project_env
 from jaxmarl._experiment import experiment_folder
 
@@ -93,7 +94,7 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
     assert sweep["run_cap"] == 20
     assert sweep["metric"] == {
         "goal": "maximize",
-        "name": "returned_episode_returns",
+        "name": "train/episode_return",
     }
     assert set(sweep["parameters"]["scenario"]["values"]) == set(SCENARIOS)
     assert sweep["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4]
@@ -128,6 +129,28 @@ def test_wandb_sweep_creator_resolves_env_without_network(tmp_path):
     assert "W&B destination: test-team/test-project" in result.stdout
     assert "no sweep was created" in result.stdout
     assert not output.exists()
+
+
+def test_wandb_metrics_are_split_into_train_and_debug_namespaces():
+    metrics = _prefixed_wandb_metrics(
+        {
+            "returned_episode_returns": 10.0,
+            "actor_loss": 0.5,
+            "env_step": 100,
+            "layout_index": 1,
+            "layout_change_events": 2,
+            "transition_countdown": 0.25,
+        }
+    )
+
+    assert metrics == {
+        "train/episode_return": 10.0,
+        "train/actor_loss": 0.5,
+        "train/env_step": 100,
+        "debug/layout_index": 1,
+        "debug/layout_change_events": 2,
+        "debug/transition_countdown": 0.25,
+    }
 
 
 def test_experiment_folder_uses_only_key_experiment_parameters(tmp_path):

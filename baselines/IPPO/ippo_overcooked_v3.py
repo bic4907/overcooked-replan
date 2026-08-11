@@ -21,6 +21,53 @@ from jaxmarl._experiment import experiment_folder
 from jaxmarl.wrappers.baselines import LogWrapper
 
 
+TRAIN_METRIC_NAMES = {
+    "returned_episode_returns": "episode_return",
+    "returned_episode_lengths": "episode_length",
+    "returned_episode": "episode_completed",
+    "original_reward": "sparse_reward",
+    "shaped_reward": "shaped_reward",
+    "combined_reward": "combined_reward",
+    "anneal_factor": "reward_shaping_factor",
+    "total_loss": "total_loss",
+    "value_loss": "value_loss",
+    "actor_loss": "actor_loss",
+    "entropy": "entropy",
+    "learning_rate": "learning_rate",
+    "update_step": "update",
+    "env_step": "env_step",
+}
+
+DEBUG_METRIC_NAMES = {
+    "layout_index": "layout_index",
+    "layout_changed": "layout_changed_fraction",
+    "layout_change_events": "layout_change_events",
+    "steps_until_layout_change": "steps_until_layout_change",
+    "transition_countdown": "transition_countdown",
+    "layout_change_tile_count": "layout_change_tile_count",
+    "wall_tile_count": "wall_tile_count",
+    "ingredient_pile_count": "ingredient_pile_count",
+    "signal_tile_count": "signal_tile_count",
+}
+
+
+def _prefixed_wandb_metrics(metric):
+    """Split optimization and environment diagnostics into W&B namespaces."""
+    prefixed = {
+        f"train/{target}": metric[source]
+        for source, target in TRAIN_METRIC_NAMES.items()
+        if source in metric
+    }
+    prefixed.update(
+        {
+            f"debug/{target}": metric[source]
+            for source, target in DEBUG_METRIC_NAMES.items()
+            if source in metric
+        }
+    )
+    return prefixed
+
+
 def _timestamp():
     return datetime.now().strftime("%H:%M:%S")
 
@@ -409,14 +456,16 @@ def make_train(config):
 
         network_params = network.init(_rng, init_hstate, init_x)
         if config["ANNEAL_LR"]:
+            learning_rate_fn = create_learning_rate_fn()
             tx = optax.chain(
                 optax.clip_by_global_norm(config["MAX_GRAD_NORM"]),
-                optax.adam(create_learning_rate_fn(), eps=1e-5),
+                optax.adam(learning_rate_fn, eps=1e-5),
             )
         else:
+            learning_rate_fn = optax.constant_schedule(config["LR"])
             tx = optax.chain(
                 optax.clip_by_global_norm(config["MAX_GRAD_NORM"]),
-                optax.adam(config["LR"], eps=1e-5),
+                optax.adam(learning_rate_fn, eps=1e-5),
             )
         train_state = TrainState.create(
             apply_fn=network.apply,
@@ -673,11 +722,35 @@ def make_train(config):
                 _update_epoch, update_state, None, config["UPDATE_EPOCHS"]
             )
             train_state = update_state[0]
-            metric = traj_batch.info
+            total_loss, (value_loss, actor_loss, entropy) = loss_info
+            metric = {
+                **traj_batch.info,
+                "layout_index": traj_batch.info["layout_index"][-1],
+                "steps_until_layout_change": traj_batch.info[
+                    "steps_until_layout_change"
+                ][-1],
+                "transition_countdown": traj_batch.info["transition_countdown"][-1],
+                "layout_change_tile_count": traj_batch.info["layout_change_tile_count"][
+                    -1
+                ],
+                "wall_tile_count": traj_batch.info["wall_tile_count"][-1],
+                "ingredient_pile_count": traj_batch.info["ingredient_pile_count"][-1],
+                "signal_tile_count": traj_batch.info["signal_tile_count"][-1],
+                "total_loss": total_loss,
+                "value_loss": value_loss,
+                "actor_loss": actor_loss,
+                "entropy": entropy,
+                "learning_rate": learning_rate_fn(
+                    update_step * config["NUM_MINIBATCHES"] * config["UPDATE_EPOCHS"]
+                ),
+                "layout_change_events": (
+                    traj_batch.info["layout_changed"].sum() / env.num_agents
+                ),
+            }
             rng = update_state[-1]
 
             def callback(metric):
-                wandb.log(metric)
+                wandb.log(_prefixed_wandb_metrics(metric))
                 update = int(metric["update_step"])
                 log_interval = int(config.get("LOG_INTERVAL", 10))
                 if (
@@ -785,6 +858,9 @@ def run(config):
         job_type="train",
         notes=config.get("NOTES"),
     )
+    wandb.define_metric("train/env_step")
+    wandb.define_metric("train/*", step_metric="train/env_step")
+    wandb.define_metric("debug/*", step_metric="train/env_step")
 
     with jax.disable_jit(False):
         rng = jax.random.PRNGKey(config["SEED"])

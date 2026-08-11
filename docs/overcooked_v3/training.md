@@ -165,6 +165,18 @@ GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
   TEAM/PROJECT/SWEEP_ID_B
 ```
 
+W&B 지표는 `/` namespace로 구분한다.
+
+| Namespace | 기록 내용 |
+| --- | --- |
+| `train/...` | episode return/length, sparse·shaped·combined reward, PPO loss, entropy, learning rate, update, environment step |
+| `debug/...` | layout phase, 전환 비율·횟수, countdown, 변경 예정 tile 수, wall/resource/signal tile 수 |
+
+Sweep 최적화 지표는 `train/episode_return`이다. `debug/layout_index`와
+`debug/transition_countdown` 등 layout snapshot은 최근 rollout의 마지막 시점을
+나타내며, `debug/layout_change_events`는 rollout batch 중 발생한 전체 phase 전환
+수를 나타낸다.
+
 ## 테스트
 
 ```bash

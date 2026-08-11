@@ -6,7 +6,7 @@ run_cap: 20
 
 metric:
   goal: maximize
-  name: returned_episode_returns
+  name: train/episode_return
 
 parameters:
   scenario:
