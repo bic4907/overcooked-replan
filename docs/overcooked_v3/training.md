@@ -18,7 +18,7 @@ cp .env.example .env
 
 ```dotenv
 WANDB_API_KEY=your-api-key
-WANDB_ENTITY=your-team-slug
+WANDB_ENTITY=inchangbaek4907
 WANDB_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
 ```
@@ -128,23 +128,23 @@ python baselines/IPPO/ippo_overcooked_v3.py \
 
 ## W&B sweep
 
-`sweeps/overcooked_v3_role_scenarios.yaml`은 네 조건과 seed 5개를 조합한
-20-run grid다. Mac에서 W&B 로그인을 마친 뒤 다음 명령으로 sweep을 생성한다.
-`YOUR_TEAM_SLUG`는 organization이 아닌 실제 team entity로 바꾼다.
+`experiment/sweeps/overcooked_v3_role_scenarios.yaml`은 네 조건과 seed 5개를
+조합한 20-run grid다. Mac에서 W&B 로그인을 마친 뒤 다음 명령으로 sweep을
+생성한다.
 
 ```bash
 wandb sweep \
-  --entity YOUR_TEAM_SLUG \
+  --entity inchangbaek4907 \
   --project overcooked-v3-role-coordination \
-  sweeps/overcooked_v3_role_scenarios.yaml
+  experiment/sweeps/overcooked_v3_role_scenarios.yaml
 ```
 
-출력된 전체 경로 `YOUR_TEAM_SLUG/overcooked-v3-role-coordination/SWEEP_ID`를 GPU
+출력된 전체 경로 `inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID`를 GPU
 서버로 복사한다. GPU당 agent 하나를 실행하려면 다음 명령을 사용한다.
 
 ```bash
 GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
-  YOUR_TEAM_SLUG/overcooked-v3-role-coordination/SWEEP_ID
+  inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID
 ```
 
 여러 sweep 경로를 인자로 주면 첫 sweep의 모든 GPU agent가 끝난 후 다음 sweep을
@@ -152,8 +152,8 @@ GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
 
 ```bash
 GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
-  TEAM/PROJECT/SWEEP_ID_A \
-  TEAM/PROJECT/SWEEP_ID_B
+  inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID_A \
+  inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID_B
 ```
 
 W&B 지표는 `/` namespace로 구분한다.

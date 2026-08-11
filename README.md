@@ -61,7 +61,7 @@ Add your W&B credentials and settings to `.env`:
 
 ```dotenv
 WANDB_API_KEY=your-api-key
-WANDB_ENTITY=your-team-slug
+WANDB_ENTITY=inchangbaek4907
 WANDB_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
 ```
@@ -207,23 +207,22 @@ Auxiliary outputs use separate default directories:
 
 ## W&B sweep
 
-`sweeps/overcooked_v3_role_scenarios.yaml` defines a 20-run grid over four
-scenarios and five seeds. Create it on a Mac with the W&B CLI, replacing
-`YOUR_TEAM_SLUG` with the target team entity:
+`experiment/sweeps/overcooked_v3_role_scenarios.yaml` defines a 20-run grid
+over four scenarios and five seeds. Create it on a Mac with the W&B CLI:
 
 ```bash
 wandb sweep \
-  --entity YOUR_TEAM_SLUG \
+  --entity inchangbaek4907 \
   --project overcooked-v3-role-coordination \
-  sweeps/overcooked_v3_role_scenarios.yaml
+  experiment/sweeps/overcooked_v3_role_scenarios.yaml
 ```
 
-W&B prints `YOUR_TEAM_SLUG/overcooked-v3-role-coordination/SWEEP_ID`. Copy that
+W&B prints `inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID`. Copy that
 full path to the GPU server and launch one agent on each GPU:
 
 ```bash
 GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
-  YOUR_TEAM_SLUG/overcooked-v3-role-coordination/SWEEP_ID
+  inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID
 ```
 
 Each GPU processes one run at a time until W&B reports that the sweep is
@@ -232,8 +231,8 @@ sweep before the next one starts:
 
 ```bash
 GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
-  TEAM/PROJECT/SWEEP_ID_A \
-  TEAM/PROJECT/SWEEP_ID_B
+  inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID_A \
+  inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID_B
 ```
 
 For example, a sweep run is saved under a directory such as
@@ -366,8 +365,7 @@ python -m ruff check .
 | `jaxmarl/environments/overcooked_v2/` | Preserved Overcooked V2 implementation |
 | `baselines/IPPO/ippo_overcooked_v3.py` | CNN/RNN IPPO training entrypoint |
 | `conf/` | Hydra defaults and scenario configurations |
-| `sweeps/` | W&B sweep configurations |
-| `experiment/` | Copy-and-run experiment commands |
+| `experiment/` | Copy-and-run commands and W&B sweep YAML configurations |
 | `scripts/overcooked_v3/` | Rollout, batch-training, and batch-evaluation scripts |
 | `docs/overcooked_v3/` | Environment design and detailed workflows |
 

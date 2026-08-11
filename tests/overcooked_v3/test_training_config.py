@@ -97,7 +97,9 @@ def test_dotenv_configures_wandb_but_not_hydra_saves_dir(tmp_path, monkeypatch):
 
 def test_wandb_sweep_covers_scenarios_and_seeds():
     sweep = OmegaConf.to_container(
-        OmegaConf.load(ROOT / "sweeps" / "overcooked_v3_role_scenarios.yaml"),
+        OmegaConf.load(
+            ROOT / "experiment" / "sweeps" / "overcooked_v3_role_scenarios.yaml"
+        ),
         resolve=False,
     )
 
