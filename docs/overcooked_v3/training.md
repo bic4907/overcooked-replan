@@ -5,9 +5,14 @@ Hydra 설정과 W&B 실험 실행 방법을 이 디렉터리에서 관리한다.
 ## 환경 설정
 
 ```bash
-uv sync --extra algs --extra dev
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[algs,dev]"
 cp .env.example .env
 ```
+
+이후 명령은 같은 shell에서 가상환경을 활성화한 상태로 실행한다. `which python`이
+이 저장소의 `.venv/bin/python`을 가리키는지 확인한다.
 
 `.env`에 W&B 정보를 입력한다. 이 파일은 Git에서 제외된다.
 
@@ -22,6 +27,8 @@ WANDB_MODE=online
 명령줄 override, 기존 shell 환경변수, `.env`, Hydra 기본값 순서다. `SAVES_DIR`는
 이 환경변수 규칙을 사용하지 않는다. API key는 Hydra config나 W&B run config에
 기록하지 않는다.
+직접 학습 명령에는 `dotenv run` prefix가 필요하지 않으며, 로드에 성공하면
+credential 값 없이 `Loaded project .env`만 출력된다.
 
 ## 시나리오
 
@@ -45,7 +52,7 @@ checkpoint는 첫 CNN layer shape이 달라 서로 호환되지 않는다.
 ## 단일 학습
 
 ```bash
-uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
+python -u baselines/IPPO/ippo_overcooked_v3.py \
   scenario=split_no_sig \
   SEED=0 \
   NUM_SEEDS=1
@@ -71,7 +78,7 @@ split_sig_cnn_seed0
 값을 실제 실험 축으로 바꿀 때는 그 값을 prefix에 명시한다.
 
 ```bash
-uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
+python -u baselines/IPPO/ippo_overcooked_v3.py \
   scenario=split_sig \
   EXPERIMENT_FOLDER=lr-1e-4 \
   LR=0.0001 \
@@ -109,7 +116,7 @@ NAS 등 다른 루트를 쓰려면 학습 명령에
 최종 Hydra 설정만 확인할 수 있다.
 
 ```bash
-uv run python baselines/IPPO/ippo_overcooked_v3.py \
+python baselines/IPPO/ippo_overcooked_v3.py \
   scenario=outage_sig \
   --cfg job --resolve
 ```
@@ -120,10 +127,10 @@ uv run python baselines/IPPO/ippo_overcooked_v3.py \
 20-run grid다.
 
 ```bash
-uv run dotenv run --no-override -- wandb sweep \
+dotenv run --no-override -- wandb sweep \
   sweeps/overcooked_v3_role_scenarios.yaml
 
-uv run dotenv run --no-override -- wandb agent \
+dotenv run --no-override -- wandb agent \
   --count 20 \
   SWEEP_ID
 ```
@@ -131,17 +138,17 @@ uv run dotenv run --no-override -- wandb agent \
 여러 GPU에서는 같은 sweep ID로 agent를 GPU별로 실행한다.
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 uv run dotenv run --no-override -- \
+CUDA_VISIBLE_DEVICES=0 dotenv run --no-override -- \
   wandb agent SWEEP_ID
 
-CUDA_VISIBLE_DEVICES=1 uv run dotenv run --no-override -- \
+CUDA_VISIBLE_DEVICES=1 dotenv run --no-override -- \
   wandb agent SWEEP_ID
 ```
 
 ## 테스트
 
 ```bash
-uv run pytest -q \
+python -m pytest -q \
   tests/overcooked_v3/test_training_config.py \
   tests/overcooked_v3/test_role_scenarios.py
 ```

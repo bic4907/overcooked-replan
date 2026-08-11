@@ -23,17 +23,24 @@ orange warning border around those tiles.
 
 ## Quick start
 
-Python 3.11 or later and [uv](https://docs.astral.sh/uv/) are required.
+Python 3.11 or later is required. Create and activate a virtual environment,
+then install the project and its training and development dependencies:
 
 ```bash
-uv sync --extra algs --extra dev
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[algs,dev]"
 ```
+
+Run the remaining commands from the same activated shell. Verify that the
+virtual environment is active with `which python`; it should point to
+`.venv/bin/python` inside this repository.
 
 Run a random-policy rollout and save it as a GIF to verify that the environment
 works correctly:
 
 ```bash
-uv run python scripts/overcooked_v3/run_role_scenario.py \
+python scripts/overcooked_v3/run_role_scenario.py \
   --layout split_sig \
   --steps 220 \
   --seed 0 \
@@ -61,6 +68,7 @@ WANDB_MODE=online
 
 The training entrypoint automatically loads `.env` from the project root. The
 file is excluded from Git. Set `WANDB_MODE=disabled` when W&B is not needed.
+Direct training commands do not need a `dotenv run` prefix.
 
 W&B-related settings use the following precedence order. This does not apply to
 `SAVES_DIR`.
@@ -75,7 +83,7 @@ W&B-related settings use the following precedence order. This does not apply to
 ### Run one experiment
 
 ```bash
-uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
+python -u baselines/IPPO/ippo_overcooked_v3.py \
   scenario=split_no_sig \
   EXPERIMENT_FOLDER=baseline \
   SEED=0 \
@@ -93,7 +101,7 @@ scenario=outage_sig
 CNN is the default policy architecture. Select the RNN policy as follows:
 
 ```bash
-uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
+python -u baselines/IPPO/ippo_overcooked_v3.py \
   scenario=outage_sig \
   ARCHITECTURE=rnn \
   EXPERIMENT_FOLDER=baseline \
@@ -109,7 +117,7 @@ one update and verify the training and output paths:
 
 ```bash
 JAX_PLATFORMS=cpu XLA_PYTHON_CLIENT_PREALLOCATE=false \
-uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
+python -u baselines/IPPO/ippo_overcooked_v3.py \
   scenario=split_no_sig \
   EXPERIMENT_FOLDER=dry-run \
   NUM_ENVS=2 \
@@ -130,7 +138,7 @@ This command writes the experiment to
 Print the effective configuration without starting training:
 
 ```bash
-uv run python baselines/IPPO/ippo_overcooked_v3.py \
+python baselines/IPPO/ippo_overcooked_v3.py \
   scenario=outage_sig \
   --cfg job --resolve
 ```
@@ -173,7 +181,7 @@ the storage root, pass a Hydra override to the training command. `/mnt/nas` is
 not hardcoded anywhere in the training code.
 
 ```bash
-uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
+python -u baselines/IPPO/ippo_overcooked_v3.py \
   scenario=split_sig \
   SAVES_DIR=/mnt/nas/overcooked-replan \
   EXPERIMENT_FOLDER=baseline \
@@ -197,14 +205,14 @@ Auxiliary outputs use separate default directories:
 scenarios and five seeds.
 
 ```bash
-uv run dotenv run --no-override -- wandb sweep \
+dotenv run --no-override -- wandb sweep \
   sweeps/overcooked_v3_role_scenarios.yaml
 ```
 
 Start an agent with the sweep ID printed by W&B:
 
 ```bash
-uv run dotenv run --no-override -- wandb agent \
+dotenv run --no-override -- wandb agent \
   --count 20 \
   ENTITY/PROJECT/SWEEP_ID
 ```
@@ -213,10 +221,10 @@ To run the sweep on multiple GPUs, start one agent per GPU with the same sweep
 ID:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 uv run dotenv run --no-override -- \
+CUDA_VISIBLE_DEVICES=0 dotenv run --no-override -- \
   wandb agent ENTITY/PROJECT/SWEEP_ID
 
-CUDA_VISIBLE_DEVICES=1 uv run dotenv run --no-override -- \
+CUDA_VISIBLE_DEVICES=1 dotenv run --no-override -- \
   wandb agent ENTITY/PROJECT/SWEEP_ID
 ```
 
@@ -230,7 +238,7 @@ a GIF:
 
 ```bash
 JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
-uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
+python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --layout split_no_sig \
   --architecture cnn \
   --agent-seeds 0 0 \
@@ -243,7 +251,7 @@ For cross-play, select policies trained with different seeds:
 
 ```bash
 JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
-uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
+python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --layout split_no_sig \
   --architecture cnn \
   --agent-seeds 0 1 \
@@ -257,7 +265,7 @@ requested layout and seed under `saves/`. To evaluate a specific file, provide
 its path explicitly with `--checkpoint`:
 
 ```bash
-uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
+python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --layout split_no_sig \
   --checkpoint saves/split_no_sig_cnn_baseline_seed0/ippo_cnn_overcooked_v3_split_no_sig_seed0_vmap0.safetensors \
   --episodes 1 \
@@ -272,7 +280,7 @@ channels, so policies trained before these changes require the legacy
 observation flag during evaluation:
 
 ```bash
-uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
+python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --layout split_no_sig \
   --checkpoint PATH_TO_OLD_CHECKPOINT.safetensors \
   --legacy-observation
@@ -305,13 +313,13 @@ bash scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh
 Run the Overcooked V2 and V3 regression tests:
 
 ```bash
-uv run pytest -q tests/overcooked_v3 tests/overcooked_v2
+python -m pytest -q tests/overcooked_v3 tests/overcooked_v2
 ```
 
 Run the code-style checks:
 
 ```bash
-uv run ruff check .
+python -m ruff check .
 ```
 
 ## Repository layout

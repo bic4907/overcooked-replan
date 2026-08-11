@@ -817,6 +817,11 @@ def main(config):
     run(config)
 
 
-if __name__ == "__main__":
-    load_project_env()
+def entrypoint():
+    if load_project_env():
+        print(f"[{_timestamp()}] Loaded project .env")
     main()
+
+
+if __name__ == "__main__":
+    entrypoint()
