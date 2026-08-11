@@ -369,6 +369,7 @@ Additional documentation:
 
 - [Overcooked V3 documentation](docs/overcooked_v3/index.md)
 - [Training and W&B configuration](docs/overcooked_v3/training.md)
+- [Executable role-scenario sweep runbook](docs/overcooked_v3/experiments/role_scenarios.md)
 - [Environment development and evaluation workflow](docs/overcooked_v3/workflow.md)
 
 ## Upstream project
