@@ -208,34 +208,22 @@ Auxiliary outputs use separate default directories:
 ## W&B sweep
 
 `sweeps/overcooked_v3_role_scenarios.yaml` defines a 20-run grid over four
-scenarios and five seeds. Create the sweep with the project Python environment:
+scenarios and five seeds. Create it on a Mac with the W&B CLI, replacing
+`YOUR_TEAM_SLUG` with the target team entity:
 
 ```bash
-python scripts/overcooked_v3/create_wandb_sweep.py
+wandb sweep \
+  --entity YOUR_TEAM_SLUG \
+  --project overcooked-v3-role-coordination \
+  sweeps/overcooked_v3_role_scenarios.yaml
 ```
 
-The command loads `.env`, creates the sweep in `WANDB_ENTITY/WANDB_PROJECT`, and
-writes its full `ENTITY/PROJECT/SWEEP_ID` path to `sweeps/.last_sweep_id`. The
-file is local-only and excluded from Git. Validate the configuration without
-contacting W&B with:
+W&B prints `YOUR_TEAM_SLUG/overcooked-v3-role-coordination/SWEEP_ID`. Copy that
+full path to the GPU server and launch one agent on each GPU:
 
 ```bash
-python scripts/overcooked_v3/create_wandb_sweep.py --dry-run
-```
-
-Launch one W&B agent on each GPU. With no positional argument, the script reads
-the sweep path saved by the creation command:
-
-```bash
-GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh
-```
-
-Comma-separated GPU IDs are also accepted. To run a known sweep without the
-saved file, pass its full path explicitly:
-
-```bash
-GPUS="0,1" bash scripts/overcooked_v3/run_wandb_agents.sh \
-  TEAM/PROJECT/SWEEP_ID
+GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
+  YOUR_TEAM_SLUG/overcooked-v3-role-coordination/SWEEP_ID
 ```
 
 Each GPU processes one run at a time until W&B reports that the sweep is
@@ -388,7 +376,6 @@ Additional documentation:
 - [Executable W&B sweep commands](experiment/role_scenarios.md)
 - [Overcooked V3 documentation](docs/overcooked_v3/index.md)
 - [Training and W&B configuration](docs/overcooked_v3/training.md)
-- [Executable role-scenario sweep runbook](docs/overcooked_v3/experiments/role_scenarios.md)
 - [Environment development and evaluation workflow](docs/overcooked_v3/workflow.md)
 
 ## Upstream project

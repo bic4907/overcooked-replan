@@ -7,7 +7,6 @@ cd "${PROJECT_DIR}"
 
 PYTHON_BIN="${PYTHON_BIN:-python}"
 GPUS="${GPUS:-0}"
-SWEEP_ID_FILE="${SWEEP_ID_FILE:-${PROJECT_DIR}/sweeps/.last_sweep_id}"
 DRY_RUN="${DRY_RUN:-0}"
 
 log() {
@@ -19,14 +18,12 @@ usage() {
 Usage:
   GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh [SWEEP_PATH ...]
 
-Each sweep path must have the form ENTITY/PROJECT/SWEEP_ID. If no path is
-given, the script reads sweeps/.last_sweep_id, written by create_wandb_sweep.py.
-One W&B agent is started per GPU. Multiple sweep paths are processed in order.
+Each sweep path must have the form ENTITY/PROJECT/SWEEP_ID. One W&B agent is
+started per GPU. Multiple sweep paths are processed in order.
 
 Environment variables:
   GPUS           Space- or comma-separated GPU IDs (default: 0)
   PYTHON_BIN     Python executable from the installed environment (default: python)
-  SWEEP_ID_FILE  Fallback sweep-path file
   DRY_RUN=1      Print the assignments without launching W&B agents
 EOF
 }
@@ -45,12 +42,9 @@ fi
 
 sweep_paths=("$@")
 if [[ ${#sweep_paths[@]} -eq 0 ]]; then
-    if [[ ! -s "${SWEEP_ID_FILE}" ]]; then
-        echo "No sweep path was provided and ${SWEEP_ID_FILE} is missing or empty." >&2
-        echo "Create one first with: python scripts/overcooked_v3/create_wandb_sweep.py" >&2
-        exit 2
-    fi
-    sweep_paths=("$(tr -d '[:space:]' < "${SWEEP_ID_FILE}")")
+    echo "A sweep path is required: ENTITY/PROJECT/SWEEP_ID" >&2
+    usage >&2
+    exit 2
 fi
 
 for sweep_path in "${sweep_paths[@]}"; do

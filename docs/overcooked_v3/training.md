@@ -129,32 +129,22 @@ python baselines/IPPO/ippo_overcooked_v3.py \
 ## W&B sweep
 
 `sweeps/overcooked_v3_role_scenarios.yaml`은 네 조건과 seed 5개를 조합한
-20-run grid다. 아래 명령은 프로젝트 `.env`를 자동으로 읽고 sweep을 생성한다.
+20-run grid다. Mac에서 W&B 로그인을 마친 뒤 다음 명령으로 sweep을 생성한다.
+`YOUR_TEAM_SLUG`는 organization이 아닌 실제 team entity로 바꾼다.
 
 ```bash
-python scripts/overcooked_v3/create_wandb_sweep.py
+wandb sweep \
+  --entity YOUR_TEAM_SLUG \
+  --project overcooked-v3-role-coordination \
+  sweeps/overcooked_v3_role_scenarios.yaml
 ```
 
-생성된 전체 경로 `ENTITY/PROJECT/SWEEP_ID`는 Git에서 제외되는
-`sweeps/.last_sweep_id`에 저장된다. W&B에 접속하지 않고 설정만 검증하려면 다음을
-실행한다.
+출력된 전체 경로 `YOUR_TEAM_SLUG/overcooked-v3-role-coordination/SWEEP_ID`를 GPU
+서버로 복사한다. GPU당 agent 하나를 실행하려면 다음 명령을 사용한다.
 
 ```bash
-python scripts/overcooked_v3/create_wandb_sweep.py --dry-run
-```
-
-여러 GPU에서 GPU당 agent 하나를 실행하려면 다음 명령을 사용한다. 별도 sweep ID를
-쓰지 않으면 위에서 저장한 `.last_sweep_id`를 읽는다.
-
-```bash
-GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh
-```
-
-이미 알고 있는 sweep을 직접 지정할 수도 있다.
-
-```bash
-GPUS="0,1" bash scripts/overcooked_v3/run_wandb_agents.sh \
-  TEAM/PROJECT/SWEEP_ID
+GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
+  YOUR_TEAM_SLUG/overcooked-v3-role-coordination/SWEEP_ID
 ```
 
 여러 sweep 경로를 인자로 주면 첫 sweep의 모든 GPU agent가 끝난 후 다음 sweep을
