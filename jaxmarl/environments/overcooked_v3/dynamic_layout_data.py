@@ -1,5 +1,119 @@
 # Overcooked V3 layouts. Both ``0`` and ``O`` denote an onion pile.
 
+# Role-formation scenarios -------------------------------------------------
+#
+# The Sig/NoSig pairs differ only at one shared cell: ``L`` is V2's
+# interactable button indicator, while ``W`` is an ordinary counter. This
+# keeps the geometry fixed while adding/removing a dedicated public signal.
+
+split_no_sig = [
+    [
+        """
+WWWWWWWWWWW
+W0   W  B W
+W    W    W
+W A     A W
+W    W    W
+WP   W  X W
+WWWWWWWWWWW
+""",
+        40,
+    ],
+    [
+        """
+WWWWWWWWWWW
+W0   W  B W
+W    W    W
+W A  W  A W
+W    W    W
+WP   W  X W
+WWWWWWWWWWW
+""",
+        160,
+    ],
+]
+
+split_sig = [
+    [
+        """
+WWWWWWWWWWW
+W0   W  B W
+W    L    W
+W A     A W
+W    W    W
+WP   W  X W
+WWWWWWWWWWW
+""",
+        40,
+    ],
+    [
+        """
+WWWWWWWWWWW
+W0   W  B W
+W    L    W
+W A  W  A W
+W    W    W
+WP   W  X W
+WWWWWWWWWWW
+""",
+        160,
+    ],
+]
+
+outage_no_sig = [
+    [
+        """
+WWWWWWWWWWW
+W0       0W
+W    P    W
+W A  W  A W
+W    B    W
+WX       XW
+WWWWWWWWWWW
+""",
+        100,
+    ],
+    [
+        """
+WWWWWWWWWWW
+W0       WW
+W    P    W
+W A  W  A W
+W    B    W
+WX       XW
+WWWWWWWWWWW
+""",
+        100,
+    ],
+]
+
+outage_sig = [
+    [
+        """
+WWWWWWWWWWW
+W0       0W
+W    P    W
+W A  L  A W
+W    B    W
+WX       XW
+WWWWWWWWWWW
+""",
+        100,
+    ],
+    [
+        """
+WWWWWWWWWWW
+W0       WW
+W    P    W
+W A  L  A W
+W    B    W
+WX       XW
+WWWWWWWWWWW
+""",
+        100,
+    ],
+]
+
 dynamic_00 = [
     [
         """
