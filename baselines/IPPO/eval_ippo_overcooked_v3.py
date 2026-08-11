@@ -101,10 +101,10 @@ def resolve_checkpoint(
     checkpoint_dir = models_dir / "ippo_v3" / architecture / experiment_name
     seed_pattern = "*" if training_seed is None else str(training_seed)
     pattern = (
-        f"{checkpoint_prefix}_{experiment_name}_seed{seed_pattern}_" "vmap*.safetensors"
+        f"{checkpoint_prefix}_{experiment_name}_seed{seed_pattern}_vmap*.safetensors"
     )
     candidates = [
-        path for path in checkpoint_dir.glob(pattern) if "_update" not in path.stem
+        path for path in checkpoint_dir.rglob(pattern) if "_update" not in path.stem
     ]
     if not candidates:
         raise FileNotFoundError(

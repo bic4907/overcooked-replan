@@ -389,7 +389,7 @@ JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
 python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --architecture cnn \
   --layout dynamic_00 \
-  --checkpoint /mnt/nas/overcooked-replan/ippo_v3/cnn/overcooked_v3_00/ippo_cnn_overcooked_v3_00_seed0_vmap0_update000100.safetensors \
+  --checkpoint /mnt/nas/overcooked-replan/ippo_v3/cnn/overcooked_v3_00/EXPERIMENT_FOLDER/ippo_cnn_overcooked_v3_00_seed0_vmap0_update000100.safetensors \
   --episodes 1 \
   --max-steps 400 \
   --gif evaluation/overcooked_v3/cnn/dynamic_00/dynamic_00_seed0_update000100.gif

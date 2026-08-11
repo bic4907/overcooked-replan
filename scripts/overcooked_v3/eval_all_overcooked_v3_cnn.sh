@@ -52,9 +52,9 @@ for layout in "${layouts[@]}"; do
     checkpoint_dir="${MODELS_DIR}/ippo_v3/cnn/${experiment_name}"
 
     for seed in 0 1; do
-        checkpoint="${checkpoint_dir}/ippo_cnn_${experiment_name}_seed${seed}_vmap0.safetensors"
-        if [[ ! -f "${checkpoint}" ]]; then
-            echo "Missing final checkpoint: ${checkpoint}" >&2
+        checkpoint_name="ippo_cnn_${experiment_name}_seed${seed}_vmap0.safetensors"
+        if ! find "${checkpoint_dir}" -type f -name "${checkpoint_name}" -print -quit 2>/dev/null | grep -q .; then
+            echo "Missing final checkpoint under ${checkpoint_dir}: ${checkpoint_name}" >&2
             missing_checkpoint=1
         fi
     done

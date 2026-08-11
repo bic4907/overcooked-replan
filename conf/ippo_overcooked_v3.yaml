@@ -37,6 +37,7 @@ LOG_INTERVAL: 10
 CHECKPOINT_INTERVAL: 0  # Training updates; 0 disables intermediate checkpoints.
 
 SAVE_PATH: /mnt/nas/overcooked-replan
+EXPERIMENT_FOLDER: null
 
 ENTITY: ${oc.env:WANDB_ENTITY,''}
 PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-role-coordination}

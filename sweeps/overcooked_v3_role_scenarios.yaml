@@ -27,6 +27,8 @@ parameters:
     value: online
   SAVE_PATH:
     value: outputs/checkpoints
+  EXPERIMENT_FOLDER:
+    value: role-scenarios
 
 command:
   - ${env}

@@ -43,6 +43,37 @@ uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
   SAVE_PATH=outputs/checkpoints
 ```
 
+## 실험 폴더 이름
+
+Checkpoint는 다음 구조로 저장된다.
+
+```text
+<SAVE_PATH>/ippo_v3/<architecture>/<environment-layout>/<experiment-folder>/
+```
+
+`experiment-folder`는 기본적으로 seed, learning rate, parallel environment 수,
+rollout step, total timestep과 학습 파라미터 전체의 12자리 fingerprint를
+조합한다. LR, batch 구성, architecture, layout, seed 등 학습 결과에 영향을
+주는 값이 하나라도 달라지면 폴더가 달라진다.
+
+```text
+seed0_lr0p00025_envs256_steps256_total3e07_a1b2c3d4e5f6
+```
+
+사람이 읽기 쉬운 prefix를 지정할 수도 있다. 이 경우에도 fingerprint가 항상
+붙기 때문에 서로 다른 파라미터가 같은 폴더에 저장되지 않는다.
+
+```bash
+uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=split_sig \
+  EXPERIMENT_FOLDER=lr-ablation \
+  LR=0.0001 \
+  SEED=0
+```
+
+결과 폴더는 `lr-ablation_<fingerprint>` 형태다. W&B 기본 run 이름에도 같은
+fingerprint가 붙는다. 동일 파라미터의 반복 실험은 `SEED`를 다르게 지정한다.
+
 최종 Hydra 설정만 확인할 수 있다.
 
 ```bash

@@ -17,6 +17,7 @@ from omegaconf import OmegaConf
 import jaxmarl
 import wandb
 from jaxmarl._env import load_project_env
+from jaxmarl._experiment import experiment_folder, experiment_signature
 from jaxmarl.wrappers.baselines import LogWrapper
 
 
@@ -42,7 +43,11 @@ def _checkpoint_metadata(config):
         layout_suffix = layout_suffix.removeprefix("dynamic_")
     experiment_name = f"{config['ENV_NAME']}_{layout_suffix}"
     save_dir = os.path.join(
-        config["SAVE_PATH"], "ippo_v3", _architecture(config), experiment_name
+        config["SAVE_PATH"],
+        "ippo_v3",
+        _architecture(config),
+        experiment_name,
+        experiment_folder(config),
     )
     return experiment_name, save_dir
 
@@ -61,7 +66,8 @@ def _wandb_metadata(config):
 
     group = config.get("WANDB_GROUP") or experiment
     name = config.get("RUN_NAME") or (
-        f"{_checkpoint_prefix(config)}_{condition}_seed{config['SEED']}"
+        f"{_checkpoint_prefix(config)}_{condition}_seed{config['SEED']}_"
+        f"{experiment_signature(config)}"
     )
     return name, group, tags
 
@@ -758,7 +764,7 @@ def make_train(config):
 
 
 def run(config):
-    config = OmegaConf.to_container(config)
+    config = OmegaConf.to_container(config, resolve=True)
 
     layout_name = config["ENV_KWARGS"]["layout"]
     num_seeds = config["NUM_SEEDS"]
