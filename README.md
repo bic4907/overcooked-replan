@@ -207,30 +207,44 @@ Auxiliary outputs use separate default directories:
 ## W&B sweep
 
 `sweeps/overcooked_v3_role_scenarios.yaml` defines a 20-run grid over four
-scenarios and five seeds.
+scenarios and five seeds. Create the sweep with the project Python environment:
 
 ```bash
-dotenv run --no-override -- wandb sweep \
-  sweeps/overcooked_v3_role_scenarios.yaml
+python scripts/overcooked_v3/create_wandb_sweep.py
 ```
 
-Start an agent with the sweep ID printed by W&B:
+The command loads `.env`, creates the sweep in `WANDB_ENTITY/WANDB_PROJECT`, and
+writes its full `ENTITY/PROJECT/SWEEP_ID` path to `sweeps/.last_sweep_id`. The
+file is local-only and excluded from Git. Validate the configuration without
+contacting W&B with:
 
 ```bash
-dotenv run --no-override -- wandb agent \
-  --count 20 \
-  ENTITY/PROJECT/SWEEP_ID
+python scripts/overcooked_v3/create_wandb_sweep.py --dry-run
 ```
 
-To run the sweep on multiple GPUs, start one agent per GPU with the same sweep
-ID:
+Launch one W&B agent on each GPU. With no positional argument, the script reads
+the sweep path saved by the creation command:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 dotenv run --no-override -- \
-  wandb agent ENTITY/PROJECT/SWEEP_ID
+GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh
+```
 
-CUDA_VISIBLE_DEVICES=1 dotenv run --no-override -- \
-  wandb agent ENTITY/PROJECT/SWEEP_ID
+Comma-separated GPU IDs are also accepted. To run a known sweep without the
+saved file, pass its full path explicitly:
+
+```bash
+GPUS="0,1" bash scripts/overcooked_v3/run_wandb_agents.sh \
+  TEAM/PROJECT/SWEEP_ID
+```
+
+Each GPU processes one run at a time until W&B reports that the sweep is
+complete. Multiple sweep paths can be supplied; all GPU agents finish the first
+sweep before the next one starts:
+
+```bash
+GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
+  TEAM/PROJECT/SWEEP_ID_A \
+  TEAM/PROJECT/SWEEP_ID_B
 ```
 
 For example, a sweep run is saved under a directory such as

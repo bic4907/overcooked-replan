@@ -24,3 +24,4 @@ build/
 .env
 .env.*
 !.env.example
+/sweeps/.last_sweep_id

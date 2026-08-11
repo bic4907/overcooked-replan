@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 from copy import deepcopy
 from pathlib import Path
 
@@ -97,6 +100,34 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
     assert sweep["parameters"]["EXPERIMENT_FOLDER"]["value"] == "role-scenarios"
     assert sweep["parameters"]["SAVES_DIR"]["value"] == "saves"
     assert "${args_no_hyphens}" in sweep["command"]
+
+
+def test_wandb_sweep_creator_resolves_env_without_network(tmp_path):
+    output = tmp_path / "sweep-id"
+    env = os.environ.copy()
+    env.update(
+        WANDB_ENTITY="test-team",
+        WANDB_PROJECT="test-project",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "overcooked_v3" / "create_wandb_sweep.py"),
+            "--dry-run",
+            "--output",
+            str(output),
+        ],
+        cwd=ROOT,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "W&B destination: test-team/test-project" in result.stdout
+    assert "no sweep was created" in result.stdout
+    assert not output.exists()
 
 
 def test_experiment_folder_uses_only_key_experiment_parameters(tmp_path):
