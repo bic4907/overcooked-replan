@@ -1,16 +1,16 @@
 # Dynamic Overcooked 개발 및 실험 가이드
 
-이 문서는 이 저장소에서 진행한 **V1 단일 레시피 Dynamic Overcooked** 작업을 기준으로 한다. 현재 기본 실험은 두 에이전트, 고정 시작 위치, CNN 기반 IPPO이며 `dynamic_00`부터 `dynamic_14`까지 15개 맵을 사용한다.
+이 문서는 이 저장소에서 진행한 **Overcooked V3** 작업을 기준으로 한다. 현재 기본 실험은 두 에이전트, 고정 시작 위치, CNN 기반 IPPO이며 `dynamic_00`부터 `dynamic_14`까지 15개 맵을 사용한다.
 
 ## 1. 현재 구성
 
 | 구분 | 현재 설정 |
 |---|---|
-| 환경 | `overcooked_dynamic` |
-| 기반 환경 | V1 `Overcooked` |
+| 환경 | `overcooked_v3` |
+| 기반 환경 | `OvercookedV2` |
 | 레시피 | 양파 3개로 만드는 단일 양파 수프 |
 | 에이전트 수 | 2 |
-| 관측 | 전체 맵 `height × width × 26` |
+| 관측 | V2 기본 관측, 단일 재료 맵 기준 `height × width × 30` |
 | 정책 | IPPO CNN |
 | 시작 위치 | 맵의 `A` 위치로 고정 |
 | 에이전트 초기 방향 | 에피소드 reset마다 무작위 |
@@ -23,20 +23,20 @@
 
 | 파일 | 역할 |
 |---|---|
-| `jaxmarl/environments/overcooked/dynamic_layout_data.py` | 동적 맵 원본 데이터 |
-| `jaxmarl/environments/overcooked/dynamic_layouts.py` | 데이터 파싱 및 유효성 검사 |
-| `jaxmarl/environments/overcooked/dynamic_overcooked.py` | 맵 전환과 캐릭터 재배치 규칙 |
-| `baselines/IPPO/config/ippo_overcooked.yaml` | IPPO 기본 하이퍼파라미터 |
-| `baselines/IPPO/ippo_overcooked.py` | CNN/RNN 통합 학습 코드 |
-| `train_all_dynamic_cnn.sh` | 15개 맵 CNN 일괄 학습 |
-| `baselines/IPPO/eval_ippo_overcooked.py` | CNN/RNN 통합 평가 코드 |
-| `eval_all_dynamic_cnn.sh` | same/cross-seed 일괄 평가 |
-| `jaxmarl/viz/overcooked_visualizer.py` | GUI 및 GIF 렌더링 |
+| `jaxmarl/environments/overcooked_v3/dynamic_layout_data.py` | 동적 맵 원본 데이터 |
+| `jaxmarl/environments/overcooked_v3/dynamic_layouts.py` | 데이터 파싱 및 유효성 검사 |
+| `jaxmarl/environments/overcooked_v3/dynamic_overcooked.py` | 맵 전환과 캐릭터 재배치 규칙 |
+| `baselines/IPPO/config/ippo_overcooked_v3.yaml` | IPPO 기본 하이퍼파라미터 |
+| `baselines/IPPO/ippo_overcooked_v3.py` | CNN/RNN 통합 학습 코드 |
+| `train_all_overcooked_v3_cnn.sh` | 15개 맵 CNN 일괄 학습 |
+| `baselines/IPPO/eval_ippo_overcooked_v3.py` | CNN/RNN 통합 평가 코드 |
+| `eval_all_overcooked_v3_cnn.sh` | same/cross-seed 일괄 평가 |
+| `jaxmarl/viz/overcooked_v3_visualizer.py` | GUI 및 GIF 렌더링 |
 | `run_docker.sh` | Docker 실행 및 NAS/GPU 마운트 |
 
 ## 2. 맵 데이터 작성법
 
-맵은 `jaxmarl/environments/overcooked/dynamic_layout_data.py`에 Python 변수로 저장한다. 변수명이 환경에서 사용하는 layout 이름이 된다.
+맵은 `jaxmarl/environments/overcooked_v3/dynamic_layout_data.py`에 Python 변수로 저장한다. 변수명이 환경에서 사용하는 layout 이름이 된다.
 
 ```python
 dynamic_15 = [
@@ -109,13 +109,13 @@ Invalid dynamic layout 'dynamic_15': Phase 1 has 1 agents; expected 2
 ### 2.3 새 맵 등록 절차
 
 1. `dynamic_layout_data.py`에 새 변수와 phase 데이터를 추가한다.
-2. `train_all_dynamic_cnn.sh`의 `layouts=(...)`에 이름을 추가한다.
-3. `eval_all_dynamic_cnn.sh`의 `layouts=(...)`에도 같은 이름을 추가한다.
+2. `train_all_overcooked_v3_cnn.sh`의 `layouts=(...)`에 이름을 추가한다.
+3. `eval_all_overcooked_v3_cnn.sh`의 `layouts=(...)`에도 같은 이름을 추가한다.
 4. 아래 명령으로 파싱을 확인한다.
 
 ```bash
 JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
-python -c "from jaxmarl.environments.overcooked import dynamic_layouts; print(sorted(dynamic_layouts))"
+python -c "from jaxmarl.environments.overcooked_v3 import overcooked_v3_layouts; print(sorted(overcooked_v3_layouts))"
 ```
 
 등록되지 않은 이름은 평가 CLI의 `--layout` 선택지에 나타나지 않는다. 등록은 됐지만 아직 학습하지 않은 맵은 자동 평가 시 체크포인트 누락 오류가 발생한다.
@@ -245,7 +245,7 @@ GPU 학습에는 CUDA 지원 JAX가 설치되어 있어야 한다. `jax.devices(
 
 ```bash
 GPU_ID=0 TRAIN_SEEDS="0 1" \
-bash train_all_dynamic_cnn.sh
+bash train_all_overcooked_v3_cnn.sh
 ```
 
 호스트에서 컨테이너까지 한 번에 실행하려면 다음 명령을 사용한다.
@@ -254,14 +254,14 @@ bash train_all_dynamic_cnn.sh
 bash run_docker.sh env \
   GPU_ID=0 \
   TRAIN_SEEDS="0 1" \
-  bash train_all_dynamic_cnn.sh
+  bash train_all_overcooked_v3_cnn.sh
 ```
 
 특정 GPU와 seed 하나만 실행할 수도 있다.
 
 ```bash
 GPU_ID=1 TRAIN_SEEDS="1" \
-bash train_all_dynamic_cnn.sh
+bash train_all_overcooked_v3_cnn.sh
 ```
 
 한 GPU에서 여러 seed는 병렬이 아니라 순차 실행된다. 각 맵에서 seed 0을 마친 후 seed 1을 실행하고 다음 맵으로 이동한다. 한 학습이 실패하면 셸은 즉시 중단하며, 그전에 저장된 최종 체크포인트는 유지된다.
@@ -271,9 +271,9 @@ bash train_all_dynamic_cnn.sh
 ```bash
 CUDA_VISIBLE_DEVICES=0 \
 XLA_PYTHON_CLIENT_PREALLOCATE=false \
-python -u baselines/IPPO/ippo_overcooked.py \
+python -u baselines/IPPO/ippo_overcooked_v3.py \
   ARCHITECTURE=cnn \
-  ENV_NAME=overcooked_dynamic \
+  ENV_NAME=overcooked_v3 \
   ENV_KWARGS.layout=dynamic_00 \
   SEED=0 \
   NUM_SEEDS=1 \
@@ -289,11 +289,11 @@ python -u baselines/IPPO/ippo_overcooked.py \
 예를 들어 `dynamic_00`, seed 0의 결과는 다음 위치에 저장된다.
 
 ```text
-/mnt/nas/overcooked-replan/ippo_v1/cnn/overcooked_dynamic_00/
-├── ippo_cnn_overcooked_dynamic_00_seed0_config.yaml
-├── ippo_cnn_overcooked_dynamic_00_seed0_vmap0_update000050.safetensors
-├── ippo_cnn_overcooked_dynamic_00_seed0_vmap0_update000100.safetensors
-└── ippo_cnn_overcooked_dynamic_00_seed0_vmap0.safetensors
+/mnt/nas/overcooked-replan/ippo_v3/cnn/overcooked_v3_00/
+├── ippo_cnn_overcooked_v3_00_seed0_config.yaml
+├── ippo_cnn_overcooked_v3_00_seed0_vmap0_update000050.safetensors
+├── ippo_cnn_overcooked_v3_00_seed0_vmap0_update000100.safetensors
+└── ippo_cnn_overcooked_v3_00_seed0_vmap0.safetensors
 ```
 
 - `seed0`, `seed1`은 파일명이 달라 서로 덮어쓰지 않는다.
@@ -302,26 +302,26 @@ python -u baselines/IPPO/ippo_overcooked.py \
 - 중간 체크포인트에는 모델 파라미터만 저장된다. 현재 학습 코드는 optimizer와 환경 상태를 불러와 이어서 학습하는 resume 기능을 제공하지 않는다.
 - 학습 콘솔에는 `HH:MM:SS`, update, 환경 step, 진행률, sparse return/reward가 출력된다.
 
-Hydra 실행 로그는 현재 `outputs/ippo_v2/cnn/<layout>/seed<seed>`에 저장된다. 모델 경로의 `ippo_v1`은 기반 환경이 V1임을 나타내는 현재 저장 규칙이다.
+Hydra 실행 로그는 `outputs/overcooked_v3/cnn/<layout>/seed<seed>`에 저장된다. V1/V2 체크포인트와 관측 규격이 다르므로 모델은 `ippo_v3` 아래에 별도로 저장한다.
 
 ## 7. 평가
 
 ### 7.1 전체 same/cross-seed 평가
 
 ```bash
-bash eval_all_dynamic_cnn.sh
+bash eval_all_overcooked_v3_cnn.sh
 ```
 
 호스트에서 Docker로 실행:
 
 ```bash
-bash run_docker.sh bash eval_all_dynamic_cnn.sh
+bash run_docker.sh bash eval_all_overcooked_v3_cnn.sh
 ```
 
 기본 평가는 CPU에서 실행한다. GPU 평가가 필요하면 다음처럼 실행한다.
 
 ```bash
-JAX_PLATFORM=cuda bash eval_all_dynamic_cnn.sh
+JAX_PLATFORM=cuda bash eval_all_overcooked_v3_cnn.sh
 ```
 
 각 맵에서 다음 네 조합을 평가한다.
@@ -338,7 +338,7 @@ JAX_PLATFORM=cuda bash eval_all_dynamic_cnn.sh
 결과는 다음 형식으로 저장된다.
 
 ```text
-evaluation/ippo_v2/cnn/dynamic_00/
+evaluation/overcooked_v3/cnn/dynamic_00/
 ├── dynamic_00_same_seed0.gif
 ├── dynamic_00_same_seed0.log
 ├── dynamic_00_same_seed1.gif
@@ -358,26 +358,26 @@ Same-seed 평가:
 
 ```bash
 JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
-python baselines/IPPO/eval_ippo_overcooked.py \
+python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --architecture cnn \
   --layout dynamic_00 \
   --agent-seeds 0 0 \
   --episodes 3 \
   --max-steps 400 \
-  --gif evaluation/ippo_v2/cnn/dynamic_00/dynamic_00_same_seed0.gif
+  --gif evaluation/overcooked_v3/cnn/dynamic_00/dynamic_00_same_seed0.gif
 ```
 
 Cross-seed 평가:
 
 ```bash
 JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
-python baselines/IPPO/eval_ippo_overcooked.py \
+python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --architecture cnn \
   --layout dynamic_00 \
   --agent-seeds 0 1 \
   --episodes 3 \
   --max-steps 400 \
-  --gif evaluation/ippo_v2/cnn/dynamic_00/dynamic_00_cross_seed0_seed1.gif
+  --gif evaluation/overcooked_v3/cnn/dynamic_00/dynamic_00_cross_seed0_seed1.gif
 ```
 
 `--agent-seeds`를 사용하면 NAS에서 각 seed의 최신 최종 체크포인트를 자동 선택한다. `_updateXXXXXX` 중간 체크포인트는 자동 선택 대상에서 제외된다.
@@ -386,13 +386,13 @@ python baselines/IPPO/eval_ippo_overcooked.py \
 
 ```bash
 JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
-python baselines/IPPO/eval_ippo_overcooked.py \
+python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --architecture cnn \
   --layout dynamic_00 \
-  --checkpoint /mnt/nas/overcooked-replan/ippo_v1/cnn/overcooked_dynamic_00/ippo_cnn_overcooked_dynamic_00_seed0_vmap0_update000100.safetensors \
+  --checkpoint /mnt/nas/overcooked-replan/ippo_v3/cnn/overcooked_v3_00/ippo_cnn_overcooked_v3_00_seed0_vmap0_update000100.safetensors \
   --episodes 1 \
   --max-steps 400 \
-  --gif evaluation/ippo_v2/cnn/dynamic_00/dynamic_00_seed0_update000100.gif
+  --gif evaluation/overcooked_v3/cnn/dynamic_00/dynamic_00_seed0_update000100.gif
 ```
 
 GUI 창으로 직접 보려면 `--render --render-delay 0.2`를 추가한다. GUI가 없는 서버에서는 GIF 방식을 사용한다.
@@ -404,21 +404,21 @@ GUI 창으로 직접 보려면 `--render --render-delay 0.2`를 추가한다. GU
 ```bash
 MPLCONFIGDIR=/tmp \
 python baselines/IPPO/plot_eval_statistics.py \
-  --input-dir evaluation/ippo_v2/cnn \
-  --output-dir evaluation/ippo_v2/cnn/statistics
+  --input-dir evaluation/overcooked_v3/cnn \
+  --output-dir evaluation/overcooked_v3/cnn/statistics
 ```
 
 스크립트는 각 맵의 네 policy 조합, 맵별 same/cross-seed 비교, `00-04`·`05-09`·`10-14` 그룹 요약 PNG를 생성한다. 같은 디렉터리에 조합별·맵별·그룹별 CSV도 저장한다. 이전 `dynamic_easy_*` 형식의 IPPO v1 로그도 계속 지원한다.
 
 ## 8. CNN과 RNN
 
-`baselines/IPPO/ippo_overcooked.py`와 평가 코드는 CNN/RNN을 모두 지원하지만 현재 일괄 실험 셸은 `ARCHITECTURE=cnn`으로 고정되어 있다.
+`baselines/IPPO/ippo_overcooked_v3.py`와 평가 코드는 CNN/RNN을 모두 지원하지만 현재 일괄 실험 셸은 `ARCHITECTURE=cnn`으로 고정되어 있다.
 
 - CNN은 현재 관측 한 장만 사용한다.
 - RNN은 GRU hidden state를 다음 step으로 전달해 과거 관측과 action의 영향을 내부 상태에 누적한다.
 - 동적 맵이라는 이유만으로 반드시 RNN이어야 하는 것은 아니다. 현재 맵 전체가 관측되므로 CNN도 현재 phase를 직접 볼 수 있다.
 
-RNN 실험을 하려면 모델 경로가 `ippo_v1/rnn/...`으로 분리되므로 CNN과 충돌하지 않는다. 다만 일괄 셸은 별도로 수정하거나 직접 `ARCHITECTURE=rnn`을 지정해야 한다.
+RNN 실험을 하면 모델 경로가 `ippo_v3/rnn/...`으로 분리되므로 CNN과 충돌하지 않는다. 다만 일괄 셸은 별도로 수정하거나 직접 `ARCHITECTURE=rnn`을 지정해야 한다.
 
 ## 9. 주의사항과 문제 해결
 
