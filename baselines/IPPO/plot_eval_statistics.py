@@ -1,4 +1,4 @@
-"""Plot statistics from eval_all_dynamic_cnn.sh result logs."""
+"""Plot statistics from eval_all_overcooked_v3_cnn.sh result logs."""
 
 import argparse
 import csv
@@ -68,12 +68,12 @@ def parse_args():
     parser.add_argument(
         "--input-dir",
         type=Path,
-        default=Path("evaluation/ippo_v1/cnn"),
+        default=Path("evaluation/overcooked_v3/cnn"),
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("evaluation/ippo_v1/cnn/statistics"),
+        default=Path("evaluation/overcooked_v3/cnn/statistics"),
     )
     parser.add_argument("--dpi", type=int, default=180)
     return parser.parse_args()
@@ -114,9 +114,7 @@ def load_results(input_dir):
 
 
 def layout_groups(results):
-    groups = {
-        item["layout_group"]: item["group_order"] for item in results.values()
-    }
+    groups = {item["layout_group"]: item["group_order"] for item in results.values()}
     return sorted(groups, key=lambda group: groups[group])
 
 
@@ -282,10 +280,7 @@ def write_group_csv(results, output_path):
 
 
 def add_bar_labels(axis, bars):
-    labels = [
-        f"{bar.get_height():.1f}".rstrip("0").rstrip(".")
-        for bar in bars
-    ]
+    labels = [f"{bar.get_height():.1f}".rstrip("0").rstrip(".") for bar in bars]
     axis.bar_label(bars, labels=labels, padding=2, fontsize=7, rotation=90)
 
 
@@ -302,7 +297,9 @@ def plot_pairings(results, output_path, dpi):
         positions = np.arange(len(layouts))
         for pairing_index, (pairing, metadata) in enumerate(PAIRINGS.items()):
             label, _, _, _, color = metadata
-            means = [np.mean(results[(layout, pairing)]["returns"]) for layout in layouts]
+            means = [
+                np.mean(results[(layout, pairing)]["returns"]) for layout in layouts
+            ]
             stds = [np.std(results[(layout, pairing)]["returns"]) for layout in layouts]
             offset = (pairing_index - 1.5) * bar_width
             bars = axis.bar(
@@ -318,7 +315,9 @@ def plot_pairings(results, output_path, dpi):
 
         axis.set_title(f"Layout group {layout_group}")
         axis.set_ylabel("Episode return")
-        axis.set_xticks(positions, [layout.removeprefix("dynamic_") for layout in layouts])
+        axis.set_xticks(
+            positions, [layout.removeprefix("dynamic_") for layout in layouts]
+        )
         axis.grid(axis="y", alpha=0.25)
         axis.margins(y=0.15)
 
@@ -371,7 +370,9 @@ def plot_same_cross(results, output_path, dpi):
 
         axis.set_title(f"Layout group {layout_group}")
         axis.set_ylabel("Episode return")
-        axis.set_xticks(positions, [layout.removeprefix("dynamic_") for layout in layouts])
+        axis.set_xticks(
+            positions, [layout.removeprefix("dynamic_") for layout in layouts]
+        )
         axis.grid(axis="y", alpha=0.25)
         axis.margins(y=0.15)
 

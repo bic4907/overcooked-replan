@@ -16,7 +16,6 @@ from omegaconf import OmegaConf
 
 import jaxmarl
 import wandb
-from jaxmarl.environments.overcooked import overcooked_layouts
 from jaxmarl.wrappers.baselines import LogWrapper
 
 
@@ -38,11 +37,11 @@ def _checkpoint_prefix(config):
 def _checkpoint_metadata(config):
     layout_name = config["ENV_KWARGS"]["layout"]
     layout_suffix = layout_name
-    if config["ENV_NAME"].endswith("_dynamic"):
+    if config["ENV_NAME"] == "overcooked_v3":
         layout_suffix = layout_suffix.removeprefix("dynamic_")
     experiment_name = f"{config['ENV_NAME']}_{layout_suffix}"
     save_dir = os.path.join(
-        config["SAVE_PATH"], "ippo_v1", _architecture(config), experiment_name
+        config["SAVE_PATH"], "ippo_v3", _architecture(config), experiment_name
     )
     return experiment_name, save_dir
 
@@ -299,10 +298,6 @@ def unbatchify(x: jnp.ndarray, agent_list, num_envs, num_actors):
 
 def make_train(config):
     env_kwargs = dict(config["ENV_KWARGS"])
-    if config["ENV_NAME"] == "overcooked" and isinstance(
-        env_kwargs.get("layout"), str
-    ):
-        env_kwargs["layout"] = overcooked_layouts[env_kwargs["layout"]]
     env = jaxmarl.make(config["ENV_NAME"], **env_kwargs)
     architecture = _architecture(config)
     checkpoint_prefix = _checkpoint_prefix(config)
@@ -310,9 +305,7 @@ def make_train(config):
     checkpoint_interval = int(config.get("CHECKPOINT_INTERVAL", 0))
     if checkpoint_interval < 0:
         raise ValueError("CHECKPOINT_INTERVAL must be greater than or equal to 0")
-    checkpoint_enabled = (
-        checkpoint_interval > 0 and config.get("SAVE_PATH") is not None
-    )
+    checkpoint_enabled = checkpoint_interval > 0 and config.get("SAVE_PATH") is not None
     if checkpoint_enabled:
         experiment_name, save_dir = _checkpoint_metadata(config)
 
@@ -676,9 +669,7 @@ def make_train(config):
                 ):
                     env_step = int(metric["env_step"])
                     progress = 100.0 * update / config["NUM_UPDATES"]
-                    sparse_episode_return = float(
-                        metric["returned_episode_returns"]
-                    )
+                    sparse_episode_return = float(metric["returned_episode_returns"])
                     sparse_step_reward = float(metric["original_reward"])
                     print(
                         f"[{_timestamp()}] "
@@ -797,9 +788,7 @@ def run(config):
     wandb.finish()
 
 
-@hydra.main(
-    version_base=None, config_path="config", config_name="ippo_overcooked"
-)
+@hydra.main(version_base=None, config_path="config", config_name="ippo_overcooked_v3")
 def main(config):
     run(config)
 

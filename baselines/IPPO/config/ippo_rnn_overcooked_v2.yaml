@@ -1,8 +1,10 @@
-"ENV_NAME": "overcooked_dynamic"
-"ARCHITECTURE": "cnn"
+"ENV_NAME": "overcooked_v2"
 "ENV_KWARGS":
-  "layout": "dynamic_easy_0"
-  "random_agent_positions": False
+  "layout" : "grounded_coord_simple"
+  "agent_view_size": 2
+  "negative_rewards": True
+  "sample_recipe_on_delivery": True
+  "random_agent_positions": True
 
 "LR": 0.00025
 "ANNEAL_LR": True
@@ -29,10 +31,6 @@
 "ACTIVATION": "relu"
 "SEED": 0
 "NUM_SEEDS": 1
-"LOG_INTERVAL": 10
-"CHECKPOINT_INTERVAL": 0  # Training updates; 0 disables intermediate checkpoints.
-
-"SAVE_PATH": "/mnt/nas/overcooked-replan"
 
 "ENTITY": ""
 "PROJECT": ""

@@ -52,9 +52,9 @@ for layout in "${layouts[@]}"; do
 
         if ! CUDA_VISIBLE_DEVICES="${GPU_ID}" \
             XLA_PYTHON_CLIENT_PREALLOCATE=false \
-            python -u baselines/IPPO/ippo_overcooked.py \
+            python -u baselines/IPPO/ippo_overcooked_v3.py \
                 ARCHITECTURE=cnn \
-                ENV_NAME=overcooked_dynamic \
+                ENV_NAME=overcooked_v3 \
                 ENV_KWARGS.layout="${layout}" \
                 SEED="${seed}" \
                 NUM_SEEDS=1 \
@@ -63,7 +63,7 @@ for layout in "${layouts[@]}"; do
                 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL}" \
                 WANDB_MODE="${WANDB_MODE}" \
                 SAVE_PATH="${SAVE_PATH}" \
-                hydra.run.dir="outputs/ippo_v2/cnn/${layout}/seed${seed}" \
+                hydra.run.dir="outputs/overcooked_v3/cnn/${layout}/seed${seed}" \
                 2>&1 | sed -u "s/^/[GPU ${GPU_ID}][seed ${seed}] /"
         then
             echo "[GPU ${GPU_ID}][seed ${seed}] Training failed: ${layout}" >&2

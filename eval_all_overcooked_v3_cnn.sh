@@ -6,7 +6,7 @@ PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "${PROJECT_DIR}"
 
 MODELS_DIR="${MODELS_DIR:-/mnt/nas/overcooked-replan}"
-EVALUATION_DIR="${EVALUATION_DIR:-evaluation/ippo_v2/cnn}"
+EVALUATION_DIR="${EVALUATION_DIR:-evaluation/overcooked_v3/cnn}"
 EPISODES="${EPISODES:-3}"
 MAX_STEPS="${MAX_STEPS:-400}"
 EVAL_SEED="${EVAL_SEED:-0}"
@@ -48,8 +48,8 @@ pair_specs=(
 # does not leave behind a misleading partial set of evaluation results.
 missing_checkpoint=0
 for layout in "${layouts[@]}"; do
-    experiment_name="overcooked_dynamic_${layout#dynamic_}"
-    checkpoint_dir="${MODELS_DIR}/ippo_v1/cnn/${experiment_name}"
+    experiment_name="overcooked_v3_${layout#dynamic_}"
+    checkpoint_dir="${MODELS_DIR}/ippo_v3/cnn/${experiment_name}"
 
     for seed in 0 1; do
         checkpoint="${checkpoint_dir}/ippo_cnn_${experiment_name}_seed${seed}_vmap0.safetensors"
@@ -78,7 +78,7 @@ for layout in "${layouts[@]}"; do
         JAX_PLATFORMS="${JAX_PLATFORM}" \
             XLA_PYTHON_CLIENT_PREALLOCATE=false \
             MPLCONFIGDIR=/tmp \
-            python -u baselines/IPPO/eval_ippo_overcooked.py \
+            python -u baselines/IPPO/eval_ippo_overcooked_v3.py \
                 --architecture cnn \
                 --models-dir "${MODELS_DIR}" \
                 --layout "${layout}" \

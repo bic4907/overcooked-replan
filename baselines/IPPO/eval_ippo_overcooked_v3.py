@@ -1,4 +1,4 @@
-"""Evaluate CNN or RNN IPPO checkpoints on V1 Overcooked."""
+"""Evaluate CNN or RNN IPPO checkpoints on Overcooked V3."""
 
 import argparse
 import time
@@ -9,16 +9,16 @@ import jax.numpy as jnp
 import numpy as np
 
 import jaxmarl
-from ippo_overcooked import ActorCriticCNN, ActorCriticRNN, ScannedRNN
-from jaxmarl.environments.overcooked import dynamic_layouts, overcooked_layouts
-from jaxmarl.environments.overcooked.overcooked import OvercookedActions
-from jaxmarl.viz.overcooked_visualizer import OvercookedVisualizer
+from ippo_overcooked_v3 import ActorCriticCNN, ActorCriticRNN, ScannedRNN
+from jaxmarl.environments.overcooked_v3 import overcooked_v3_layouts
+from jaxmarl.environments.overcooked_v3.common import OvercookedActionsEnum
+from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
 from jaxmarl.wrappers.baselines import load_params
 
 
 def parse_args(default_architecture="cnn"):
     parser = argparse.ArgumentParser(
-        description="Evaluate an IPPO CNN or RNN checkpoint on V1 Overcooked."
+        description="Evaluate an IPPO CNN or RNN checkpoint on Overcooked V3."
     )
     parser.add_argument(
         "--checkpoint",
@@ -56,7 +56,7 @@ def parse_args(default_architecture="cnn"):
     )
     parser.add_argument(
         "--layout",
-        choices=sorted(set(dynamic_layouts) | set(overcooked_layouts)),
+        choices=sorted(overcooked_v3_layouts),
         required=True,
     )
     parser.add_argument("--episodes", type=int, default=3)
@@ -96,21 +96,15 @@ def resolve_checkpoint(
             raise FileNotFoundError(f"Checkpoint not found: {checkpoint}")
         return checkpoint
 
-    if layout in dynamic_layouts:
-        experiment_name = f"overcooked_dynamic_{layout.removeprefix('dynamic_')}"
-    else:
-        experiment_name = f"overcooked_{layout}"
+    experiment_name = f"overcooked_v3_{layout.removeprefix('dynamic_')}"
     checkpoint_prefix = f"ippo_{architecture}"
-    checkpoint_dir = models_dir / "ippo_v1" / architecture / experiment_name
+    checkpoint_dir = models_dir / "ippo_v3" / architecture / experiment_name
     seed_pattern = "*" if training_seed is None else str(training_seed)
     pattern = (
-        f"{checkpoint_prefix}_{experiment_name}_seed{seed_pattern}_"
-        "vmap*.safetensors"
+        f"{checkpoint_prefix}_{experiment_name}_seed{seed_pattern}_" "vmap*.safetensors"
     )
     candidates = [
-        path
-        for path in checkpoint_dir.glob(pattern)
-        if "_update" not in path.stem
+        path for path in checkpoint_dir.glob(pattern) if "_update" not in path.stem
     ]
     if not candidates:
         raise FileNotFoundError(
@@ -147,7 +141,7 @@ def evaluate_episode(policy, params, env_step, env, key, hidden_size):
         obs, state, reward, done, info = env_step(step_key, state, actions)
         episode_return += float(reward["agent_0"])
         state_seq.append(state)
-        action_names = [OvercookedActions(int(action[i])).name for i in range(2)]
+        action_names = [OvercookedActionsEnum(int(action[i])).name for i in range(2)]
         captions.append(
             f"step={step + 1} score={episode_return:g} "
             f"actions={action_names[0]}/{action_names[1]}"
@@ -191,20 +185,12 @@ def main(default_architecture="cnn"):
     for agent, checkpoint in zip(("agent_0", "agent_1"), checkpoints):
         print(f"Using {agent} checkpoint: {checkpoint}")
 
-    if args.layout in dynamic_layouts:
-        env = jaxmarl.make(
-            "overcooked_dynamic",
-            layout=args.layout,
-            max_steps=args.max_steps,
-            random_agent_positions=False,
-        )
-    else:
-        env = jaxmarl.make(
-            "overcooked",
-            layout=overcooked_layouts[args.layout],
-            max_steps=args.max_steps,
-            random_agent_positions=False,
-        )
+    env = jaxmarl.make(
+        "overcooked_v3",
+        layout=args.layout,
+        max_steps=args.max_steps,
+        random_agent_positions=False,
+    )
     config = {
         "ACTIVATION": args.activation,
         "FC_DIM_SIZE": args.fc_dim_size,
@@ -268,7 +254,7 @@ def main(default_architecture="cnn"):
 
     if args.gif is not None:
         args.gif.parent.mkdir(parents=True, exist_ok=True)
-        viz = OvercookedVisualizer()
+        viz = OvercookedV3Visualizer()
         viz.animate(
             first_states,
             agent_view_size=env.agent_view_size,
@@ -278,11 +264,11 @@ def main(default_architecture="cnn"):
         print(f"Saved animation: {args.gif}")
 
     if args.render:
-        viz = OvercookedVisualizer()
+        viz = OvercookedV3Visualizer()
         window = viz._lazy_init_window()
         for state, caption in zip(first_states, first_captions):
             window.set_caption(caption)
-            viz.render(env.agent_view_size, state, highlight=False)
+            viz.render(state, agent_view_size=env.agent_view_size)
             time.sleep(args.render_delay)
             if viz.window is not None and viz.window.closed:
                 break
