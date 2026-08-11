@@ -379,11 +379,13 @@ python -m ruff check .
 | `baselines/IPPO/ippo_overcooked_v3.py` | CNN/RNN IPPO training entrypoint |
 | `conf/` | Hydra defaults and scenario configurations |
 | `sweeps/` | W&B sweep configurations |
+| `experiment/` | Copy-and-run experiment commands |
 | `scripts/overcooked_v3/` | Rollout, batch-training, and batch-evaluation scripts |
 | `docs/overcooked_v3/` | Environment design and detailed workflows |
 
 Additional documentation:
 
+- [Executable W&B sweep commands](experiment/role_scenarios.md)
 - [Overcooked V3 documentation](docs/overcooked_v3/index.md)
 - [Training and W&B configuration](docs/overcooked_v3/training.md)
 - [Executable role-scenario sweep runbook](docs/overcooked_v3/experiments/role_scenarios.md)
