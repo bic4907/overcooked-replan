@@ -29,8 +29,8 @@ parameters:
     value: saves
   EXPERIMENT_FOLDER:
     value: role-scenarios
-  RECORD_FINAL_EPISODE:
-    value: true
+  recording:
+    value: enabled
   RECORD_MAX_STEPS:
     value: 400
   RECORD_VIDEO_FPS:

@@ -267,10 +267,17 @@ observed during that rollout batch.
 
 At the end of training, the first trained seed runs one deterministic episode.
 A compact 5 FPS MP4 is saved in the experiment directory and uploaded as
-`visualization/final_episode`. Configure this behavior with
-`RECORD_FINAL_EPISODE`, `RECORD_MAX_STEPS`, `RECORD_VIDEO_FPS`, and
-`RECORD_VIDEO_QUALITY`. Recording is skipped when `WANDB_MODE=disabled`; set
-`RECORD_FINAL_EPISODE=false` to disable it for an online or offline W&B run.
+`visualization/final_episode`. The Hydra default is `recording=enabled`; pass
+`recording=disabled` to turn it off. With recording enabled, customize it using
+`RECORD_MAX_STEPS`, `RECORD_VIDEO_FPS`, and `RECORD_VIDEO_QUALITY`. Recording is
+also skipped when `WANDB_MODE=disabled`.
+
+```bash
+python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=split_sig \
+  recording=disabled \
+  SEED=0
+```
 
 ## Evaluate and render trained policies
 

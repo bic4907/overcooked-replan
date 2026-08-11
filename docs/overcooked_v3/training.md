@@ -183,9 +183,16 @@ Sweep 최적화 지표는 `train/episode_return`이다. `debug/layout_index`와
 학습이 끝나면 첫 번째 학습 seed의 deterministic policy로 episode 하나를 실행한다.
 기본 5 FPS MP4는 해당 `saves/<experiment-folder>/`에 저장되고
 `visualization/final_episode`로 업로드된다. `WANDB_MODE=disabled`일 때는 녹화를
-건너뛴다. 온라인·오프라인 W&B run에서도 끄려면
-`RECORD_FINAL_EPISODE=false`를 사용한다. 길이, FPS, 압축 품질은 각각
+건너뛴다. Hydra 기본 설정은 `recording=enabled`다. 온라인·오프라인 W&B
+run에서도 끄려면 `recording=disabled`를 사용한다. 길이, FPS, 압축 품질은 각각
 `RECORD_MAX_STEPS`, `RECORD_VIDEO_FPS`, `RECORD_VIDEO_QUALITY`로 바꿀 수 있다.
+
+```bash
+python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=split_sig \
+  recording=disabled \
+  SEED=0
+```
 
 ## 테스트
 

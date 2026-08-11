@@ -37,6 +37,16 @@ def test_default_training_config_preserves_dynamic_00():
     assert config.RECORD_VIDEO_QUALITY == 5
 
 
+def test_recording_hydra_group_can_disable_final_video():
+    with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
+        config = compose(
+            config_name="ippo_overcooked_v3",
+            overrides=["recording=disabled"],
+        )
+
+    assert config.RECORD_FINAL_EPISODE is False
+
+
 def test_hydra_scenario_group_composes_all_conditions():
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
         for scenario, (experiment, signal_enabled) in SCENARIOS.items():
@@ -104,7 +114,7 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
     assert sweep["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4]
     assert sweep["parameters"]["EXPERIMENT_FOLDER"]["value"] == "role-scenarios"
     assert sweep["parameters"]["SAVES_DIR"]["value"] == "saves"
-    assert sweep["parameters"]["RECORD_FINAL_EPISODE"]["value"] is True
+    assert sweep["parameters"]["recording"]["value"] == "enabled"
     assert sweep["parameters"]["RECORD_MAX_STEPS"]["value"] == 400
     assert sweep["parameters"]["RECORD_VIDEO_FPS"]["value"] == 5
     assert "${args_no_hyphens}" in sweep["command"]

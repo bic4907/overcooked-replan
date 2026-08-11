@@ -1,0 +1,7 @@
+# @package _global_
+
+# Record one deterministic episode from the first trained seed at the end.
+RECORD_FINAL_EPISODE: true
+RECORD_MAX_STEPS: 400
+RECORD_VIDEO_FPS: 5
+RECORD_VIDEO_QUALITY: 5

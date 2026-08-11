@@ -1,5 +1,6 @@
 defaults:
   - _self_
+  - recording: enabled
   - scenario: dynamic_00
 
 ENV_NAME: overcooked_v3
@@ -37,12 +38,6 @@ SEED: 0
 NUM_SEEDS: 1
 LOG_INTERVAL: 10
 CHECKPOINT_INTERVAL: 0  # Training updates; 0 disables intermediate checkpoints.
-
-# Record one deterministic episode from the first trained seed at the end.
-RECORD_FINAL_EPISODE: true
-RECORD_MAX_STEPS: 400
-RECORD_VIDEO_FPS: 5
-RECORD_VIDEO_QUALITY: 5
 
 SAVES_DIR: saves
 EXPERIMENT_FOLDER: null
