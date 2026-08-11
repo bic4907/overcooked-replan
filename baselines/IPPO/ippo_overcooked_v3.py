@@ -774,9 +774,6 @@ def run(config):
         OmegaConf.save(OmegaConf.create(config), config_path)
 
     wandb_name, wandb_group, wandb_tags = _wandb_metadata(config)
-    wandb_dir = config.get("WANDB_DIR")
-    if wandb_dir:
-        os.makedirs(wandb_dir, exist_ok=True)
     wandb.init(
         entity=config.get("ENTITY") or None,
         project=config["PROJECT"],
@@ -787,7 +784,6 @@ def run(config):
         group=wandb_group,
         job_type="train",
         notes=config.get("NOTES"),
-        dir=wandb_dir,
     )
 
     with jax.disable_jit(False):

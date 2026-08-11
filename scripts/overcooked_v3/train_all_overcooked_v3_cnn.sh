@@ -61,7 +61,6 @@ for layout in "${layouts[@]}"; do
                 LOG_INTERVAL="${LOG_INTERVAL}" \
                 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL}" \
                 SAVES_DIR="${SAVES_DIR}" \
-                hydra.run.dir="${SAVES_DIR}/hydra/overcooked_v3/cnn/${layout}/seed${seed}" \
                 2>&1 | sed -u "s/^/[GPU ${GPU_ID}][seed ${seed}] /"
         then
             echo "[GPU ${GPU_ID}][seed ${seed}] Training failed: ${layout}" >&2

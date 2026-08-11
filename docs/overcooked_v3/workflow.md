@@ -302,7 +302,7 @@ saves/dynamic_00_cnn_seed0/
 - 중간 체크포인트에는 모델 파라미터만 저장된다. 현재 학습 코드는 optimizer와 환경 상태를 불러와 이어서 학습하는 resume 기능을 제공하지 않는다.
 - 학습 콘솔에는 `HH:MM:SS`, update, 환경 step, 진행률, sparse return/reward가 출력된다.
 
-일괄 학습의 Hydra 실행 로그는 `saves/hydra/overcooked_v3/cnn/<layout>/seed<seed>`에 저장된다.
+Hydra 실행 로그는 별도 경로 override 없이 기본 `outputs/` 디렉터리에 저장된다.
 
 ## 7. 평가
 
@@ -338,7 +338,7 @@ JAX_PLATFORM=cuda bash scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh
 결과는 다음 형식으로 저장된다.
 
 ```text
-saves/evaluation/overcooked_v3/cnn/dynamic_00/
+evaluation/overcooked_v3/cnn/dynamic_00/
 ├── dynamic_00_same_seed0.gif
 ├── dynamic_00_same_seed0.log
 ├── dynamic_00_same_seed1.gif
@@ -364,7 +364,7 @@ python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --agent-seeds 0 0 \
   --episodes 3 \
   --max-steps 400 \
-  --gif saves/evaluation/overcooked_v3/cnn/dynamic_00/dynamic_00_same_seed0.gif
+  --gif evaluation/overcooked_v3/cnn/dynamic_00/dynamic_00_same_seed0.gif
 ```
 
 Cross-seed 평가:
@@ -377,7 +377,7 @@ python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --agent-seeds 0 1 \
   --episodes 3 \
   --max-steps 400 \
-  --gif saves/evaluation/overcooked_v3/cnn/dynamic_00/dynamic_00_cross_seed0_seed1.gif
+  --gif evaluation/overcooked_v3/cnn/dynamic_00/dynamic_00_cross_seed0_seed1.gif
 ```
 
 `--agent-seeds`를 사용하면 `saves/`에서 각 seed의 최신 최종 체크포인트를 자동 선택한다. `_updateXXXXXX` 중간 체크포인트는 자동 선택 대상에서 제외된다.
@@ -392,7 +392,7 @@ python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --checkpoint saves/dynamic_00_cnn_seed0/ippo_cnn_overcooked_v3_00_seed0_vmap0_update000100.safetensors \
   --episodes 1 \
   --max-steps 400 \
-  --gif saves/evaluation/overcooked_v3/cnn/dynamic_00/dynamic_00_seed0_update000100.gif
+  --gif evaluation/overcooked_v3/cnn/dynamic_00/dynamic_00_seed0_update000100.gif
 ```
 
 GUI 창으로 직접 보려면 `--render --render-delay 0.2`를 추가한다. GUI가 없는 서버에서는 GIF 방식을 사용한다.
@@ -404,8 +404,8 @@ GUI 창으로 직접 보려면 `--render --render-delay 0.2`를 추가한다. GU
 ```bash
 MPLCONFIGDIR=/tmp \
 python baselines/IPPO/plot_eval_statistics.py \
-  --input-dir saves/evaluation/overcooked_v3/cnn \
-  --output-dir saves/evaluation/overcooked_v3/cnn/statistics
+  --input-dir evaluation/overcooked_v3/cnn \
+  --output-dir evaluation/overcooked_v3/cnn/statistics
 ```
 
 스크립트는 각 맵의 네 policy 조합, 맵별 same/cross-seed 비교, `00-04`·`05-09`·`10-14` 그룹 요약 PNG를 생성한다. 같은 디렉터리에 조합별·맵별·그룹별 CSV도 저장한다. 이전 `dynamic_easy_*` 형식의 IPPO v1 로그도 계속 지원한다.

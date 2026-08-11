@@ -16,7 +16,6 @@ WANDB_API_KEY=your-api-key
 WANDB_ENTITY=your-team-or-user
 WANDB_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
-WANDB_DIR=saves/wandb
 SAVES_DIR=saves
 ```
 
@@ -85,14 +84,13 @@ saves/
     └── ippo_cnn_overcooked_v3_split_sig_seed0_vmap0.safetensors
 ```
 
-보조 결과도 `saves/` 아래에서 관리한다.
+`saves/`에는 실험 config와 checkpoint만 저장한다. Hydra와 W&B는 별도 경로
+override 없이 각각 기본 `outputs/`·`multirun/`, `wandb/` 디렉터리를 사용한다.
+평가 결과는 `evaluation/`에 저장한다.
 
 ```text
 saves/
-├── <experiment-folder>/  # config와 checkpoint
-├── hydra/                # Hydra 실행/override 기록
-├── evaluation/           # 평가 log, GIF, 통계
-└── wandb/                # 로컬 W&B 파일
+└── <experiment-folder>/  # config와 checkpoint
 ```
 
 NAS 등 다른 루트를 쓰려면 `SAVES_DIR=/mnt/nas/overcooked-replan`처럼 override할

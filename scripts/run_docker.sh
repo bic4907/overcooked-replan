@@ -67,7 +67,6 @@ for variable in \
     WANDB_ENTITY \
     WANDB_MODE \
     WANDB_PROJECT \
-    WANDB_DIR \
     XLA_FLAGS
 do
     if printenv "${variable}" >/dev/null 2>&1; then

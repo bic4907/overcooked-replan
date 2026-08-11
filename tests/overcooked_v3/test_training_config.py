@@ -24,7 +24,7 @@ def test_default_training_config_preserves_dynamic_00():
     assert config.ENV_KWARGS.layout == "dynamic_00"
     assert config.EXPERIMENT == "dynamic_map"
     assert config.SAVES_DIR == "saves"
-    assert config.WANDB_DIR == "saves/wandb"
+    assert config.get("WANDB_DIR") is None
 
 
 def test_hydra_scenario_group_composes_all_conditions():
@@ -154,7 +154,6 @@ def test_tracking_parameters_do_not_change_experiment_folder():
     changed = deepcopy(config)
     changed["PROJECT"] = "another-wandb-project"
     changed["WANDB_MODE"] = "offline"
-    changed["WANDB_DIR"] = "/another/wandb/root"
     changed["SAVES_DIR"] = "/another/model/root"
 
     assert experiment_folder(config) == experiment_folder(changed)

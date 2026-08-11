@@ -6,7 +6,7 @@ PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${PROJECT_DIR}"
 
 SAVES_DIR="${SAVES_DIR:-${PROJECT_DIR}/saves}"
-EVALUATION_DIR="${EVALUATION_DIR:-${PROJECT_DIR}/saves/evaluation/overcooked_v3/cnn}"
+EVALUATION_DIR="${EVALUATION_DIR:-${PROJECT_DIR}/evaluation/overcooked_v3/cnn}"
 EPISODES="${EPISODES:-3}"
 MAX_STEPS="${MAX_STEPS:-400}"
 EVAL_SEED="${EVAL_SEED:-0}"
