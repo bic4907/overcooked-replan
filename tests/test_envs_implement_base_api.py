@@ -40,8 +40,8 @@ envs_to_test = [
     # "storm_np",
     "hanabi",
     "overcooked",
-    "overcooked_dynamic",
     "overcooked_v2",
+    "overcooked_v3",
     "coin_game",
     "jaxnav",
 ]

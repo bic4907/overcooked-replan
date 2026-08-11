@@ -39,13 +39,7 @@ class OvercookedVisualizer:
         """Method for rendering the state in a window. Esp. useful for interactive mode."""
         return self._render_state(agent_view_size, state, highlight, tile_size)
 
-    def animate(
-        self,
-        state_seq,
-        agent_view_size,
-        filename="animation.gif",
-        captions=None,
-    ):
+    def animate(self, state_seq, agent_view_size, filename="animation.gif"):
         """Animate a gif give a state sequence and save if to file."""
         import imageio
 
@@ -65,47 +59,7 @@ class OvercookedVisualizer:
 
         frame_seq = [get_frame(state) for state in state_seq]
 
-        if captions is not None:
-            from PIL import Image, ImageDraw, ImageFont
-
-            if len(captions) != len(frame_seq):
-                raise ValueError("captions and state_seq must have the same length")
-
-            font = ImageFont.load_default()
-            measure = ImageDraw.Draw(Image.new("RGB", (1, 1)))
-            text_boxes = [
-                measure.textbbox((0, 0), caption, font=font) for caption in captions
-            ]
-            text_width = max(box[2] - box[0] for box in text_boxes)
-            text_height = max(box[3] - box[1] for box in text_boxes)
-            canvas_width = max(frame_seq[0].shape[1], text_width + 12)
-            canvas_height = frame_seq[0].shape[0] + text_height + 12
-
-            captioned_frames = []
-            for frame, caption in zip(frame_seq, captions):
-                image = Image.fromarray(frame)
-                canvas = Image.new("RGB", (canvas_width, canvas_height), "white")
-                canvas.paste(image, ((canvas_width - image.width) // 2, 0))
-                draw = ImageDraw.Draw(canvas)
-                draw.text(
-                    (6, image.height + 6),
-                    caption,
-                    fill="black",
-                    font=font,
-                )
-                captioned_frames.append(np.asarray(canvas))
-            frame_seq = captioned_frames
-
-        frame_duration_ms = 200
-        durations = [frame_duration_ms] * len(frame_seq)
-        durations[-1] += 3000
-        imageio.mimsave(
-            filename,
-            frame_seq,
-            "GIF",
-            duration=durations,
-            loop=0,
-        )
+        imageio.mimsave(filename, frame_seq, "GIF", duration=0.5)
 
     def render_grid(self, grid, tile_size=TILE_PIXELS, k_rot90=0, agent_dir_idx=None):
         window = self._lazy_init_window()

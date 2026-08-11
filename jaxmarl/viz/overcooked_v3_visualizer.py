@@ -5,14 +5,15 @@ from typing import Optional
 import imageio
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 import jaxmarl.viz.grid_rendering_v2 as rendering
-from jaxmarl.environments.overcooked_v2.common import DynamicObject, StaticObject
-from jaxmarl.environments.overcooked_v2.settings import (
+from jaxmarl.environments.overcooked_v3.common import DynamicObject, StaticObject
+from jaxmarl.environments.overcooked_v3.settings import (
     INDICATOR_ACTIVATION_TIME,
     POT_COOK_TIME,
 )
-from jaxmarl.environments.overcooked_v2.utils import compute_view_box
+from jaxmarl.environments.overcooked_v3.utils import compute_view_box
 from jaxmarl.viz.window import Window
 
 TILE_PIXELS = 32
@@ -62,7 +63,7 @@ AGENT_COLORS = jnp.array(
 )
 
 
-class OvercookedV2Visualizer:
+class OvercookedV3Visualizer:
     """
     Manages a window and renders contents of EnvState instances to it.
     """
@@ -77,7 +78,7 @@ class OvercookedV2Visualizer:
 
     def _lazy_init_window(self) -> Window:
         if self.window is None:
-            self.window = Window("Overcooked V2")
+            self.window = Window("Overcooked V3")
         return self.window
 
     def show(self, block=False):
@@ -91,17 +92,59 @@ class OvercookedV2Visualizer:
 
         window.show_img(img)
 
-    def animate(self, state_seq, filename="animation.gif", agent_view_size=None):
+    def animate(
+        self,
+        state_seq,
+        filename="animation.gif",
+        agent_view_size=None,
+        captions=None,
+    ):
         """Animate a gif give a state sequence and save if to file."""
 
-        frame_seq = jax.vmap(self._render_state, in_axes=(0, None))(
-            state_seq, agent_view_size
-        )
-        # print("frame_seq", frame_seq)
-        # print("frame_seq.shape", frame_seq.shape)
-        # print("frame_seq.dtype", frame_seq.dtype)
+        if isinstance(state_seq, (list, tuple)):
+            frame_seq = [
+                self._render_state(state, agent_view_size) for state in state_seq
+            ]
+        else:
+            frame_seq = jax.vmap(self._render_state, in_axes=(0, None))(
+                state_seq, agent_view_size
+            )
+        frame_seq = [np.asarray(frame) for frame in frame_seq]
 
-        imageio.mimsave(filename, frame_seq, "GIF", duration=0.5)
+        if captions is not None:
+            from PIL import Image, ImageDraw, ImageFont
+
+            if len(captions) != len(frame_seq):
+                raise ValueError("captions and state_seq must have the same length")
+
+            font = ImageFont.load_default()
+            measure = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+            text_boxes = [
+                measure.textbbox((0, 0), caption, font=font) for caption in captions
+            ]
+            text_width = max(box[2] - box[0] for box in text_boxes)
+            text_height = max(box[3] - box[1] for box in text_boxes)
+            canvas_width = max(frame_seq[0].shape[1], text_width + 12)
+            canvas_height = frame_seq[0].shape[0] + text_height + 12
+
+            captioned_frames = []
+            for frame, caption in zip(frame_seq, captions):
+                image = Image.fromarray(frame)
+                canvas = Image.new("RGB", (canvas_width, canvas_height), "white")
+                canvas.paste(image, ((canvas_width - image.width) // 2, 0))
+                draw = ImageDraw.Draw(canvas)
+                draw.text(
+                    (6, image.height + 6),
+                    caption,
+                    fill="black",
+                    font=font,
+                )
+                captioned_frames.append(np.asarray(canvas))
+            frame_seq = captioned_frames
+
+        durations = [200] * len(frame_seq)
+        durations[-1] += 3000
+        imageio.mimsave(filename, frame_seq, "GIF", duration=durations, loop=0)
 
     def render_sequence(self, state_seq, agent_view_size=None):
         frame_seq = jax.vmap(self._render_state, in_axes=(0, None))(
@@ -138,7 +181,7 @@ class OvercookedV2Visualizer:
             direction = agent.dir
 
             # we have to do the encoding because we don't really have a way to also pass the agent's id
-            extra_info = OvercookedV2Visualizer._encode_agent_extras(direction, idx)
+            extra_info = OvercookedV3Visualizer._encode_agent_extras(direction, idx)
 
             new_grid = grid.at[pos.y, pos.x].set(
                 [StaticObject.AGENT, inventory, extra_info]
@@ -246,7 +289,7 @@ class OvercookedV2Visualizer:
             img = rendering.fill_coords(
                 img, rendering.point_in_rect(0, 1, 0, 1), COLORS["grey"]
             )
-            img = OvercookedV2Visualizer._render_dynamic_item(cell[1], img)
+            img = OvercookedV3Visualizer._render_dynamic_item(cell[1], img)
 
             return img
 
@@ -257,7 +300,7 @@ class OvercookedV2Visualizer:
                 (0.12, 0.81),
             )
 
-            direction, idx = OvercookedV2Visualizer._decode_agent_extras(cell[2])
+            direction, idx = OvercookedV3Visualizer._decode_agent_extras(cell[2])
 
             # A bit hacky, but needed so that actions order matches the one of Overcooked-AI
             direction_reordering = jnp.array([3, 1, 0, 2])
@@ -270,7 +313,7 @@ class OvercookedV2Visualizer:
             )
             img = rendering.fill_coords(img, tri_fn, agent_color)
 
-            img = OvercookedV2Visualizer._render_dynamic_item(
+            img = OvercookedV3Visualizer._render_dynamic_item(
                 cell[1],
                 img,
                 plate_fn=rendering.point_in_circle(0.75, 0.75, 0.2),
@@ -295,7 +338,7 @@ class OvercookedV2Visualizer:
             return img
 
         def _render_pot(cell, img):
-            return OvercookedV2Visualizer._render_pot(cell, img)
+            return OvercookedV3Visualizer._render_pot(cell, img)
 
         def _render_recipe_indicator(cell, img):
             img = rendering.fill_coords(
@@ -304,7 +347,7 @@ class OvercookedV2Visualizer:
             img = rendering.fill_coords(
                 img, rendering.point_in_rect(0.1, 0.9, 0.1, 0.9), COLORS["brown"]
             )
-            img = OvercookedV2Visualizer._render_dynamic_item(cell[1], img)
+            img = OvercookedV3Visualizer._render_dynamic_item(cell[1], img)
 
             return img
 
@@ -315,7 +358,7 @@ class OvercookedV2Visualizer:
             img = rendering.fill_coords(
                 img, rendering.point_in_rect(0.1, 0.9, 0.1, 0.9), COLORS["brown"]
             )
-            img = OvercookedV2Visualizer._render_dynamic_item(cell[1], img)
+            img = OvercookedV3Visualizer._render_dynamic_item(cell[1], img)
 
             time_left = cell[2]
             progress_fn = rendering.point_in_rect(
@@ -459,8 +502,8 @@ class OvercookedV2Visualizer:
         """
         # key = (*obj.tolist(), highlight, tile_size)
 
-        # if key in OvercookedV2Visualizer.tile_cache:
-        #     return OvercookedV2Visualizer.tile_cache[key]
+        # if key in OvercookedV3Visualizer.tile_cache:
+        #     return OvercookedV3Visualizer.tile_cache[key]
 
         img = jnp.zeros(
             shape=(self.tile_size * self.subdivs, self.tile_size * self.subdivs, 3),
@@ -475,7 +518,7 @@ class OvercookedV2Visualizer:
             img, rendering.point_in_rect(0, 1, 0, 0.031), COLORS["grey"]
         )
 
-        img = OvercookedV2Visualizer._render_cell(obj, img)
+        img = OvercookedV3Visualizer._render_cell(obj, img)
 
         img_highlight = rendering.highlight_img(img)
         img = jax.lax.select(highlight, img_highlight, img)
@@ -484,7 +527,7 @@ class OvercookedV2Visualizer:
         img = rendering.downsample(img, self.subdivs)
 
         # Cache the rendered tile
-        # OvercookedV2Visualizer.tile_cache[key] = img
+        # OvercookedV3Visualizer.tile_cache[key] = img
 
         return img
 

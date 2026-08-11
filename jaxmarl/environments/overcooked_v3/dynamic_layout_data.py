@@ -1,4 +1,4 @@
-# Dynamic V1 Overcooked layouts. Both ``0`` and ``O`` denote an onion pile.
+# Overcooked V3 layouts. Both ``0`` and ``O`` denote an onion pile.
 
 dynamic_00 = [
     [
@@ -23,7 +23,7 @@ WWWWWWW
     ],
 ]
 
-dynamic_01  = [
+dynamic_01 = [
     [
         """
 WWWOWWW
@@ -48,7 +48,7 @@ WWWPWWW
     ],
 ]
 
-dynamic_02  = [
+dynamic_02 = [
     [
         """
 WWWWW
@@ -94,7 +94,7 @@ WWXWW
     ],
 ]
 
-dynamic_04  = [
+dynamic_04 = [
     [
         """
 WWWOOWWW
@@ -152,7 +152,6 @@ WWXWW
 """,
         100,
     ],
-
     [
         """
 WWOWW
@@ -217,7 +216,6 @@ WWWWW
 """,
         50,
     ],
-
 ]
 
 dynamic_08 = [
@@ -269,10 +267,8 @@ WWWXWWW
 """,
         100,
     ],
-
 ]
 
-   
 
 dynamic_09 = [
     [
@@ -321,7 +317,6 @@ WWWWWWWWWWW
 ]
 
 dynamic_11 = [
-
     [
         """
 WWWWWWWWWWWW
@@ -343,7 +338,6 @@ WWWWWWWWWWWW
         50,
     ],
 ]
-
 
 
 dynamic_12 = [
@@ -398,10 +392,6 @@ WBWWWPW
 ]
 
 
-
-
-
-
 dynamic_13 = [
     [
         """
@@ -452,9 +442,6 @@ WWWWWWW
         10,
     ],
 ]
-    
-    
-    
 
 
 dynamic_14 = [
@@ -489,7 +476,3 @@ WXWOWBWPW
         10,
     ],
 ]
-
-
-
-
