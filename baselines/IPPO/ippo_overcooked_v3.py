@@ -17,7 +17,7 @@ from omegaconf import OmegaConf
 import jaxmarl
 import wandb
 from jaxmarl._env import load_project_env
-from jaxmarl._experiment import experiment_folder, experiment_signature
+from jaxmarl._experiment import experiment_folder
 from jaxmarl.wrappers.baselines import LogWrapper
 
 
@@ -60,8 +60,7 @@ def _wandb_metadata(config):
 
     group = config.get("WANDB_GROUP") or experiment
     name = config.get("RUN_NAME") or (
-        f"{_checkpoint_prefix(config)}_{condition}_seed{config['SEED']}_"
-        f"{experiment_signature(config)}"
+        f"{_checkpoint_prefix(config)}_{condition}_seed{config['SEED']}"
     )
     return name, group, tags
 

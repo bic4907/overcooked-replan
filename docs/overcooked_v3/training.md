@@ -52,35 +52,35 @@ Checkpoint는 다음 구조로 저장된다.
 saves/<experiment-folder>/
 ```
 
-`experiment-folder`는 기본적으로 seed, learning rate, parallel environment 수,
-rollout step, total timestep과 학습 파라미터 전체의 12자리 fingerprint를
-조합한다. LR, batch 구성, architecture, layout, seed 등 학습 결과에 영향을
-주는 값이 하나라도 달라지면 폴더가 달라진다.
+`experiment-folder`는 실험 구분에 중요한 layout, architecture, seed만 조합한다.
+고정해서 사용하는 learning rate, parallel environment 수, rollout step 등의
+파라미터는 이름에 넣지 않는다.
 
 ```text
-split_sig_cnn_seed0_lr0p00025_envs256_steps256_total3e07_a1b2c3d4e5f6
+split_sig_cnn_seed0
 ```
 
-사람이 읽기 쉬운 prefix를 지정할 수도 있다. 이 경우에도 fingerprint가 항상
-붙기 때문에 서로 다른 파라미터가 같은 폴더에 저장되지 않는다.
+사람이 읽기 쉬운 prefix를 지정할 수도 있다. LR ablation처럼 평소 고정된
+값을 실제 실험 축으로 바꿀 때는 그 값을 prefix에 명시한다.
 
 ```bash
 uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
   scenario=split_sig \
-  EXPERIMENT_FOLDER=lr-ablation \
+  EXPERIMENT_FOLDER=lr-1e-4 \
   LR=0.0001 \
   SEED=0
 ```
 
-결과 폴더는 `saves/lr-ablation_split_sig_cnn_seed0_<fingerprint>` 형태다.
-W&B 기본 run 이름에도 같은 fingerprint가 붙는다. 동일 파라미터의 반복
-실험은 `SEED` 또는 `EXPERIMENT_FOLDER`를 다르게 지정한다.
+결과 폴더는 `saves/lr-1e-4_split_sig_cnn_seed0`이다. W&B 기본 run 이름은
+`ippo_cnn_split_sig_seed0`이다. 동일 layout, architecture, seed를 다시 실행하면
+기존 결과를 덮어쓸 수 있으므로 별도 실행은 `SEED` 또는 `EXPERIMENT_FOLDER`로
+구분한다.
 
 모든 실험 폴더에는 실행 config와 checkpoint가 함께 저장된다.
 
 ```text
 saves/
-└── split_sig_cnn_seed0_lr0p00025_..._<fingerprint>/
+└── split_sig_cnn_seed0/
     ├── ippo_cnn_overcooked_v3_split_sig_seed0_config.yaml
     └── ippo_cnn_overcooked_v3_split_sig_seed0_vmap0.safetensors
 ```

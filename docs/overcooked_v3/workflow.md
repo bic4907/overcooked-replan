@@ -289,7 +289,7 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
 예를 들어 `dynamic_00`, seed 0의 결과는 다음 위치에 저장된다.
 
 ```text
-saves/dynamic_00_cnn_seed0_lr0p00025_..._FINGERPRINT/
+saves/dynamic_00_cnn_seed0/
 ├── ippo_cnn_overcooked_v3_00_seed0_config.yaml
 ├── ippo_cnn_overcooked_v3_00_seed0_vmap0_update000050.safetensors
 ├── ippo_cnn_overcooked_v3_00_seed0_vmap0_update000100.safetensors
@@ -389,7 +389,7 @@ JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
 python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --architecture cnn \
   --layout dynamic_00 \
-  --checkpoint saves/EXPERIMENT_FOLDER/ippo_cnn_overcooked_v3_00_seed0_vmap0_update000100.safetensors \
+  --checkpoint saves/dynamic_00_cnn_seed0/ippo_cnn_overcooked_v3_00_seed0_vmap0_update000100.safetensors \
   --episodes 1 \
   --max-steps 400 \
   --gif saves/evaluation/overcooked_v3/cnn/dynamic_00/dynamic_00_seed0_update000100.gif

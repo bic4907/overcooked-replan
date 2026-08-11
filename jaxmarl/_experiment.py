@@ -1,41 +1,6 @@
-import hashlib
-import json
 import re
 from collections.abc import Mapping
 from typing import Any
-
-EXPERIMENT_PARAMETER_KEYS = (
-    "ENV_NAME",
-    "ENV_KWARGS",
-    "ARCHITECTURE",
-    "LR",
-    "ANNEAL_LR",
-    "LR_WARMUP",
-    "NUM_ENVS",
-    "NUM_STEPS",
-    "UPDATE_EPOCHS",
-    "NUM_MINIBATCHES",
-    "TOTAL_TIMESTEPS",
-    "REW_SHAPING_HORIZON",
-    "FC_DIM_SIZE",
-    "GRU_HIDDEN_DIM",
-    "CLIP_EPS",
-    "ENT_COEF",
-    "GAMMA",
-    "GAE_LAMBDA",
-    "SCALE_CLIP_EPS",
-    "VF_COEF",
-    "MAX_GRAD_NORM",
-    "ACTIVATION",
-    "SEED",
-    "NUM_SEEDS",
-)
-
-
-def experiment_signature(config: Mapping[str, Any]) -> str:
-    parameters = {key: config.get(key) for key in EXPERIMENT_PARAMETER_KEYS}
-    serialized = json.dumps(parameters, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()[:12]
 
 
 def _path_component(value: object) -> str:
@@ -50,13 +15,5 @@ def experiment_folder(config: Mapping[str, Any]) -> str:
     architecture = str(config["ARCHITECTURE"]).lower()
     context = f"{layout}_{architecture}_seed{config['SEED']}"
     prefix = config.get("EXPERIMENT_FOLDER")
-    if prefix:
-        label = f"{prefix}_{context}"
-    else:
-        learning_rate = str(config["LR"]).replace(".", "p")
-        total_steps = f"{float(config['TOTAL_TIMESTEPS']):g}".replace("+", "")
-        label = (
-            f"{context}_lr{learning_rate}_envs{config['NUM_ENVS']}_"
-            f"steps{config['NUM_STEPS']}_total{total_steps}"
-        )
-    return f"{_path_component(label)}_{experiment_signature(config)}"
+    label = f"{prefix}_{context}" if prefix else context
+    return _path_component(label)

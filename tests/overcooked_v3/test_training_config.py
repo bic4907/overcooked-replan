@@ -97,7 +97,7 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
     assert "${args_no_hyphens}" in sweep["command"]
 
 
-def test_experiment_folder_changes_with_training_parameters(tmp_path):
+def test_experiment_folder_uses_only_key_experiment_parameters(tmp_path):
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
         hydra_config = compose(
             config_name="ippo_overcooked_v3",
@@ -105,16 +105,28 @@ def test_experiment_folder_changes_with_training_parameters(tmp_path):
         )
     config = OmegaConf.to_container(hydra_config, resolve=True)
 
-    original_folder = experiment_folder(config)
-    changed = deepcopy(config)
-    changed["LR"] = config["LR"] * 2
-    changed_folder = experiment_folder(changed)
+    assert experiment_folder(config) == "split_sig_cnn_seed0"
 
-    assert original_folder != changed_folder
-    assert original_folder.startswith("split_sig_cnn_seed0_lr0p00025_envs256_steps256_")
+    fixed_parameter_change = deepcopy(config)
+    fixed_parameter_change["LR"] = config["LR"] * 2
+    fixed_parameter_change["NUM_ENVS"] = config["NUM_ENVS"] * 2
+    fixed_parameter_change["TOTAL_TIMESTEPS"] = config["TOTAL_TIMESTEPS"] * 2
+    assert experiment_folder(fixed_parameter_change) == "split_sig_cnn_seed0"
+
+    seed_change = deepcopy(config)
+    seed_change["SEED"] = 1
+    assert experiment_folder(seed_change) == "split_sig_cnn_seed1"
+
+    architecture_change = deepcopy(config)
+    architecture_change["ARCHITECTURE"] = "rnn"
+    assert experiment_folder(architecture_change) == "split_sig_rnn_seed0"
+
+    layout_change = deepcopy(config)
+    layout_change["ENV_KWARGS"]["layout"] = "outage_sig"
+    assert experiment_folder(layout_change) == "outage_sig_cnn_seed0"
 
 
-def test_custom_experiment_folder_is_safe_and_keeps_signature():
+def test_custom_experiment_folder_is_safe_prefix():
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
         hydra_config = compose(
             config_name="ippo_overcooked_v3",
@@ -127,12 +139,12 @@ def test_custom_experiment_folder_is_safe_and_keeps_signature():
     changed = deepcopy(config)
     changed["SEED"] = 1
 
-    assert folder.startswith("learning-rate-sweep-01_outage_no_sig_cnn_seed0_")
+    assert folder == "learning-rate-sweep-01_outage_no_sig_cnn_seed0"
     assert "/" not in folder
     assert folder != experiment_folder(changed)
 
     config["EXPERIMENT_FOLDER"] = "양파 실험/01"
-    assert experiment_folder(config).startswith("양파-실험-01_outage_no_sig_cnn_seed0_")
+    assert experiment_folder(config) == "양파-실험-01_outage_no_sig_cnn_seed0"
 
 
 def test_tracking_parameters_do_not_change_experiment_folder():
