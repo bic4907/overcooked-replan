@@ -1,179 +1,309 @@
-<h1 align="center">JaxMARL</h1>
+# Overcooked Replan
 
-<p align="center">
-       <a href="https://pypi.org/pypi/jaxmarl">
-        <img src="https://img.shields.io/pypi/pyversions/jaxmarl.svg" /></a>
-       <a href="https://badge.fury.io/py/jaxmarl">
-        <img src="https://badge.fury.io/py/jaxmarl.svg" /></a>
-       <a href= "https://github.com/FLAIROx/JaxMARL/blob/main/LICENSE">
-        <img src="https://img.shields.io/badge/license-Apache2.0-blue.svg" /></a>
-       <a href= "https://colab.research.google.com/github/FLAIROx/JaxMARL/blob/main/jaxmarl/tutorials/JaxMARL_Walkthrough.ipynb">
-        <img src="https://colab.research.google.com/assets/colab-badge.svg" /></a>
-       <a href= "https://arxiv.org/abs/2311.10090">
-        <img src="https://img.shields.io/badge/arXiv-2311.10090-b31b1b.svg" /></a>
-       <a href= "https://jaxmarl.foersterlab.com/">
-        <img src="https://img.shields.io/badge/docs-green" /></a>
+JaxMARL의 Overcooked V2를 기반으로 동적인 자원 변화와 test-time 역할 재구성을
+연구하기 위한 저장소다. 기존 `overcooked_v2`는 유지하고, 새로운 구현과 실험은
+`overcooked_v3`에 분리되어 있다.
 
-</p>
+현재 제공하는 주요 실험은 다음과 같다.
 
-[**Installation**](#install) | [**Quick Start**](#start) | [**Environments**](#environments) | [**Algorithms**](#algorithms) | [**Citation**](#cite)
----
-
-<div class="collage">
-    <div class="column" align="centre">
-        <div class="row" align="centre">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/cramped_room.gif?raw=true" alt="Overcooked" width="20%">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/mabrax.png?raw=true" alt="mabrax" width="20%">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/storm.gif?raw=true" alt="STORM" width="20%">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/hanabi.png?raw=true" alt="hanabi" width="20%">
-        </div>
-        <div class="row" align="centre">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/coin_game.png?raw=true" alt="coin_game" width="20%">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/qmix_MPE_simple_tag_v3.gif?raw=true" alt="MPE" width="20%">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/jaxnav-ma.gif?raw=true" alt="jaxnav" width="20%">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/smax.gif?raw=true" alt="SMAX" width="20%">
-        </div>
-    </div>
-</div>
-
-## Multi-Agent Reinforcement Learning in JAX
-
-JaxMARL combines ease-of-use with GPU-enabled efficiency, and supports a wide range of commonly used MARL environments as well as popular baseline algorithms. Our aim is for one library that enables thorough evaluation of MARL methods across a wide range of tasks and against relevant baselines. We also introduce SMAX, a vectorised, simplified version of the popular StarCraft Multi-Agent Challenge, which removes the need to run the StarCraft II game engine.
-
-For more details, take a look at our [blog post](https://blog.foersterlab.com/jaxmarl/) or our [Colab notebook](https://colab.research.google.com/github/FLAIROx/JaxMARL/blob/main/jaxmarl/tutorials/JaxMARL_Walkthrough.ipynb), which walks through the basic usage.
-
-<h2 name="environments" id="environments">Environments 🌍 </h2>
-
-| Environment | Reference | README | Summary |
+| Hydra scenario | 환경 | Signal counter | 연구 질문 |
 | --- | --- | --- | --- |
-| 🔴 MPE | [Paper](https://arxiv.org/abs/1706.02275) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/mpe) | Communication orientated tasks in a multi-agent particle world
-| 🍲 Overcooked | [Paper](https://arxiv.org/abs/1910.05789) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/overcooked) | Fully-cooperative human-AI coordination tasks based on the video game of the same name |
-| 🥘 OvercookedV2 | [Paper](https://arxiv.org/abs/2503.17821) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/overcooked_v2) | Partially observable and stochastic extention of Overcooked. Fully-cooperative. |
-| 🦾 Multi-Agent Brax | [Paper](https://arxiv.org/abs/2003.06709) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/mabrax) | Continuous multi-agent robotic control based on Brax, analogous to Multi-Agent MuJoCo |
-| 🎆 Hanabi | [Paper](https://arxiv.org/abs/1902.00506) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/hanabi) | Fully-cooperative partially-observable multiplayer card game |
-| 👾 SMAX | Novel | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/smax) | Simplified cooperative StarCraft micro-management environment |
-| 🧮 STORM: Spatial-Temporal Representations of Matrix Games | [Paper](https://openreview.net/forum?id=54F8woU8vhq) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/storm) | Matrix games represented as grid world scenarios
-| 🧭 JaxNav | [Paper](https://www.arxiv.org/abs/2408.15099) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/jaxnav) | 2D geometric navigation for differential drive robots
-| 🪙 Coin Game | [Paper](https://arxiv.org/abs/1802.09640) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/coin_game) | Two-player grid world environment which emulates social dilemmas
-| 💡 Switch Riddle | [Paper](https://proceedings.neurips.cc/paper_files/paper/2016/hash/c7635bfd99248a2cdef8249ef7bfbef4-Abstract.html) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/switch_riddle) | Simple cooperative communication game included for debugging
-| 🤖 JaxRobotarium | [Paper](https://arxiv.org/abs/2505.06771) | [Source](https://github.com/GT-STAR-Lab/JaxRobotarium) | Multi-robot environment with open access sim2real through the [Robotarium](https://www.robotarium.gatech.edu/)
+| `split_no_sig` | Kitchen Split | 없음 | 이동만 보고 서로 다른 구역의 역할을 형성할 수 있는가? |
+| `split_sig` | Kitchen Split | 있음 | 공용 counter가 역할 충돌과 잘못된 구역 선택을 줄이는가? |
+| `outage_no_sig` | Resource Outage | 없음 | 자원 고갈 이후 수집·조리 역할을 재분배할 수 있는가? |
+| `outage_sig` | Resource Outage | 있음 | signal을 이용해 역할 재분배와 복구를 빠르게 할 수 있는가? |
 
-<h2 name="algorithms" id="algorithms">Baseline Algorithms 🦉 </h2>
+## 빠른 시작
 
-We follow CleanRL's philosophy of providing single file implementations which can be found within the `baselines` directory. We use Hydra to manage our config files, with specifics explained in each algorithm's README. Most files include `wandb` logging code, this is disabled by default but can be enabled within the file's config.
+Python 3.11 이상과 [uv](https://docs.astral.sh/uv/)가 필요하다.
 
-| Algorithm | Reference | README |
-| --- | --- | --- |
-| IPPO | [Paper](https://arxiv.org/pdf/2011.09533.pdf) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/IPPO) |
-| MAPPO | [Paper](https://arxiv.org/abs/2103.01955) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/MAPPO) |
-| IQL | [Paper](https://arxiv.org/abs/1312.5602v1) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/QLearning) |
-| VDN | [Paper](https://arxiv.org/abs/1706.05296)  | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/QLearning) |
-| QMIX | [Paper](https://arxiv.org/abs/1803.11485) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/QLearning) |
-| TransfQMIX | [Paper](https://www.southampton.ac.uk/~eg/AAMAS2023/pdfs/p1679.pdf) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/QLearning) |
-| SHAQ | [Paper](https://arxiv.org/abs/2105.15013) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/QLearning) |
-| PQN-VDN | [Paper](https://arxiv.org/abs/2407.04811) | [Source](https://github.com/mttga/purejaxql) |
-
-<h2 name="install" id="install">Installation 🧗 </h2>
-
-**Environments** - Before installing, ensure you have JAX installed for your hardware:
-
-GPU (we recommend CUDA 13):
-```sh
-pip install "jax[cuda13]"
-```
-CPU only:
-```sh
-pip install jax
-```
-See the [JAX installation guide](https://jax.readthedocs.io/en/latest/installation.html) for TPU and other configurations.
-
-The JaxMARL environments can then be installed directly from PyPi:
-
-``` bash
-pip install jaxmarl
+```bash
+uv sync --extra algs --extra dev
 ```
 
-**Algorithms** - If you would like to also run the algorithms, install the source code and repository as follows:
+환경이 정상적으로 동작하는지 random policy rollout을 GIF로 확인한다.
 
-``` bash
-git clone https://github.com/FLAIROx/JaxMARL.git && cd JaxMARL
-pip install -e .[algs]
+```bash
+uv run python scripts/overcooked_v3/run_role_scenario.py \
+  --layout split_sig \
+  --steps 220 \
+  --seed 0 \
+  --gif evaluation/previews/split_sig.gif
 ```
 
-For the fastest start, **we recommend using our Dockerfile**, the usage of which is outlined below.
+생성된 GIF는 `evaluation/previews/split_sig.gif`에 저장된다.
 
-**Development** - If you would like to run our test suite, install the additonal dependencies as follows after cloning the repository:
-``` sh
-pip install -e .[dev]
-pre-commit install
+## W&B 및 환경변수 설정
+
+예제 파일을 복사한다.
+
+```bash
+cp .env.example .env
 ```
 
-<h2 name="start" id="start">Quick Start 🚀 </h2>
+`.env`에 필요한 값을 입력한다.
 
-We take inspiration from the [PettingZoo](https://github.com/Farama-Foundation/PettingZoo) and [Gymnax](https://github.com/RobertTLange/gymnax) interfaces. You can try out training an agent in our [Colab notebook](https://colab.research.google.com/github/FLAIROx/JaxMARL/blob/main/jaxmarl/tutorials/JaxMARL_Walkthrough.ipynb). Further introduction scripts can be found [here](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/tutorials).
-
-### Basic JaxMARL API  Usage 🖥️
-
-Actions, observations, rewards and done values are passed as dictionaries keyed by agent name, allowing for differing action and observation spaces. The done dictionary contains an additional `"__all__"` key, specifying whether the episode has ended. We follow a parallel structure, with each agent passing an action at each timestep. For asynchronous games, such as Hanabi, a dummy action is passed for agents not acting at a given timestep.
-
-```python
-import jax
-from jaxmarl import make
-
-key = jax.random.PRNGKey(0)
-key, key_reset, key_act, key_step = jax.random.split(key, 4)
-
-# Initialise environment.
-env = make('MPE_simple_world_comm_v3')
-
-# Reset the environment.
-obs, state = env.reset(key_reset)
-
-# Sample random actions.
-key_act = jax.random.split(key_act, env.num_agents)
-actions = {agent: env.action_space(agent).sample(key_act[i]) for i, agent in enumerate(env.agents)}
-
-# Perform the step transition.
-obs, state, reward, done, infos = env.step(key_step, state, actions)
+```dotenv
+WANDB_API_KEY=your-api-key
+WANDB_ENTITY=your-team-or-user
+WANDB_PROJECT=overcooked-v3-role-coordination
+WANDB_MODE=online
+SAVES_DIR=saves
 ```
 
-### Dockerfile 🐋
-To help get experiments up and running we include a [Dockerfile](https://github.com/FLAIROx/JaxMARL/blob/main/Dockerfile) and its corresponding [Makefile](https://github.com/FLAIROx/JaxMARL/blob/main/Makefile). With Docker and the [Nvidia Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html) installed, the container can be built with:
-```
-make build
-```
-The built container can then be run:
-```
-make run
-```
+학습 entrypoint는 프로젝트 루트의 `.env`를 자동으로 읽으며 `.env`는 Git에
+포함되지 않는다. W&B를 사용하지 않을 때는 `WANDB_MODE=disabled`로 설정한다.
 
-## Contributing 🔨
-Please contribute! Please take a look at our [contributing guide](https://github.com/FLAIROx/JaxMARL/blob/main/CONTRIBUTING.md) for how to add an environment/algorithm or submit a bug report. If you're looking for a project, we also have a few suggestions listed under the roadmap :)
+설정 우선순위는 다음과 같다.
 
-<h2 name="cite" id="cite">Citing JaxMARL 📜 </h2>
-If you use JaxMARL in your work, please cite us as follows:
+1. Hydra 명령줄 override
+2. 현재 shell 환경변수
+3. `.env`
+4. Hydra 기본값
 
-``` bibtex
-@inproceedings{
-    flair2024jaxmarl,
-    title={JaxMARL: Multi-Agent RL Environments and Algorithms in JAX},
-    author={Alexander Rutherford and Benjamin Ellis and Matteo Gallici and Jonathan Cook and Andrei Lupu and Gar{\dh}ar Ingvarsson and Timon Willi and Ravi Hammond and Akbir Khan and Christian Schroeder de Witt and Alexandra Souly and Saptarashmi Bandyopadhyay and Mikayel Samvelyan and Minqi Jiang and Robert Tjarko Lange and Shimon Whiteson and Bruno Lacerda and Nick Hawes and Tim Rockt{\"a}schel and Chris Lu and Jakob Nicolaus Foerster},
-    booktitle={The Thirty-eight Conference on Neural Information Processing Systems Datasets and Benchmarks Track},
-    year={2024},
-}
+## 학습
+
+### 단일 실험
+
+```bash
+uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=split_no_sig \
+  EXPERIMENT_FOLDER=baseline \
+  SEED=0 \
+  NUM_SEEDS=1
 ```
 
-## See Also 🙌
-There are a number of other libraries which inspired this work, we encourage you to take a look!
+다른 조건은 `scenario`만 변경하면 된다.
 
-JAX-native algorithms:
-- [Mava](https://github.com/instadeepai/Mava): JAX implementations of popular MARL algorithms.
-- [PureJaxRL](https://github.com/luchris429/purejaxrl): JAX implementation of PPO, and demonstration of end-to-end JAX-based RL training.
+```bash
+scenario=split_sig
+scenario=outage_no_sig
+scenario=outage_sig
+```
 
-JAX-native environments:
-- [Gymnax](https://github.com/RobertTLange/gymnax): Implementations of classic RL tasks including classic control, bsuite and MinAtar.
-- [Jumanji](https://github.com/instadeepai/jumanji): A diverse set of environments ranging from simple games to NP-hard combinatorial problems.
-- [Pgx](https://github.com/sotetsuk/pgx): JAX implementations of classic board games, such as Chess, Go and Shogi.
-- [Brax](https://github.com/google/brax): A fully differentiable physics engine written in JAX, features continuous control tasks.
-- [XLand-MiniGrid](https://github.com/corl-team/xland-minigrid): Meta-RL gridworld environments inspired by XLand and MiniGrid.
-- [Craftax](https://github.com/MichaelTMatthews/Craftax): (Crafter + NetHack) in JAX.
+기본 architecture는 CNN이다. RNN은 다음처럼 선택한다.
+
+```bash
+uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=outage_sig \
+  ARCHITECTURE=rnn \
+  EXPERIMENT_FOLDER=baseline \
+  SEED=0
+```
+
+`scenario`를 생략하면 기존 dynamic map인 `dynamic_00`을 사용한다.
+
+### 짧은 dry run
+
+전체 학습 전에 CPU에서 1 update만 실행해 저장과 학습 경로를 확인할 수 있다.
+
+```bash
+JAX_PLATFORMS=cpu XLA_PYTHON_CLIENT_PREALLOCATE=false \
+uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=split_no_sig \
+  EXPERIMENT_FOLDER=dry-run \
+  NUM_ENVS=2 \
+  NUM_STEPS=2 \
+  NUM_MINIBATCHES=1 \
+  UPDATE_EPOCHS=1 \
+  TOTAL_TIMESTEPS=4 \
+  REW_SHAPING_HORIZON=4 \
+  LOG_INTERVAL=1 \
+  WANDB_MODE=disabled
+```
+
+위 명령의 실험 결과는 `saves/split_no_sig_cnn_dry-run_seed0/`에 생성된다.
+
+### Hydra 설정 확인
+
+실제로 적용될 설정만 출력하고 학습은 실행하지 않는다.
+
+```bash
+uv run python baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=outage_sig \
+  --cfg job --resolve
+```
+
+## 실험 이름과 저장 위치
+
+기본 저장 구조는 다음과 같다.
+
+```text
+saves/
+└── <layout>_<architecture>_<experiment-name>_seed<seed>/
+    ├── <run>_config.yaml
+    ├── <run>_vmap0_update000050.safetensors  # 중간 저장을 켠 경우
+    └── <run>_vmap0.safetensors               # 최종 checkpoint
+```
+
+예를 들어 아래 설정은
+
+```text
+scenario=split_sig ARCHITECTURE=cnn EXPERIMENT_FOLDER=baseline SEED=2
+```
+
+다음 폴더를 만든다.
+
+```text
+saves/split_sig_cnn_baseline_seed2/
+```
+
+`EXPERIMENT_FOLDER`를 생략하면 `saves/split_sig_cnn_seed2/`가 된다. LR처럼
+평소 고정된 값을 ablation 축으로 바꿀 때만 `EXPERIMENT_FOLDER=lr-1e-4`처럼
+중요한 구분값을 실험명에 넣는다.
+
+같은 layout, architecture, experiment name, seed로 다시 실행하면 기존 config와
+checkpoint를 덮어쓸 수 있다.
+
+저장 루트를 변경하려면 `SAVES_DIR`만 override한다. `/mnt/nas`는 코드에
+하드코딩되어 있지 않다.
+
+```bash
+uv run python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=split_sig \
+  SAVES_DIR=/mnt/nas/overcooked-replan \
+  EXPERIMENT_FOLDER=baseline \
+  SEED=0
+```
+
+`saves/`에는 실험 config와 checkpoint만 저장한다. 그 외 출력은 각 기본
+디렉터리로 분리된다.
+
+| 출력 | 기본 위치 |
+| --- | --- |
+| 실험 config와 checkpoint | `saves/` |
+| Hydra 단일 실행 로그 | `outputs/` |
+| Hydra multirun 로그 | `multirun/` |
+| W&B 로컬 파일 | `wandb/` |
+| GIF와 평가 통계 | `evaluation/` |
+
+## W&B sweep
+
+`sweeps/overcooked_v3_role_scenarios.yaml`은 네 scenario와 seed 5개를 조합한
+20-run grid다.
+
+```bash
+uv run dotenv run --no-override -- wandb sweep \
+  sweeps/overcooked_v3_role_scenarios.yaml
+```
+
+출력된 sweep ID로 agent를 실행한다.
+
+```bash
+uv run dotenv run --no-override -- wandb agent \
+  --count 20 \
+  ENTITY/PROJECT/SWEEP_ID
+```
+
+여러 GPU에서 병렬 실행할 때는 같은 sweep ID로 agent를 하나씩 실행한다.
+
+```bash
+CUDA_VISIBLE_DEVICES=0 uv run dotenv run --no-override -- \
+  wandb agent ENTITY/PROJECT/SWEEP_ID
+
+CUDA_VISIBLE_DEVICES=1 uv run dotenv run --no-override -- \
+  wandb agent ENTITY/PROJECT/SWEEP_ID
+```
+
+Sweep 결과 폴더는 예를 들어
+`saves/split_sig_cnn_role-scenarios_seed0/` 형태로 저장된다.
+
+## 학습된 정책 평가와 렌더링
+
+같은 seed의 두 정책을 평가하고 첫 episode를 GIF로 저장한다.
+
+```bash
+JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
+uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
+  --layout split_no_sig \
+  --architecture cnn \
+  --agent-seeds 0 0 \
+  --episodes 3 \
+  --max-steps 400 \
+  --gif evaluation/split_no_sig_same_seed0.gif
+```
+
+Cross-play는 서로 다른 학습 seed를 지정한다.
+
+```bash
+JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
+uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
+  --layout split_no_sig \
+  --architecture cnn \
+  --agent-seeds 0 1 \
+  --episodes 3 \
+  --max-steps 400 \
+  --gif evaluation/split_no_sig_cross_seed0_seed1.gif
+```
+
+`--agent-seeds`를 사용하면 `saves/` 아래에서 해당 layout과 seed의 최신 최종
+checkpoint를 찾는다. 특정 파일을 확실하게 평가하려면 `--checkpoint`에 경로를
+직접 지정한다.
+
+```bash
+uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
+  --layout split_no_sig \
+  --checkpoint saves/split_no_sig_cnn_baseline_seed0/ippo_cnn_overcooked_v3_split_no_sig_seed0_vmap0.safetensors \
+  --episodes 1 \
+  --render \
+  --render-delay 0.2
+```
+
+GUI가 없는 서버에서는 `--render` 대신 `--gif`를 사용한다.
+
+## 일괄 dynamic map 학습과 평가
+
+`dynamic_00`부터 `dynamic_14`까지 CNN을 학습한다.
+
+```bash
+TRAIN_SEEDS="0 1" \
+TOTAL_TIMESTEPS=3e7 \
+SAVES_DIR=saves \
+bash scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh
+```
+
+학습된 dynamic map 정책의 same-seed/cross-seed 조합을 일괄 평가한다.
+
+```bash
+SAVES_DIR=saves \
+EVALUATION_DIR=evaluation/overcooked_v3/cnn \
+bash scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh
+```
+
+## 테스트
+
+Overcooked V2와 V3 회귀 테스트를 실행한다.
+
+```bash
+uv run pytest -q tests/overcooked_v3 tests/overcooked_v2
+```
+
+코드 스타일 검사:
+
+```bash
+uv run ruff check .
+```
+
+## 코드와 문서 위치
+
+| 경로 | 내용 |
+| --- | --- |
+| `jaxmarl/environments/overcooked_v3/` | Overcooked V3 환경 구현 |
+| `jaxmarl/environments/overcooked_v2/` | 유지되는 기존 V2 구현 |
+| `baselines/IPPO/ippo_overcooked_v3.py` | CNN/RNN IPPO 학습 entrypoint |
+| `conf/` | Hydra 기본값과 scenario 설정 |
+| `sweeps/` | W&B sweep 설정 |
+| `scripts/overcooked_v3/` | rollout, 일괄 학습, 일괄 평가 스크립트 |
+| `docs/overcooked_v3/` | 환경 설계 및 상세 workflow |
+
+상세 문서:
+
+- [Overcooked V3 문서](docs/overcooked_v3/index.md)
+- [학습 및 W&B 설정](docs/overcooked_v3/training.md)
+- [환경 개발과 평가 workflow](docs/overcooked_v3/workflow.md)
+
+## 기반 프로젝트
+
+이 저장소는 [JaxMARL](https://github.com/FLAIROx/JaxMARL)을 기반으로 한다.
+원 프로젝트의 라이선스와 인용 정보는 [LICENSE](LICENSE) 및 JaxMARL 저장소를
+참고한다.
