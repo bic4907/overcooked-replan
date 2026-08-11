@@ -28,7 +28,7 @@ def test_role_scenario_is_registered_and_resettable(layout_name):
     obs, state = env.reset(jax.random.PRNGKey(0))
 
     assert state.grid.shape == (7, 11, 3)
-    assert obs["agent_0"].shape == (7, 11, 31)
+    assert obs["agent_0"].shape == (7, 11, 32)
     assert state.layout_index.item() == 0
 
 
@@ -67,6 +67,28 @@ def test_kitchen_split_closes_center_and_distributes_resources():
     assert choose_phase[5, 1] == StaticObject.POT
     assert choose_phase[1, 8] == StaticObject.PLATE_PILE
     assert choose_phase[5, 8] == StaticObject.GOAL
+
+
+@pytest.mark.parametrize(
+    ("layout_name", "change_position"),
+    (
+        ("split_no_sig", (5, 3)),
+        ("split_sig", (5, 3)),
+        ("outage_no_sig", (9, 1)),
+        ("outage_sig", (9, 1)),
+    ),
+)
+def test_change_mask_marks_only_the_next_static_tile_change(
+    layout_name, change_position
+):
+    env = OvercookedV3(layout=layout_name, max_steps=220)
+    obs, state = env.reset(jax.random.PRNGKey(0))
+    change_x, change_y = change_position
+    change_mask = obs["agent_0"][..., -1]
+
+    assert state.layout_change_mask[change_y, change_x]
+    assert change_mask[change_y, change_x] == 1.0
+    assert jnp.sum(change_mask) == 1
 
 
 def test_visualizer_formats_transition_countdown_in_seconds():

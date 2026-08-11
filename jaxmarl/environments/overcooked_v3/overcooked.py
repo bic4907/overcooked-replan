@@ -89,6 +89,10 @@ class State(BaseState):
         default_factory=lambda: jnp.array(0, dtype=jnp.int32)
     )
 
+    layout_change_mask: jax.Array = struct.field(
+        default_factory=lambda: jnp.array(False)
+    )
+
 
 class OvercookedV3Base(MultiAgentEnv):
     """Vanilla Overcooked"""
@@ -301,6 +305,7 @@ class OvercookedV3Base(MultiAgentEnv):
             recipe=recipe,
             new_correct_delivery=jnp.array(False),
             ingredient_permutations=ingredient_permutations,
+            layout_change_mask=jnp.zeros_like(static_objects, dtype=jnp.bool_),
         )
 
         key, key_randomize = jax.random.split(key)

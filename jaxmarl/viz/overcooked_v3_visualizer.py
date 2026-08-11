@@ -259,7 +259,7 @@ class OvercookedV3Visualizer:
                 highlight_mask |= agent_mask
 
         # Render the whole grid
-        img = self._render_grid(grid, highlight_mask)
+        img = self._render_grid(grid, highlight_mask, state.layout_change_mask)
         return img
 
     @staticmethod
@@ -531,6 +531,7 @@ class OvercookedV3Visualizer:
         self,
         obj,
         highlight=False,
+        layout_will_change=False,
     ):
         """
         Render a tile and cache the result
@@ -558,6 +559,24 @@ class OvercookedV3Visualizer:
         img_highlight = rendering.highlight_img(img)
         img = jax.lax.select(highlight, img_highlight, img)
 
+        warning_edges = (
+            rendering.point_in_rect(0.02, 0.09, 0.02, 0.98),
+            rendering.point_in_rect(0.91, 0.98, 0.02, 0.98),
+            rendering.point_in_rect(0.02, 0.98, 0.02, 0.09),
+            rendering.point_in_rect(0.02, 0.98, 0.91, 0.98),
+        )
+
+        def warning_border(x, y):
+            return (
+                warning_edges[0](x, y)
+                | warning_edges[1](x, y)
+                | warning_edges[2](x, y)
+                | warning_edges[3](x, y)
+            )
+
+        img_warning = rendering.fill_coords(img, warning_border, COLORS["orange"])
+        img = jax.lax.select(layout_will_change, img_warning, img)
+
         # Downsample the image to perform supersampling/anti-aliasing
         img = rendering.downsample(img, self.subdivs)
 
@@ -570,8 +589,13 @@ class OvercookedV3Visualizer:
         self,
         grid,
         highlight_mask,
+        layout_change_mask,
     ):
-        img_grid = jax.vmap(jax.vmap(self._render_tile))(grid, highlight_mask)
+        img_grid = jax.vmap(jax.vmap(self._render_tile))(
+            grid,
+            highlight_mask,
+            layout_change_mask,
+        )
 
         # print("img_grid", img_grid.shape)
 

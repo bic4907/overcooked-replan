@@ -15,9 +15,11 @@ The following role-coordination experiments are currently available:
 | `outage_sig` | Resource Outage | Yes | Does signaling accelerate role reallocation and recovery? |
 
 Overcooked V3 exposes the upcoming layout transition to every agent. The final
-channel of the default 31-channel observation is a global continuous countdown
-that decreases from `1.0` to `0.0` within each phase. Rendered GIFs show the
-same countdown in seconds at 5 FPS.
+two channels of the default 32-channel observation contain a global continuous
+countdown and a binary map-change mask. The countdown decreases from `1.0` to
+`0.0` within each phase, while the mask marks tiles whose static object will
+change in the next phase. Rendered GIFs show the countdown at 5 FPS and draw an
+orange warning border around those tiles.
 
 ## Quick start
 
@@ -265,16 +267,19 @@ uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
 
 On a headless server, use `--gif` instead of `--render`.
 
-The transition countdown changes the default V3 observation from 30 to 31
-channels, so policies trained before this change require the legacy observation
-flag during evaluation:
+The transition features change the default V3 observation from 30 to 32
+channels, so policies trained before these changes require the legacy
+observation flag during evaluation:
 
 ```bash
 uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --layout split_no_sig \
   --checkpoint PATH_TO_OLD_CHECKPOINT.safetensors \
-  --no-transition-countdown
+  --legacy-observation
 ```
+
+For a 31-channel checkpoint trained with the countdown but without the change
+mask, use `--no-layout-change-mask` instead.
 
 ## Batch training and evaluation of dynamic maps
 

@@ -34,10 +34,13 @@ WANDB_MODE=online
 
 기존 dynamic map 기본값은 `scenario=dynamic_00`이다.
 
-V3 기본 관측은 V2의 30채널에 phase 전환 countdown 채널을 추가한 31채널이다.
-마지막 채널은 각 phase에서 `1.0`부터 `0.0`으로 감소한다. 이전 30채널 규격으로
-학습하려면 `ENV_KWARGS.include_transition_countdown=false`를 명시한다. 두 관측
-규격의 checkpoint는 첫 CNN layer shape이 달라 서로 호환되지 않는다.
+V3 기본 관측은 V2의 30채널에 phase 전환 countdown과 change mask를 추가한
+32채널이다. 뒤에서 두 번째 채널은 각 phase에서 `1.0`부터 `0.0`으로 감소하고,
+마지막 binary 채널은 다음 phase에서 static object가 달라질 위치를 표시한다.
+이전 30채널 규격으로 학습하려면
+`ENV_KWARGS.include_transition_countdown=false`와
+`ENV_KWARGS.include_layout_change_mask=false`를 모두 명시한다. 관측 규격이 다른
+checkpoint는 첫 CNN layer shape이 달라 서로 호환되지 않는다.
 
 ## 단일 학습
 

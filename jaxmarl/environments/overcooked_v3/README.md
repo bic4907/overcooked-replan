@@ -15,8 +15,9 @@ Layout definitions live in `dynamic_layout_data.py` and are validated by
 objects on changed cells, and relocates agents that would otherwise be covered
 by a newly blocked tile.
 
-The default V3 observation adds one channel to V2's 30-channel grid encoding.
-This final channel contains a spatially constant, continuous countdown that
-decreases from `1.0` at the start of a phase toward `0.0` immediately before
-the next layout change. Set `include_transition_countdown=False` when loading a
-legacy 30-channel policy.
+The default V3 observation adds two channels to V2's 30-channel grid encoding.
+The penultimate channel contains a spatially constant, continuous countdown
+that decreases from `1.0` at the start of a phase toward `0.0` immediately
+before the next layout change. The final binary channel marks cells whose
+static object differs in the next phase. Set both transition options to `False`
+when loading a legacy 30-channel policy.

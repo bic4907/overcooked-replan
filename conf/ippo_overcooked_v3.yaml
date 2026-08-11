@@ -8,6 +8,7 @@ ENV_KWARGS:
   layout: dynamic_00
   random_agent_positions: false
   include_transition_countdown: true
+  include_layout_change_mask: true
 
 LR: 0.00025
 ANNEAL_LR: true

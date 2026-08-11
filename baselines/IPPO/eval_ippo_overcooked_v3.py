@@ -84,9 +84,16 @@ def parse_args(default_architecture="cnn"):
     )
     parser.add_argument("--render-delay", type=float, default=0.2)
     parser.add_argument(
+        "--legacy-observation",
         "--no-transition-countdown",
+        dest="legacy_observation",
         action="store_true",
         help="Use the legacy 30-channel observation for older checkpoints.",
+    )
+    parser.add_argument(
+        "--no-layout-change-mask",
+        action="store_true",
+        help="Use the 31-channel countdown-only observation.",
     )
     return parser.parse_args()
 
@@ -197,7 +204,10 @@ def main(default_architecture="cnn"):
         layout=args.layout,
         max_steps=args.max_steps,
         random_agent_positions=False,
-        include_transition_countdown=not args.no_transition_countdown,
+        include_transition_countdown=not args.legacy_observation,
+        include_layout_change_mask=(
+            not args.legacy_observation and not args.no_layout_change_mask
+        ),
     )
     config = {
         "ACTIVATION": args.activation,

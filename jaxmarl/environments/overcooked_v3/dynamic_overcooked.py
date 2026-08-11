@@ -19,7 +19,11 @@ from jaxmarl.environments.overcooked_v3.dynamic_layouts import (
     DynamicLayout,
     dynamic_layouts,
 )
-from jaxmarl.environments.overcooked_v3.overcooked import OvercookedV3Base, State
+from jaxmarl.environments.overcooked_v3.overcooked import (
+    ObservationType,
+    OvercookedV3Base,
+    State,
+)
 from jaxmarl.environments.overcooked_v3.utils import (
     OvercookedPathPlanner,
     compute_enclosed_spaces,
@@ -33,9 +37,15 @@ class OvercookedV3(OvercookedV3Base):
         self,
         layout: Union[str, DynamicLayout] = "dynamic_cramped_room",
         include_transition_countdown: bool = True,
+        include_layout_change_mask: Union[bool, None] = None,
         **kwargs,
     ):
         self.include_transition_countdown = include_transition_countdown
+        self.include_layout_change_mask = (
+            include_transition_countdown
+            if include_layout_change_mask is None
+            else include_layout_change_mask
+        )
         if isinstance(layout, str):
             if layout not in dynamic_layouts:
                 raise ValueError(
@@ -83,15 +93,23 @@ class OvercookedV3(OvercookedV3Base):
 
     def _get_obs_shape(self):
         obs_shape = super()._get_obs_shape()
-        if not self.include_transition_countdown:
-            return obs_shape
 
-        def _append_countdown(shape):
-            return (*shape[:-1], shape[-1] + 1)
+        def _append_transition_features(shape, obs_type):
+            extra_features = int(self.include_transition_countdown)
+            if self.include_layout_change_mask:
+                extra_features += (
+                    1
+                    if obs_type == ObservationType.DEFAULT
+                    else self.height * self.width
+                )
+            return (*shape[:-1], shape[-1] + extra_features)
 
         if isinstance(obs_shape, list):
-            return [_append_countdown(shape) for shape in obs_shape]
-        return _append_countdown(obs_shape)
+            return [
+                _append_transition_features(shape, obs_type)
+                for shape, obs_type in zip(obs_shape, self.observation_type)
+            ]
+        return _append_transition_features(obs_shape, self.observation_type)
 
     def get_layout_index(self, step: jax.Array) -> jax.Array:
         cycle_step = jnp.mod(step, self.cycle_steps)
@@ -109,29 +127,67 @@ class OvercookedV3(OvercookedV3Base):
             layout_index
         ].astype(jnp.float32)
 
-    def _set_transition_countdown(self, state: State) -> State:
-        return state.replace(
-            steps_until_layout_change=self.get_steps_until_layout_change(state.step)
+    def get_layout_change_mask(self, step: jax.Array) -> jax.Array:
+        layout_index = self.get_layout_index(step)
+        next_layout_index = (layout_index + 1) % self.phase_static_objects.shape[0]
+        return (
+            self.phase_static_objects[layout_index]
+            != self.phase_static_objects[next_layout_index]
         )
 
-    def _append_transition_countdown(self, obs, step):
-        if not self.include_transition_countdown:
+    def _set_transition_awareness(self, state: State) -> State:
+        return state.replace(
+            steps_until_layout_change=self.get_steps_until_layout_change(state.step),
+            layout_change_mask=self.get_layout_change_mask(state.step),
+        )
+
+    def _append_default_transition_features(self, obs, step):
+        transition_layers = []
+        if self.include_transition_countdown:
+            countdown = self.get_transition_countdown(step)
+            transition_layers.append(
+                jnp.full((*obs.shape[:-1], 1), countdown, dtype=jnp.float32)
+            )
+        if self.include_layout_change_mask:
+            change_mask = self.get_layout_change_mask(step).astype(jnp.float32)
+            change_mask = jnp.broadcast_to(
+                change_mask,
+                (*obs.shape[:-3], *change_mask.shape),
+            )
+            transition_layers.append(change_mask[..., None])
+        if not transition_layers:
             return obs
-        countdown = self.get_transition_countdown(step)
-        countdown_layer = jnp.full((*obs.shape[:-1], 1), countdown, dtype=jnp.float32)
-        return jnp.concatenate([obs.astype(jnp.float32), countdown_layer], axis=-1)
+        return jnp.concatenate([obs.astype(jnp.float32), *transition_layers], axis=-1)
+
+    def _append_featurized_transition_features(self, obs, step):
+        transition_features = []
+        if self.include_transition_countdown:
+            countdown = self.get_transition_countdown(step)
+            transition_features.append(
+                jnp.full((*obs.shape[:-1], 1), countdown, dtype=jnp.float32)
+            )
+        if self.include_layout_change_mask:
+            change_mask = self.get_layout_change_mask(step).astype(jnp.float32)
+            transition_features.append(
+                jnp.broadcast_to(
+                    change_mask.flatten(), (*obs.shape[:-1], change_mask.size)
+                )
+            )
+        if not transition_features:
+            return obs
+        return jnp.concatenate([obs.astype(jnp.float32), *transition_features], axis=-1)
 
     def get_obs_default(self, state: State):
         obs = super().get_obs_default(state)
-        return self._append_transition_countdown(obs, state.step)
+        return self._append_default_transition_features(obs, state.step)
 
     def get_obs_featurized(self, state: State):
         obs = super().get_obs_featurized(state)
-        return self._append_transition_countdown(obs, state.step)
+        return self._append_featurized_transition_features(obs, state.step)
 
     def reset(self, key: PRNGKeyArray):
         _, state = super().reset(key)
-        state = self._set_transition_countdown(state)
+        state = self._set_transition_awareness(state)
         obs = self.get_obs(state)
         return lax.stop_gradient(obs), lax.stop_gradient(state)
 
@@ -165,7 +221,7 @@ class OvercookedV3(OvercookedV3Base):
             state,
             layout_index,
         )
-        state = self._set_transition_countdown(state)
+        state = self._set_transition_awareness(state)
         obs = self.get_obs(state)
         steps_until_layout_change = state.steps_until_layout_change
         transition_countdown = self.get_transition_countdown(state.step)
