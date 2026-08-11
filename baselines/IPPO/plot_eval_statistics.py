@@ -1,4 +1,4 @@
-"""Plot statistics from eval_all_overcooked_v3_cnn.sh result logs."""
+"""Plot statistics from scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh logs."""
 
 import argparse
 import csv

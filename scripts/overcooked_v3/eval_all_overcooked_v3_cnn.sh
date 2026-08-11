@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${PROJECT_DIR}"
 
 MODELS_DIR="${MODELS_DIR:-/mnt/nas/overcooked-replan}"

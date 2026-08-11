@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${PROJECT_DIR}"
 
 TRAIN_SEEDS="${TRAIN_SEEDS:-0 1}"

@@ -1,4 +1,4 @@
-"""Run a random-policy rollout in one Overcooked V3 role scenario."""
+"""Render a random-policy rollout in one Overcooked V3 role scenario."""
 
 import argparse
 from pathlib import Path

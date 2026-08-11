@@ -1,4 +1,4 @@
-# Overcooked V3 training configuration
+# Overcooked V3 학습 설정
 
 Hydra 설정과 W&B 실험 실행 방법을 이 디렉터리에서 관리한다.
 

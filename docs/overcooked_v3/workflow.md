@@ -28,11 +28,11 @@
 | `jaxmarl/environments/overcooked_v3/dynamic_overcooked.py` | 맵 전환과 캐릭터 재배치 규칙 |
 | `conf/ippo_overcooked_v3.yaml` | IPPO 기본 하이퍼파라미터 |
 | `baselines/IPPO/ippo_overcooked_v3.py` | CNN/RNN 통합 학습 코드 |
-| `train_all_overcooked_v3_cnn.sh` | 15개 맵 CNN 일괄 학습 |
+| `scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh` | 15개 맵 CNN 일괄 학습 |
 | `baselines/IPPO/eval_ippo_overcooked_v3.py` | CNN/RNN 통합 평가 코드 |
-| `eval_all_overcooked_v3_cnn.sh` | same/cross-seed 일괄 평가 |
+| `scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh` | same/cross-seed 일괄 평가 |
 | `jaxmarl/viz/overcooked_v3_visualizer.py` | GUI 및 GIF 렌더링 |
-| `run_docker.sh` | Docker 실행 및 NAS/GPU 마운트 |
+| `scripts/run_docker.sh` | Docker 실행 및 NAS/GPU 마운트 |
 
 ## 2. 맵 데이터 작성법
 
@@ -109,8 +109,8 @@ Invalid dynamic layout 'dynamic_15': Phase 1 has 1 agents; expected 2
 ### 2.3 새 맵 등록 절차
 
 1. `dynamic_layout_data.py`에 새 변수와 phase 데이터를 추가한다.
-2. `train_all_overcooked_v3_cnn.sh`의 `layouts=(...)`에 이름을 추가한다.
-3. `eval_all_overcooked_v3_cnn.sh`의 `layouts=(...)`에도 같은 이름을 추가한다.
+2. `scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh`의 `layouts=(...)`에 이름을 추가한다.
+3. `scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh`의 `layouts=(...)`에도 같은 이름을 추가한다.
 4. 아래 명령으로 파싱을 확인한다.
 
 ```bash
@@ -186,10 +186,10 @@ phase 전환 시 정적 타일 종류가 바뀐 칸은 새 phase의 타일 템�
 서버의 프로젝트 루트에서 다음처럼 컨테이너를 연다.
 
 ```bash
-bash run_docker.sh bash
+bash scripts/run_docker.sh bash
 ```
 
-`run_docker.sh`는 다음을 수행한다.
+`scripts/run_docker.sh`는 다음을 수행한다.
 
 - 프로젝트를 `/workspace`에 bind mount
 - 호스트 UID/GID로 실행
@@ -245,23 +245,23 @@ GPU 학습에는 CUDA 지원 JAX가 설치되어 있어야 한다. `jax.devices(
 
 ```bash
 GPU_ID=0 TRAIN_SEEDS="0 1" \
-bash train_all_overcooked_v3_cnn.sh
+bash scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh
 ```
 
 호스트에서 컨테이너까지 한 번에 실행하려면 다음 명령을 사용한다.
 
 ```bash
-bash run_docker.sh env \
+bash scripts/run_docker.sh env \
   GPU_ID=0 \
   TRAIN_SEEDS="0 1" \
-  bash train_all_overcooked_v3_cnn.sh
+  bash scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh
 ```
 
 특정 GPU와 seed 하나만 실행할 수도 있다.
 
 ```bash
 GPU_ID=1 TRAIN_SEEDS="1" \
-bash train_all_overcooked_v3_cnn.sh
+bash scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh
 ```
 
 한 GPU에서 여러 seed는 병렬이 아니라 순차 실행된다. 각 맵에서 seed 0을 마친 후 seed 1을 실행하고 다음 맵으로 이동한다. 한 학습이 실패하면 셸은 즉시 중단하며, 그전에 저장된 최종 체크포인트는 유지된다.
@@ -309,19 +309,19 @@ Hydra 실행 로그는 `outputs/overcooked_v3/cnn/<layout>/seed<seed>`에 저장
 ### 7.1 전체 same/cross-seed 평가
 
 ```bash
-bash eval_all_overcooked_v3_cnn.sh
+bash scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh
 ```
 
 호스트에서 Docker로 실행:
 
 ```bash
-bash run_docker.sh bash eval_all_overcooked_v3_cnn.sh
+bash scripts/run_docker.sh bash scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh
 ```
 
 기본 평가는 CPU에서 실행한다. GPU 평가가 필요하면 다음처럼 실행한다.
 
 ```bash
-JAX_PLATFORM=cuda bash eval_all_overcooked_v3_cnn.sh
+JAX_PLATFORM=cuda bash scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh
 ```
 
 각 맵에서 다음 네 조합을 평가한다.
@@ -465,7 +465,7 @@ JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp python ...
 
 ### `I have no name!` 또는 group 이름 오류
 
-업데이트된 `run_docker.sh`는 호스트의 `/etc/passwd`와 `/etc/group`을 읽기 전용으로 연결한다. 서버의 실행 스크립트가 최신인지 확인한다.
+업데이트된 `scripts/run_docker.sh`는 호스트의 `/etc/passwd`와 `/etc/group`을 읽기 전용으로 연결한다. 서버의 실행 스크립트가 최신인지 확인한다.
 
 ### NAS 경로 오류
 
@@ -475,7 +475,7 @@ JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp python ...
 /mnt/nas/overcooked-replan
 ```
 
-컨테이너를 열기 전에 호스트에서 이 디렉터리가 존재해야 `run_docker.sh`가 마운트한다. 경로가 없으면 경고가 출력되며 학습/자동 평가는 중단된다.
+컨테이너를 열기 전에 호스트에서 이 디렉터리가 존재해야 `scripts/run_docker.sh`가 마운트한다. 경로가 없으면 경고가 출력되며 학습/자동 평가는 중단된다.
 
 ## 10. 현재 맵 목록
 

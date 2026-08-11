@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 IMAGE_NAME="${IMAGE_NAME:-ghkdrmaghks/overcooked-replan:latest}"
 BASE_IMAGE="${BASE_IMAGE:-nvcr.io/nvidia/jax:26.04-py3}"
 INSTALL_EXTRAS="${INSTALL_EXTRAS:-algs}"
@@ -68,7 +68,7 @@ for variable in \
     WANDB_PROJECT \
     XLA_FLAGS
 do
-    if [[ -v "${variable}" ]]; then
+    if printenv "${variable}" >/dev/null 2>&1; then
         docker_args+=(--env "${variable}")
     fi
 done
