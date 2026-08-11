@@ -61,10 +61,15 @@ Add your W&B credentials and settings to `.env`:
 
 ```dotenv
 WANDB_API_KEY=your-api-key
-WANDB_ENTITY=your-team-or-user
+WANDB_ENTITY=your-team-slug
 WANDB_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
 ```
+
+`WANDB_ENTITY` must be a team slug or personal username, not an organization
+slug. In a W&B workspace URL such as
+`https://wandb.ai/<entity>/<project>`, use the `<entity>` segment. If it points
+to an organization, open the target team workspace and use that team's slug.
 
 The training entrypoint automatically loads `.env` from the project root. The
 file is excluded from Git. Set `WANDB_MODE=disabled` when W&B is not needed.

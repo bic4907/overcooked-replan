@@ -18,10 +18,14 @@ cp .env.example .env
 
 ```dotenv
 WANDB_API_KEY=your-api-key
-WANDB_ENTITY=your-team-or-user
+WANDB_ENTITY=your-team-slug
 WANDB_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
 ```
+
+`WANDB_ENTITY`에는 organization slug가 아니라 run을 기록할 team slug 또는 개인
+username을 넣는다. W&B workspace URL이 `https://wandb.ai/<entity>/<project>`라면
+`<entity>` 부분을 사용한다.
 
 학습 entrypoint는 `.env`를 자동으로 읽는다. W&B 설정의 적용 우선순위는 Hydra
 명령줄 override, 기존 shell 환경변수, `.env`, Hydra 기본값 순서다. `SAVES_DIR`는
