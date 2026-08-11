@@ -58,13 +58,46 @@ def test_overcooked_v3_is_registered_and_based_on_v2():
     assert isinstance(env, OvercookedV3Base)
 
 
-def test_default_observation_uses_v2_grid_encoding():
+def test_default_observation_extends_v2_grid_encoding_with_countdown():
     env = OvercookedV3(layout="dynamic_00", max_steps=20)
     obs, state = env.reset(jax.random.PRNGKey(0))
 
     assert state.grid.shape == (env.height, env.width, 3)
-    assert obs["agent_0"].shape == (env.height, env.width, 30)
+    assert obs["agent_0"].shape == (env.height, env.width, 31)
     assert state.layout_index.item() == 0
+    assert state.steps_until_layout_change.item() == 100
+    assert jnp.all(obs["agent_0"][..., -1] == 1.0)
+
+
+def test_transition_countdown_decreases_and_resets_after_layout_change():
+    env = _env(BASE.replace("W A W", "W AWW", 1), first_steps=4, second_steps=6)
+    obs, state = env.reset(jax.random.PRNGKey(0))
+
+    assert state.steps_until_layout_change.item() == 4
+    assert jnp.all(obs["agent_0"][..., -1] == 1.0)
+
+    state = state.replace(step=jnp.array(3))
+    obs = env.get_obs(state)
+    assert jnp.allclose(obs["agent_0"][..., -1], 0.25)
+
+    obs, state, _, _, info = _step(env, state)
+    assert state.layout_index.item() == 1
+    assert state.steps_until_layout_change.item() == 6
+    assert jnp.all(obs["agent_0"][..., -1] == 1.0)
+    assert jnp.all(info["steps_until_layout_change"] == 6)
+    assert jnp.all(info["transition_countdown"] == 1.0)
+
+
+def test_transition_countdown_can_be_disabled_for_old_checkpoints():
+    env = OvercookedV3(
+        layout="dynamic_00",
+        max_steps=20,
+        include_transition_countdown=False,
+    )
+    obs, _ = env.reset(jax.random.PRNGKey(0))
+
+    assert env.obs_shape == (env.height, env.width, 30)
+    assert obs["agent_0"].shape == env.obs_shape
 
 
 @pytest.mark.parametrize("layout_name", sorted(dynamic_layouts))
@@ -229,7 +262,7 @@ def test_v2_configuration_flags_remain_available():
     obs, _ = env.reset(jax.random.PRNGKey(0))
 
     assert env.negative_rewards is True
-    assert env.obs_shape == (5, 5, 30)
+    assert env.obs_shape == (5, 5, 31)
     assert obs["agent_0"].shape == env.obs_shape
 
 
@@ -240,4 +273,10 @@ def test_jitted_step_reports_v2_reward_and_dynamic_layout_info():
     _, _, rewards, dones, infos = _step(env, state)
     assert set(rewards) == set(env.agents)
     assert "__all__" in dones
-    assert set(infos) == {"shaped_reward", "layout_index", "layout_changed"}
+    assert set(infos) == {
+        "shaped_reward",
+        "layout_index",
+        "layout_changed",
+        "steps_until_layout_change",
+        "transition_countdown",
+    }

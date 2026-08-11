@@ -83,6 +83,11 @@ def parse_args(default_architecture="cnn"):
         help="Replay the first evaluation episode in a live window.",
     )
     parser.add_argument("--render-delay", type=float, default=0.2)
+    parser.add_argument(
+        "--no-transition-countdown",
+        action="store_true",
+        help="Use the legacy 30-channel observation for older checkpoints.",
+    )
     return parser.parse_args()
 
 
@@ -192,6 +197,7 @@ def main(default_architecture="cnn"):
         layout=args.layout,
         max_steps=args.max_steps,
         random_agent_positions=False,
+        include_transition_countdown=not args.no_transition_countdown,
     )
     config = {
         "ACTIVATION": args.activation,
@@ -269,8 +275,11 @@ def main(default_architecture="cnn"):
         viz = OvercookedV3Visualizer()
         window = viz._lazy_init_window()
         for state, caption in zip(first_states, first_captions):
-            window.set_caption(caption)
-            viz.render(state, agent_view_size=env.agent_view_size)
+            viz.render(
+                state,
+                agent_view_size=env.agent_view_size,
+                caption=caption,
+            )
             time.sleep(args.render_delay)
             if viz.window is not None and viz.window.closed:
                 break

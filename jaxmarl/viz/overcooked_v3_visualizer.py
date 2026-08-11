@@ -17,6 +17,7 @@ from jaxmarl.environments.overcooked_v3.utils import compute_view_box
 from jaxmarl.viz.window import Window
 
 TILE_PIXELS = 32
+DEFAULT_SECONDS_PER_STEP = 0.2
 
 COLORS = {
     "red": jnp.array([255, 0, 0], dtype=jnp.uint8),
@@ -70,11 +71,19 @@ class OvercookedV3Visualizer:
 
     tile_cache = {}
 
-    def __init__(self, tile_size=TILE_PIXELS, subdivs=3):
+    def __init__(
+        self,
+        tile_size=TILE_PIXELS,
+        subdivs=3,
+        seconds_per_step=DEFAULT_SECONDS_PER_STEP,
+    ):
+        if seconds_per_step <= 0:
+            raise ValueError("seconds_per_step must be greater than zero")
         self.window: Optional[Window] = None
 
         self.tile_size = tile_size
         self.subdivs = subdivs
+        self.seconds_per_step = seconds_per_step
 
     def _lazy_init_window(self) -> Window:
         if self.window is None:
@@ -84,12 +93,24 @@ class OvercookedV3Visualizer:
     def show(self, block=False):
         self._lazy_init_window().show(block=block)
 
-    def render(self, state, agent_view_size=None):
+    def _caption_with_countdown_steps(self, steps_remaining, caption=""):
+        if steps_remaining <= 0:
+            return caption
+        seconds_remaining = steps_remaining * self.seconds_per_step
+        countdown = f"next layout change in {seconds_remaining:.1f}s"
+        return f"{caption} | {countdown}" if caption else countdown
+
+    def caption_with_countdown(self, state, caption=""):
+        steps_remaining = int(np.asarray(state.steps_until_layout_change))
+        return self._caption_with_countdown_steps(steps_remaining, caption)
+
+    def render(self, state, agent_view_size=None, caption=""):
         """Method for rendering the state in a window. Esp. useful for interactive mode."""
         window = self._lazy_init_window()
 
         img = self._render_state(state, agent_view_size)
 
+        window.set_caption(self.caption_with_countdown(state, caption))
         window.show_img(img)
 
     def animate(
@@ -111,11 +132,24 @@ class OvercookedV3Visualizer:
             )
         frame_seq = [np.asarray(frame) for frame in frame_seq]
 
-        if captions is not None:
+        if isinstance(state_seq, (list, tuple)):
+            countdown_steps = [
+                int(np.asarray(state.steps_until_layout_change)) for state in state_seq
+            ]
+        else:
+            countdown_steps = np.asarray(state_seq.steps_until_layout_change).tolist()
+
+        if captions is not None or any(steps > 0 for steps in countdown_steps):
             from PIL import Image, ImageDraw, ImageFont
 
-            if len(captions) != len(frame_seq):
+            if captions is None:
+                captions = [""] * len(frame_seq)
+            elif len(captions) != len(frame_seq):
                 raise ValueError("captions and state_seq must have the same length")
+            captions = [
+                self._caption_with_countdown_steps(steps, caption)
+                for steps, caption in zip(countdown_steps, captions)
+            ]
 
             font = ImageFont.load_default()
             measure = ImageDraw.Draw(Image.new("RGB", (1, 1)))
@@ -142,7 +176,8 @@ class OvercookedV3Visualizer:
                 captioned_frames.append(np.asarray(canvas))
             frame_seq = captioned_frames
 
-        durations = [200] * len(frame_seq)
+        frame_duration_ms = int(round(self.seconds_per_step * 1000))
+        durations = [frame_duration_ms] * len(frame_seq)
         durations[-1] += 3000
         imageio.mimsave(filename, frame_seq, "GIF", duration=durations, loop=0)
 

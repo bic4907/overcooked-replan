@@ -24,6 +24,7 @@ def test_default_training_config_preserves_dynamic_00():
     assert config.ENV_KWARGS.layout == "dynamic_00"
     assert config.EXPERIMENT == "dynamic_map"
     assert config.SAVES_DIR == "saves"
+    assert config.ENV_KWARGS.include_transition_countdown is True
     assert config.get("WANDB_DIR") is None
 
 

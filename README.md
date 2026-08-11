@@ -14,6 +14,11 @@ The following role-coordination experiments are currently available:
 | `outage_no_sig` | Resource Outage | No | Can agents reallocate collection and cooking roles after a resource outage? |
 | `outage_sig` | Resource Outage | Yes | Does signaling accelerate role reallocation and recovery? |
 
+Overcooked V3 exposes the upcoming layout transition to every agent. The final
+channel of the default 31-channel observation is a global continuous countdown
+that decreases from `1.0` to `0.0` within each phase. Rendered GIFs show the
+same countdown in seconds at 5 FPS.
+
 ## Quick start
 
 Python 3.11 or later and [uv](https://docs.astral.sh/uv/) are required.
@@ -259,6 +264,17 @@ uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
 ```
 
 On a headless server, use `--gif` instead of `--render`.
+
+The transition countdown changes the default V3 observation from 30 to 31
+channels, so policies trained before this change require the legacy observation
+flag during evaluation:
+
+```bash
+uv run python baselines/IPPO/eval_ippo_overcooked_v3.py \
+  --layout split_no_sig \
+  --checkpoint PATH_TO_OLD_CHECKPOINT.safetensors \
+  --no-transition-countdown
+```
 
 ## Batch training and evaluation of dynamic maps
 

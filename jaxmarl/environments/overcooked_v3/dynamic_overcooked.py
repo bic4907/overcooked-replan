@@ -32,8 +32,10 @@ class OvercookedV3(OvercookedV3Base):
     def __init__(
         self,
         layout: Union[str, DynamicLayout] = "dynamic_cramped_room",
+        include_transition_countdown: bool = True,
         **kwargs,
     ):
+        self.include_transition_countdown = include_transition_countdown
         if isinstance(layout, str):
             if layout not in dynamic_layouts:
                 raise ValueError(
@@ -79,9 +81,59 @@ class OvercookedV3(OvercookedV3Base):
         self.phase_ends = jnp.cumsum(self.phase_durations)
         self.cycle_steps = int(dynamic_layout.cycle_steps)
 
+    def _get_obs_shape(self):
+        obs_shape = super()._get_obs_shape()
+        if not self.include_transition_countdown:
+            return obs_shape
+
+        def _append_countdown(shape):
+            return (*shape[:-1], shape[-1] + 1)
+
+        if isinstance(obs_shape, list):
+            return [_append_countdown(shape) for shape in obs_shape]
+        return _append_countdown(obs_shape)
+
     def get_layout_index(self, step: jax.Array) -> jax.Array:
         cycle_step = jnp.mod(step, self.cycle_steps)
         return jnp.sum(cycle_step >= self.phase_ends).astype(jnp.int32)
+
+    def get_steps_until_layout_change(self, step: jax.Array) -> jax.Array:
+        cycle_step = jnp.mod(step, self.cycle_steps)
+        layout_index = self.get_layout_index(step)
+        return self.phase_ends[layout_index] - cycle_step
+
+    def get_transition_countdown(self, step: jax.Array) -> jax.Array:
+        layout_index = self.get_layout_index(step)
+        steps_remaining = self.get_steps_until_layout_change(step)
+        return steps_remaining.astype(jnp.float32) / self.phase_durations[
+            layout_index
+        ].astype(jnp.float32)
+
+    def _set_transition_countdown(self, state: State) -> State:
+        return state.replace(
+            steps_until_layout_change=self.get_steps_until_layout_change(state.step)
+        )
+
+    def _append_transition_countdown(self, obs, step):
+        if not self.include_transition_countdown:
+            return obs
+        countdown = self.get_transition_countdown(step)
+        countdown_layer = jnp.full((*obs.shape[:-1], 1), countdown, dtype=jnp.float32)
+        return jnp.concatenate([obs.astype(jnp.float32), countdown_layer], axis=-1)
+
+    def get_obs_default(self, state: State):
+        obs = super().get_obs_default(state)
+        return self._append_transition_countdown(obs, state.step)
+
+    def get_obs_featurized(self, state: State):
+        obs = super().get_obs_featurized(state)
+        return self._append_transition_countdown(obs, state.step)
+
+    def reset(self, key: PRNGKeyArray):
+        _, state = super().reset(key)
+        state = self._set_transition_countdown(state)
+        obs = self.get_obs(state)
+        return lax.stop_gradient(obs), lax.stop_gradient(state)
 
     def _get_move_area(self, state: State) -> jax.Array:
         current_empty = state.grid[:, :, 0] == StaticObject.EMPTY
@@ -113,11 +165,18 @@ class OvercookedV3(OvercookedV3Base):
             state,
             layout_index,
         )
+        state = self._set_transition_countdown(state)
         obs = self.get_obs(state)
+        steps_until_layout_change = state.steps_until_layout_change
+        transition_countdown = self.get_transition_countdown(state.step)
         infos = {
             **infos,
             "layout_index": jnp.full((self.num_agents,), layout_index),
             "layout_changed": jnp.full((self.num_agents,), layout_changed),
+            "steps_until_layout_change": jnp.full(
+                (self.num_agents,), steps_until_layout_change
+            ),
+            "transition_countdown": jnp.full((self.num_agents,), transition_countdown),
         }
         return (
             lax.stop_gradient(obs),

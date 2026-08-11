@@ -10,7 +10,7 @@
 | 기반 환경 | `OvercookedV2` |
 | 레시피 | 양파 3개로 만드는 단일 양파 수프 |
 | 에이전트 수 | 2 |
-| 관측 | V2 기본 관측, 단일 재료 맵 기준 `height × width × 30` |
+| 관측 | V2 30채널 + phase 전환 countdown, 단일 재료 맵 기준 `height × width × 31` |
 | 정책 | IPPO CNN |
 | 시작 위치 | 맵의 `A` 위치로 고정 |
 | 에이전트 초기 방향 | 에피소드 reset마다 무작위 |
@@ -346,11 +346,15 @@ evaluation/overcooked_v3/cnn/dynamic_00/
 └── dynamic_00_cross_seed1_seed0.gif
 ```
 
-GIF에는 첫 번째 평가 episode만 저장된다. 초당 5 frame으로 재생되고 마지막 frame에서 3초 기다린 뒤 처음부터 반복한다. caption은 다음 순서를 사용한다.
+GIF에는 첫 번째 평가 episode만 저장된다. 초당 5 frame으로 재생되고 마지막 frame에서 3초 기다린 뒤 처음부터 반복한다. caption에는 다음 전환까지 남은 시간도 초 단위로 표시한다.
 
 ```text
-step=<현재 step> score=<누적 sparse score> actions=<agent_0>/<agent_1>
+step=<현재 step> score=<누적 sparse score> actions=<agent_0>/<agent_1> | next layout change in <남은 초>s
 ```
+
+에이전트 관측의 마지막 채널은 현재 phase 시작 시 `1.0`이고 전환 직전
+`0.0`에 가까워지는 연속값이다. 기존 30채널 checkpoint를 평가할 때는
+`--no-transition-countdown`을 추가한다.
 
 ### 7.2 단일 맵 same/cross 평가
 

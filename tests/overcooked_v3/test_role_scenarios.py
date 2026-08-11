@@ -12,6 +12,7 @@ from jaxmarl.environments.overcooked_v3.common import (
 from jaxmarl.environments.overcooked_v3.dynamic_layouts import dynamic_layouts
 from jaxmarl.environments.overcooked_v3.dynamic_overcooked import OvercookedV3
 from jaxmarl.environments.overcooked_v3.settings import INDICATOR_ACTIVATION_COST
+from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
 
 ROLE_SCENARIOS = (
     "split_no_sig",
@@ -27,7 +28,7 @@ def test_role_scenario_is_registered_and_resettable(layout_name):
     obs, state = env.reset(jax.random.PRNGKey(0))
 
     assert state.grid.shape == (7, 11, 3)
-    assert obs["agent_0"].shape == (7, 11, 30)
+    assert obs["agent_0"].shape == (7, 11, 31)
     assert state.layout_index.item() == 0
 
 
@@ -66,6 +67,17 @@ def test_kitchen_split_closes_center_and_distributes_resources():
     assert choose_phase[5, 1] == StaticObject.POT
     assert choose_phase[1, 8] == StaticObject.PLATE_PILE
     assert choose_phase[5, 8] == StaticObject.GOAL
+
+
+def test_visualizer_formats_transition_countdown_in_seconds():
+    env = OvercookedV3(layout="split_no_sig", max_steps=220)
+    _, state = env.reset(jax.random.PRNGKey(0))
+    visualizer = OvercookedV3Visualizer(seconds_per_step=0.2)
+
+    assert (
+        visualizer.caption_with_countdown(state, "step=0")
+        == "step=0 | next layout change in 8.0s"
+    )
 
 
 @pytest.mark.parametrize("layout_name", ("outage_no_sig", "outage_sig"))

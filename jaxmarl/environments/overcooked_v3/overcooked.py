@@ -85,6 +85,10 @@ class State(BaseState):
         default_factory=lambda: jnp.array(0, dtype=jnp.int32)
     )
 
+    steps_until_layout_change: jax.Array = struct.field(
+        default_factory=lambda: jnp.array(0, dtype=jnp.int32)
+    )
+
 
 class OvercookedV3Base(MultiAgentEnv):
     """Vanilla Overcooked"""
