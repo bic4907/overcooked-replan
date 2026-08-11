@@ -42,13 +42,7 @@ def _checkpoint_metadata(config):
     if config["ENV_NAME"] == "overcooked_v3":
         layout_suffix = layout_suffix.removeprefix("dynamic_")
     experiment_name = f"{config['ENV_NAME']}_{layout_suffix}"
-    save_dir = os.path.join(
-        config["SAVE_PATH"],
-        "ippo_v3",
-        _architecture(config),
-        experiment_name,
-        experiment_folder(config),
-    )
+    save_dir = os.path.join(config["SAVE_PATH"], experiment_folder(config))
     return experiment_name, save_dir
 
 
@@ -781,6 +775,9 @@ def run(config):
         OmegaConf.save(OmegaConf.create(config), config_path)
 
     wandb_name, wandb_group, wandb_tags = _wandb_metadata(config)
+    wandb_dir = config.get("WANDB_DIR")
+    if wandb_dir:
+        os.makedirs(wandb_dir, exist_ok=True)
     wandb.init(
         entity=config.get("ENTITY") or None,
         project=config["PROJECT"],
@@ -791,6 +788,7 @@ def run(config):
         group=wandb_group,
         job_type="train",
         notes=config.get("NOTES"),
+        dir=wandb_dir,
     )
 
     with jax.disable_jit(False):

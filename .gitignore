@@ -14,6 +14,7 @@ tmp/
 *-checkpoint.py
 wandb/
 outputs/
+saves/
 models/
 build/
 .idea

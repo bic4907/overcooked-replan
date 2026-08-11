@@ -42,11 +42,8 @@ def parse_args(default_architecture="cnn"):
     parser.add_argument(
         "--models-dir",
         type=Path,
-        default=Path("/mnt/nas/overcooked-replan"),
-        help=(
-            "Model root used for automatic checkpoint selection "
-            "(default: /mnt/nas/overcooked-replan)."
-        ),
+        default=Path("saves"),
+        help=("Model root used for automatic checkpoint selection (default: saves)."),
     )
     parser.add_argument(
         "--architecture",
@@ -98,7 +95,7 @@ def resolve_checkpoint(
 
     experiment_name = f"overcooked_v3_{layout.removeprefix('dynamic_')}"
     checkpoint_prefix = f"ippo_{architecture}"
-    checkpoint_dir = models_dir / "ippo_v3" / architecture / experiment_name
+    checkpoint_dir = models_dir
     seed_pattern = "*" if training_seed is None else str(training_seed)
     pattern = (
         f"{checkpoint_prefix}_{experiment_name}_seed{seed_pattern}_vmap*.safetensors"

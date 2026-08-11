@@ -36,13 +36,21 @@ NUM_SEEDS: 1
 LOG_INTERVAL: 10
 CHECKPOINT_INTERVAL: 0  # Training updates; 0 disables intermediate checkpoints.
 
-SAVE_PATH: /mnt/nas/overcooked-replan
+SAVE_PATH: ${oc.env:SAVE_PATH,saves}
 EXPERIMENT_FOLDER: null
 
 ENTITY: ${oc.env:WANDB_ENTITY,''}
 PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-role-coordination}
 WANDB_MODE: ${oc.env:WANDB_MODE,disabled}
+WANDB_DIR: ${oc.env:WANDB_DIR,saves/wandb}
 WANDB_GROUP: null
 WANDB_TAGS: []
 RUN_NAME: null
 NOTES: null
+
+hydra:
+  run:
+    dir: saves/hydra/${now:%Y-%m-%d}/${now:%H-%M-%S-%f}
+  sweep:
+    dir: saves/hydra/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S-%f}
+    subdir: ${hydra.job.num}

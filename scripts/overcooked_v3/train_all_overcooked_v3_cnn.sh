@@ -9,7 +9,7 @@ TRAIN_SEEDS="${TRAIN_SEEDS:-0 1}"
 TOTAL_TIMESTEPS="${TOTAL_TIMESTEPS:-3e7}"
 LOG_INTERVAL="${LOG_INTERVAL:-10}"
 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL:-50}"
-SAVE_PATH="${SAVE_PATH:-/mnt/nas/overcooked-replan}"
+SAVE_PATH="${SAVE_PATH:-${PROJECT_DIR}/saves}"
 GPU_ID="${GPU_ID:-0}"
 
 read -r -a train_seeds <<< "${TRAIN_SEEDS}"
@@ -61,7 +61,7 @@ for layout in "${layouts[@]}"; do
                 LOG_INTERVAL="${LOG_INTERVAL}" \
                 CHECKPOINT_INTERVAL="${CHECKPOINT_INTERVAL}" \
                 SAVE_PATH="${SAVE_PATH}" \
-                hydra.run.dir="outputs/overcooked_v3/cnn/${layout}/seed${seed}" \
+                hydra.run.dir="${SAVE_PATH}/hydra/overcooked_v3/cnn/${layout}/seed${seed}" \
                 2>&1 | sed -u "s/^/[GPU ${GPU_ID}][seed ${seed}] /"
         then
             echo "[GPU ${GPU_ID}][seed ${seed}] Training failed: ${layout}" >&2

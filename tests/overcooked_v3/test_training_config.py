@@ -23,6 +23,8 @@ def test_default_training_config_preserves_dynamic_00():
 
     assert config.ENV_KWARGS.layout == "dynamic_00"
     assert config.EXPERIMENT == "dynamic_map"
+    assert config.SAVE_PATH == "saves"
+    assert config.WANDB_DIR == "saves/wandb"
 
 
 def test_hydra_scenario_group_composes_all_conditions():
@@ -88,6 +90,7 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
     assert set(sweep["parameters"]["scenario"]["values"]) == set(SCENARIOS)
     assert sweep["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4]
     assert sweep["parameters"]["EXPERIMENT_FOLDER"]["value"] == "role-scenarios"
+    assert sweep["parameters"]["SAVE_PATH"]["value"] == "saves"
     assert "${args_no_hyphens}" in sweep["command"]
 
 
@@ -105,7 +108,7 @@ def test_experiment_folder_changes_with_training_parameters(tmp_path):
     changed_folder = experiment_folder(changed)
 
     assert original_folder != changed_folder
-    assert original_folder.startswith("seed0_lr0p00025_envs256_steps256_")
+    assert original_folder.startswith("split_sig_cnn_seed0_lr0p00025_envs256_steps256_")
 
 
 def test_custom_experiment_folder_is_safe_and_keeps_signature():
@@ -121,12 +124,12 @@ def test_custom_experiment_folder_is_safe_and_keeps_signature():
     changed = deepcopy(config)
     changed["SEED"] = 1
 
-    assert folder.startswith("learning-rate-sweep-01_")
+    assert folder.startswith("learning-rate-sweep-01_outage_no_sig_cnn_seed0_")
     assert "/" not in folder
     assert folder != experiment_folder(changed)
 
     config["EXPERIMENT_FOLDER"] = "양파 실험/01"
-    assert experiment_folder(config).startswith("양파-실험-01_")
+    assert experiment_folder(config).startswith("양파-실험-01_outage_no_sig_cnn_seed0_")
 
 
 def test_tracking_parameters_do_not_change_experiment_folder():
@@ -136,6 +139,7 @@ def test_tracking_parameters_do_not_change_experiment_folder():
     changed = deepcopy(config)
     changed["PROJECT"] = "another-wandb-project"
     changed["WANDB_MODE"] = "offline"
+    changed["WANDB_DIR"] = "/another/wandb/root"
     changed["SAVE_PATH"] = "/another/model/root"
 
     assert experiment_folder(config) == experiment_folder(changed)

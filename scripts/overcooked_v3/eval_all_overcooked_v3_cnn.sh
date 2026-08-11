@@ -5,8 +5,8 @@ set -Eeuo pipefail
 PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${PROJECT_DIR}"
 
-MODELS_DIR="${MODELS_DIR:-/mnt/nas/overcooked-replan}"
-EVALUATION_DIR="${EVALUATION_DIR:-evaluation/overcooked_v3/cnn}"
+MODELS_DIR="${MODELS_DIR:-${PROJECT_DIR}/saves}"
+EVALUATION_DIR="${EVALUATION_DIR:-${PROJECT_DIR}/saves/evaluation/overcooked_v3/cnn}"
 EPISODES="${EPISODES:-3}"
 MAX_STEPS="${MAX_STEPS:-400}"
 EVAL_SEED="${EVAL_SEED:-0}"
@@ -14,7 +14,7 @@ JAX_PLATFORM="${JAX_PLATFORM:-cpu}"
 
 if [[ ! -d "${MODELS_DIR}" ]]; then
     echo "Model directory does not exist: ${MODELS_DIR}" >&2
-    echo "Make sure the NAS directory is mounted in the container." >&2
+    echo "Train a model first or set MODELS_DIR explicitly." >&2
     exit 2
 fi
 
@@ -49,7 +49,7 @@ pair_specs=(
 missing_checkpoint=0
 for layout in "${layouts[@]}"; do
     experiment_name="overcooked_v3_${layout#dynamic_}"
-    checkpoint_dir="${MODELS_DIR}/ippo_v3/cnn/${experiment_name}"
+    checkpoint_dir="${MODELS_DIR}"
 
     for seed in 0 1; do
         checkpoint_name="ippo_cnn_${experiment_name}_seed${seed}_vmap0.safetensors"

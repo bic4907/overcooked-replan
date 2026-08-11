@@ -68,12 +68,12 @@ def parse_args():
     parser.add_argument(
         "--input-dir",
         type=Path,
-        default=Path("evaluation/overcooked_v3/cnn"),
+        default=Path("saves/evaluation/overcooked_v3/cnn"),
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("evaluation/overcooked_v3/cnn/statistics"),
+        default=Path("saves/evaluation/overcooked_v3/cnn/statistics"),
     )
     parser.add_argument("--dpi", type=int, default=180)
     return parser.parse_args()

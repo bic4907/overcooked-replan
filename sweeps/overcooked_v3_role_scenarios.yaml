@@ -26,7 +26,7 @@ parameters:
   WANDB_MODE:
     value: online
   SAVE_PATH:
-    value: outputs/checkpoints
+    value: saves
   EXPERIMENT_FOLDER:
     value: role-scenarios
 

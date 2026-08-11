@@ -46,12 +46,17 @@ def _path_component(value: object) -> str:
 
 
 def experiment_folder(config: Mapping[str, Any]) -> str:
-    label = config.get("EXPERIMENT_FOLDER")
-    if not label:
+    layout = config["ENV_KWARGS"]["layout"]
+    architecture = str(config["ARCHITECTURE"]).lower()
+    context = f"{layout}_{architecture}_seed{config['SEED']}"
+    prefix = config.get("EXPERIMENT_FOLDER")
+    if prefix:
+        label = f"{prefix}_{context}"
+    else:
         learning_rate = str(config["LR"]).replace(".", "p")
         total_steps = f"{float(config['TOTAL_TIMESTEPS']):g}".replace("+", "")
         label = (
-            f"seed{config['SEED']}_lr{learning_rate}_envs{config['NUM_ENVS']}_"
+            f"{context}_lr{learning_rate}_envs{config['NUM_ENVS']}_"
             f"steps{config['NUM_STEPS']}_total{total_steps}"
         )
     return f"{_path_component(label)}_{experiment_signature(config)}"
