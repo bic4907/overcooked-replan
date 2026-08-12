@@ -1,0 +1,59 @@
+program: baselines/IPPO/ippo_overcooked_v3.py
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+parameters:
+  scenario:
+    values:
+      - splitnosig_0
+      - splitnosig_1
+      - splitnosig_2
+      - splitnosig_3
+      - splitnosig_4
+      - splitnosig_5
+      - splitnosig_6
+      - splitnosig_7
+      - splitnosig_8
+      - splitnosig_9
+      - splitsig_0
+      - splitsig_1
+      - splitsig_2
+      - splitsig_3
+      - splitsig_4
+      - splitsig_5
+      - splitsig_6
+      - splitsig_7
+      - splitsig_8
+      - splitsig_9
+      - outagenosig_0
+      - outagenosig_1
+      - outagenosig_2
+      - outagenosig_3
+      - outagenosig_4
+      - outagenosig_5
+      - outagenosig_6
+      - outagenosig_7
+      - outagenosig_8
+      - outagenosig_9
+      - outagesig_0
+      - outagesig_1
+      - outagesig_2
+      - outagesig_3
+      - outagesig_4
+      - outagesig_5
+      - outagesig_6
+      - outagesig_7
+      - outagesig_8
+      - outagesig_9
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  recording:
+    value: enabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

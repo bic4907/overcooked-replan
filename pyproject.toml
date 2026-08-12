@@ -50,10 +50,12 @@ algs = [
   "distrax",
   "flashbax>=0.1.0",
   "wandb",
+  "python-dotenv>=1.0.1",
   "hydra-core>=1.3.2",
   "omegaconf>=2.3.0",
   "tqdm>=4.66.0",
   "imageio",
+  "imageio-ffmpeg>=0.5.1",
 ]
 dev = [
   "pytest",

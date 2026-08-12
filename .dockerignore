@@ -1,14 +1,18 @@
 # experiment outputs
+saves/
 wandb/
 tmp/
 outputs/
 results/
 models/
+evaluation/
 
 # python artifacts
 __pycache__/
 *.py[cod]
 *.egg-info/
+.venv/
+venv/
 .pytest_cache/
 .ruff_cache/
 
@@ -21,6 +25,8 @@ dist/
 .cache/
 .config/
 .nv/
+.docker-cache/
+.git/
 
 # large non-essential files
 docs/

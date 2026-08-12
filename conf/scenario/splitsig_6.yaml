@@ -1,0 +1,10 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: splitsig_6
+  random_agent_positions: false
+
+EXPERIMENT: kitchen_split
+CONDITION: splitsig_6
+SIGNAL_ENABLED: true
+WANDB_GROUP: kitchen_split

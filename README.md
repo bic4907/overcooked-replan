@@ -1,179 +1,405 @@
-<h1 align="center">JaxMARL</h1>
+# Overcooked Replan
 
-<p align="center">
-       <a href="https://pypi.org/pypi/jaxmarl">
-        <img src="https://img.shields.io/pypi/pyversions/jaxmarl.svg" /></a>
-       <a href="https://badge.fury.io/py/jaxmarl">
-        <img src="https://badge.fury.io/py/jaxmarl.svg" /></a>
-       <a href= "https://github.com/FLAIROx/JaxMARL/blob/main/LICENSE">
-        <img src="https://img.shields.io/badge/license-Apache2.0-blue.svg" /></a>
-       <a href= "https://colab.research.google.com/github/FLAIROx/JaxMARL/blob/main/jaxmarl/tutorials/JaxMARL_Walkthrough.ipynb">
-        <img src="https://colab.research.google.com/assets/colab-badge.svg" /></a>
-       <a href= "https://arxiv.org/abs/2311.10090">
-        <img src="https://img.shields.io/badge/arXiv-2311.10090-b31b1b.svg" /></a>
-       <a href= "https://jaxmarl.foersterlab.com/">
-        <img src="https://img.shields.io/badge/docs-green" /></a>
+This repository extends JaxMARL's Overcooked V2 environment to study dynamic
+resource changes and test-time role reconfiguration. The original `overcooked_v2`
+implementation remains intact, while the new environment and experiments live
+under `overcooked_v3`.
 
-</p>
+The following role-coordination experiments are currently available:
 
-[**Installation**](#install) | [**Quick Start**](#start) | [**Environments**](#environments) | [**Algorithms**](#algorithms) | [**Citation**](#cite)
----
-
-<div class="collage">
-    <div class="column" align="centre">
-        <div class="row" align="centre">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/cramped_room.gif?raw=true" alt="Overcooked" width="20%">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/mabrax.png?raw=true" alt="mabrax" width="20%">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/storm.gif?raw=true" alt="STORM" width="20%">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/hanabi.png?raw=true" alt="hanabi" width="20%">
-        </div>
-        <div class="row" align="centre">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/coin_game.png?raw=true" alt="coin_game" width="20%">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/qmix_MPE_simple_tag_v3.gif?raw=true" alt="MPE" width="20%">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/jaxnav-ma.gif?raw=true" alt="jaxnav" width="20%">
-            <img src="https://github.com/FLAIROx/JaxMARL/blob/main/docs/imgs/smax.gif?raw=true" alt="SMAX" width="20%">
-        </div>
-    </div>
-</div>
-
-## Multi-Agent Reinforcement Learning in JAX
-
-JaxMARL combines ease-of-use with GPU-enabled efficiency, and supports a wide range of commonly used MARL environments as well as popular baseline algorithms. Our aim is for one library that enables thorough evaluation of MARL methods across a wide range of tasks and against relevant baselines. We also introduce SMAX, a vectorised, simplified version of the popular StarCraft Multi-Agent Challenge, which removes the need to run the StarCraft II game engine.
-
-For more details, take a look at our [blog post](https://blog.foersterlab.com/jaxmarl/) or our [Colab notebook](https://colab.research.google.com/github/FLAIROx/JaxMARL/blob/main/jaxmarl/tutorials/JaxMARL_Walkthrough.ipynb), which walks through the basic usage.
-
-<h2 name="environments" id="environments">Environments 🌍 </h2>
-
-| Environment | Reference | README | Summary |
+| Hydra scenario | Environment | Signal counter | Research question |
 | --- | --- | --- | --- |
-| 🔴 MPE | [Paper](https://arxiv.org/abs/1706.02275) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/mpe) | Communication orientated tasks in a multi-agent particle world
-| 🍲 Overcooked | [Paper](https://arxiv.org/abs/1910.05789) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/overcooked) | Fully-cooperative human-AI coordination tasks based on the video game of the same name |
-| 🥘 OvercookedV2 | [Paper](https://arxiv.org/abs/2503.17821) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/overcooked_v2) | Partially observable and stochastic extention of Overcooked. Fully-cooperative. |
-| 🦾 Multi-Agent Brax | [Paper](https://arxiv.org/abs/2003.06709) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/mabrax) | Continuous multi-agent robotic control based on Brax, analogous to Multi-Agent MuJoCo |
-| 🎆 Hanabi | [Paper](https://arxiv.org/abs/1902.00506) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/hanabi) | Fully-cooperative partially-observable multiplayer card game |
-| 👾 SMAX | Novel | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/smax) | Simplified cooperative StarCraft micro-management environment |
-| 🧮 STORM: Spatial-Temporal Representations of Matrix Games | [Paper](https://openreview.net/forum?id=54F8woU8vhq) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/storm) | Matrix games represented as grid world scenarios
-| 🧭 JaxNav | [Paper](https://www.arxiv.org/abs/2408.15099) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/jaxnav) | 2D geometric navigation for differential drive robots
-| 🪙 Coin Game | [Paper](https://arxiv.org/abs/1802.09640) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/coin_game) | Two-player grid world environment which emulates social dilemmas
-| 💡 Switch Riddle | [Paper](https://proceedings.neurips.cc/paper_files/paper/2016/hash/c7635bfd99248a2cdef8249ef7bfbef4-Abstract.html) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/environments/switch_riddle) | Simple cooperative communication game included for debugging
-| 🤖 JaxRobotarium | [Paper](https://arxiv.org/abs/2505.06771) | [Source](https://github.com/GT-STAR-Lab/JaxRobotarium) | Multi-robot environment with open access sim2real through the [Robotarium](https://www.robotarium.gatech.edu/)
+| `splitnosig_0` ... `_9` | Kitchen Split | No | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
+| `splitsig_0` ... `_9` | Kitchen Split | Yes | Does signaling reduce same-side choices before the kitchen splits? |
+| `outagenosig_0` ... `_9` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
+| `outagesig_0` ... `_9` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
 
-<h2 name="algorithms" id="algorithms">Baseline Algorithms 🦉 </h2>
+Kitchen Split starts with one central doorway open for 40 steps. It then becomes
+a handoff counter for 160 steps, preventing agents from changing bays. The left
+bay has onions and two pots; the right bay has plates and serving. Agents must
+choose opposite sides before closure and sustain complementary cook–server
+roles through the counter. Resource Outage instead keeps two complete kitchens
+in disconnected bays; the right onion pile disappears during the outage, so
+the left cook must trade off local production against supplying the right bay.
+NoSig uses an inert, non-storage indicator where Sig provides the activatable
+public signal, keeping the remaining geometry equal.
 
-We follow CleanRL's philosophy of providing single file implementations which can be found within the `baselines` directory. We use Hydra to manage our config files, with specifics explained in each algorithm's README. Most files include `wandb` logging code, this is disabled by default but can be enabled within the file's config.
+Each category has ten directly registered 7×11 layouts. Select one through its
+Hydra scenario name, such as `scenario=splitsig_3`; layout 0 preserves the
+original geometry. Matching Sig/NoSig indices differ only at the signal tile.
 
-| Algorithm | Reference | README |
-| --- | --- | --- |
-| IPPO | [Paper](https://arxiv.org/pdf/2011.09533.pdf) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/IPPO) |
-| MAPPO | [Paper](https://arxiv.org/abs/2103.01955) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/MAPPO) |
-| IQL | [Paper](https://arxiv.org/abs/1312.5602v1) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/QLearning) |
-| VDN | [Paper](https://arxiv.org/abs/1706.05296)  | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/QLearning) |
-| QMIX | [Paper](https://arxiv.org/abs/1803.11485) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/QLearning) |
-| TransfQMIX | [Paper](https://www.southampton.ac.uk/~eg/AAMAS2023/pdfs/p1679.pdf) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/QLearning) |
-| SHAQ | [Paper](https://arxiv.org/abs/2105.15013) | [Source](https://github.com/FLAIROx/JaxMARL/tree/main/baselines/QLearning) |
-| PQN-VDN | [Paper](https://arxiv.org/abs/2407.04811) | [Source](https://github.com/mttga/purejaxql) |
+Overcooked V3 exposes public signals and upcoming layout transitions to every
+agent. The final three channels of the default 33-channel observation contain a
+spatial signal timer, a global transition countdown, and a binary map-change
+mask. Pressing a signal button sets its public channel to `1.0`; it decreases to
+`0.1` over 10 observed steps. A press costs the team `0.1` sparse reward by
+default. The transition channels stay at zero until 20 steps before a layout
+change. Rendered GIFs label active buttons as `SIG 10...1`, blink an orange
+border on changing tiles, and draw the remaining transition step count on each
+affected tile.
 
-<h2 name="install" id="install">Installation 🧗 </h2>
+## Quick start
 
-**Environments** - Before installing, ensure you have JAX installed for your hardware:
+Python 3.11 or later is required. Create and activate a virtual environment,
+then install the project and its training and development dependencies:
 
-GPU (we recommend CUDA 13):
-```sh
-pip install "jax[cuda13]"
-```
-CPU only:
-```sh
-pip install jax
-```
-See the [JAX installation guide](https://jax.readthedocs.io/en/latest/installation.html) for TPU and other configurations.
-
-The JaxMARL environments can then be installed directly from PyPi:
-
-``` bash
-pip install jaxmarl
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[algs,dev]"
 ```
 
-**Algorithms** - If you would like to also run the algorithms, install the source code and repository as follows:
+Run the remaining commands from the same activated shell. Verify that the
+virtual environment is active with `which python`; it should point to
+`.venv/bin/python` inside this repository.
 
-``` bash
-git clone https://github.com/FLAIROx/JaxMARL.git && cd JaxMARL
-pip install -e .[algs]
+Run a random-policy rollout and save it as a GIF to verify that the environment
+works correctly:
+
+```bash
+python scripts/overcooked_v3/run_role_scenario.py \
+  --layout splitsig_0 \
+  --steps 220 \
+  --seed 0 \
+  --gif evaluation/previews/splitsig_0.gif
 ```
 
-For the fastest start, **we recommend using our Dockerfile**, the usage of which is outlined below.
+The resulting GIF is saved to `evaluation/previews/splitsig_0.gif`.
 
-**Development** - If you would like to run our test suite, install the additonal dependencies as follows after cloning the repository:
-``` sh
-pip install -e .[dev]
-pre-commit install
+## W&B and environment variables
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
 ```
 
-<h2 name="start" id="start">Quick Start 🚀 </h2>
+Add your W&B credentials and settings to `.env`:
 
-We take inspiration from the [PettingZoo](https://github.com/Farama-Foundation/PettingZoo) and [Gymnax](https://github.com/RobertTLange/gymnax) interfaces. You can try out training an agent in our [Colab notebook](https://colab.research.google.com/github/FLAIROx/JaxMARL/blob/main/jaxmarl/tutorials/JaxMARL_Walkthrough.ipynb). Further introduction scripts can be found [here](https://github.com/FLAIROx/JaxMARL/tree/main/jaxmarl/tutorials).
-
-### Basic JaxMARL API  Usage 🖥️
-
-Actions, observations, rewards and done values are passed as dictionaries keyed by agent name, allowing for differing action and observation spaces. The done dictionary contains an additional `"__all__"` key, specifying whether the episode has ended. We follow a parallel structure, with each agent passing an action at each timestep. For asynchronous games, such as Hanabi, a dummy action is passed for agents not acting at a given timestep.
-
-```python
-import jax
-from jaxmarl import make
-
-key = jax.random.PRNGKey(0)
-key, key_reset, key_act, key_step = jax.random.split(key, 4)
-
-# Initialise environment.
-env = make('MPE_simple_world_comm_v3')
-
-# Reset the environment.
-obs, state = env.reset(key_reset)
-
-# Sample random actions.
-key_act = jax.random.split(key_act, env.num_agents)
-actions = {agent: env.action_space(agent).sample(key_act[i]) for i, agent in enumerate(env.agents)}
-
-# Perform the step transition.
-obs, state, reward, done, infos = env.step(key_step, state, actions)
+```dotenv
+WANDB_API_KEY=your-api-key
+WANDB_ENTITY=inchangbaek4907
+WANDB_PROJECT=overcooked-v3-role-coordination
+WANDB_MODE=online
 ```
 
-### Dockerfile 🐋
-To help get experiments up and running we include a [Dockerfile](https://github.com/FLAIROx/JaxMARL/blob/main/Dockerfile) and its corresponding [Makefile](https://github.com/FLAIROx/JaxMARL/blob/main/Makefile). With Docker and the [Nvidia Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/index.html) installed, the container can be built with:
+`WANDB_ENTITY` must be a team slug or personal username, not an organization
+slug. In a W&B workspace URL such as
+`https://wandb.ai/<entity>/<project>`, use the `<entity>` segment. If it points
+to an organization, open the target team workspace and use that team's slug.
+
+The training entrypoint automatically loads `.env` from the project root. The
+file is excluded from Git. Set `WANDB_MODE=disabled` when W&B is not needed.
+Direct training commands do not need a `dotenv run` prefix.
+The V3 trainer defaults to online mode and automatically falls back to offline
+mode when `WANDB_API_KEY` is not set.
+
+W&B-related settings use the following precedence order. This does not apply to
+`SAVES_DIR`.
+
+1. Hydra command-line overrides
+2. Existing shell environment variables
+3. Values from `.env`
+4. Hydra defaults
+
+## Training
+
+### Run one experiment
+
+```bash
+python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=splitnosig_0 \
+  EXPERIMENT_FOLDER=baseline \
+  SEED=0 \
+  NUM_SEEDS=1
 ```
-make build
-```
-The built container can then be run:
-```
-make run
-```
 
-## Contributing 🔨
-Please contribute! Please take a look at our [contributing guide](https://github.com/FLAIROx/JaxMARL/blob/main/CONTRIBUTING.md) for how to add an environment/algorithm or submit a bug report. If you're looking for a project, we also have a few suggestions listed under the roadmap :)
+Change only the `scenario` override to run another condition:
 
-<h2 name="cite" id="cite">Citing JaxMARL 📜 </h2>
-If you use JaxMARL in your work, please cite us as follows:
-
-``` bibtex
-@inproceedings{
-    flair2024jaxmarl,
-    title={JaxMARL: Multi-Agent RL Environments and Algorithms in JAX},
-    author={Alexander Rutherford and Benjamin Ellis and Matteo Gallici and Jonathan Cook and Andrei Lupu and Gar{\dh}ar Ingvarsson and Timon Willi and Ravi Hammond and Akbir Khan and Christian Schroeder de Witt and Alexandra Souly and Saptarashmi Bandyopadhyay and Mikayel Samvelyan and Minqi Jiang and Robert Tjarko Lange and Shimon Whiteson and Bruno Lacerda and Nick Hawes and Tim Rockt{\"a}schel and Chris Lu and Jakob Nicolaus Foerster},
-    booktitle={The Thirty-eight Conference on Neural Information Processing Systems Datasets and Benchmarks Track},
-    year={2024},
-}
+```bash
+scenario=splitsig_0
+scenario=outagenosig_0
+scenario=outagesig_0
 ```
 
-## See Also 🙌
-There are a number of other libraries which inspired this work, we encourage you to take a look!
+CNN is the default policy architecture. Select the RNN policy as follows:
 
-JAX-native algorithms:
-- [Mava](https://github.com/instadeepai/Mava): JAX implementations of popular MARL algorithms.
-- [PureJaxRL](https://github.com/luchris429/purejaxrl): JAX implementation of PPO, and demonstration of end-to-end JAX-based RL training.
+```bash
+python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=outagesig_0 \
+  ARCHITECTURE=rnn \
+  EXPERIMENT_FOLDER=baseline \
+  SEED=0
+```
 
-JAX-native environments:
-- [Gymnax](https://github.com/RobertTLange/gymnax): Implementations of classic RL tasks including classic control, bsuite and MinAtar.
-- [Jumanji](https://github.com/instadeepai/jumanji): A diverse set of environments ranging from simple games to NP-hard combinatorial problems.
-- [Pgx](https://github.com/sotetsuk/pgx): JAX implementations of classic board games, such as Chess, Go and Shogi.
-- [Brax](https://github.com/google/brax): A fully differentiable physics engine written in JAX, features continuous control tasks.
-- [XLand-MiniGrid](https://github.com/corl-team/xland-minigrid): Meta-RL gridworld environments inspired by XLand and MiniGrid.
-- [Craftax](https://github.com/MichaelTMatthews/Craftax): (Crafter + NetHack) in JAX.
+When `scenario` is omitted, the existing `dynamic_00` map is used.
+
+### Short dry run
+
+Before starting a full training run, use this CPU-only configuration to perform
+one update and verify the training and output paths:
+
+```bash
+JAX_PLATFORMS=cpu XLA_PYTHON_CLIENT_PREALLOCATE=false \
+python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=splitnosig_0 \
+  EXPERIMENT_FOLDER=dry-run \
+  NUM_ENVS=2 \
+  NUM_STEPS=2 \
+  NUM_MINIBATCHES=1 \
+  UPDATE_EPOCHS=1 \
+  TOTAL_TIMESTEPS=4 \
+  REW_SHAPING_HORIZON=4 \
+  LOG_INTERVAL=1 \
+  wandb_mode=disabled
+```
+
+This command writes the experiment to
+`saves/splitnosig_0_cnn_dry-run_seed0/`.
+
+### Inspect the resolved Hydra configuration
+
+Print the effective configuration without starting training:
+
+```bash
+python baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=outagesig_0 \
+  --cfg job --resolve
+```
+
+## Experiment names and output paths
+
+Experiments use the following directory structure by default:
+
+```text
+saves/
+└── <layout>_<architecture>_<experiment-name>_seed<seed>/
+    ├── <run>_config.yaml
+    ├── <run>_vmap0_update000050.safetensors  # When periodic saves are enabled
+    ├── <run>_vmap0.safetensors               # Final checkpoint
+    └── <run>_vmap0_final_episode.mp4          # Final deterministic rollout
+```
+
+For example, this configuration:
+
+```text
+scenario=splitsig_3 ARCHITECTURE=cnn EXPERIMENT_FOLDER=baseline SEED=2
+```
+
+creates the following directory:
+
+```text
+saves/splitsig_3_cnn_baseline_seed2/
+```
+
+If `EXPERIMENT_FOLDER` is omitted, the directory is
+`saves/splitsig_3_cnn_seed2/`. Include only meaningful experimental axes in the
+name. For example, when a normally fixed learning rate becomes an ablation
+variable, use a name such as `EXPERIMENT_FOLDER=lr-1e-4`.
+
+Running the same layout, architecture, experiment name, and seed again may
+overwrite the existing configuration and checkpoints.
+
+`SAVES_DIR` is managed by Hydra rather than by shell environment variables or
+`.env`. Its default value is `saves` in `conf/ippo_overcooked_v3.yaml`. To change
+the storage root, pass a Hydra override to the training command. `/mnt/nas` is
+not hardcoded anywhere in the training code.
+
+```bash
+python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=splitsig_3 \
+  SAVES_DIR=/mnt/nas/overcooked-replan \
+  EXPERIMENT_FOLDER=baseline \
+  SEED=0
+```
+
+Only experiment configurations and checkpoints are stored under `saves/`.
+Auxiliary outputs use separate default directories:
+
+| Output | Default location |
+| --- | --- |
+| Experiment configurations, checkpoints, and final-rollout videos | `saves/` |
+| Hydra single-run logs | `outputs/` |
+| Hydra multirun logs | `multirun/` |
+| Local W&B files | `wandb/` |
+| GIFs and evaluation statistics | `evaluation/` |
+
+## W&B sweep
+
+`experiment/sweeps/overcooked_v3_role_scenarios.yaml` defines a 240-run grid
+over four categories, ten layouts, and six seeds. Create it on a Mac
+with the W&B CLI:
+
+```bash
+wandb sweep \
+  --entity inchangbaek4907 \
+  --project overcooked-v3-role-coordination \
+  experiment/sweeps/overcooked_v3_role_scenarios.yaml
+```
+
+W&B prints `inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID`. Copy that
+full path to the GPU server and launch one agent on each GPU:
+
+```bash
+GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
+  inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID
+```
+
+Each GPU processes one run at a time until W&B reports that the sweep is
+complete. Multiple sweep paths can be supplied; all GPU agents finish the first
+sweep before the next one starts:
+
+```bash
+GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
+  inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID_A \
+  inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID_B
+```
+
+For example, a sweep run is saved under a directory such as
+`saves/splitsig_3_cnn_seed0/`; the resolved layout name keeps variants separate.
+
+W&B metrics are grouped by slash-delimited namespaces:
+
+| Namespace | Contents |
+| --- | --- |
+| `train/...` | Episode return and length, sparse/shaped/combined rewards, PPO losses, entropy, learning rate, update, and environment step |
+| `debug/...` | Layout phase and changes, transition countdown, signal state and activation count, changed-tile count, and global/left/right workload and resource tile counts |
+| `eval/...` | Return and length of the final recorded episode |
+| `visualization/...` | Final-episode MP4 and recording diagnostics |
+
+The role-scenario sweep maximizes `train/episode_return`. Layout snapshots such
+as `debug/layout_index` and `debug/transition_countdown` represent the end of
+the latest rollout; `debug/layout_change_events` counts all phase transitions
+observed during that rollout batch.
+
+At the end of training, the first trained seed runs one deterministic episode.
+A compact 10 FPS MP4 is saved in the experiment directory and uploaded as
+`visualization/final_episode`. The Hydra default is `recording=enabled`; pass
+`recording=disabled` to turn it off. With recording enabled, customize it using
+`RECORD_MAX_STEPS`, `RECORD_VIDEO_FPS`, and `RECORD_VIDEO_QUALITY`. Recording is
+also skipped when `wandb_mode=disabled`.
+
+```bash
+python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=splitsig_0 \
+  recording=disabled \
+  SEED=0
+```
+
+## Evaluate and render trained policies
+
+Evaluate two policies trained with the same seed and save the first episode as
+a GIF:
+
+```bash
+JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
+python baselines/IPPO/eval_ippo_overcooked_v3.py \
+  --layout splitnosig_0 \
+  --architecture cnn \
+  --agent-seeds 0 0 \
+  --episodes 3 \
+  --max-steps 400 \
+  --gif evaluation/splitnosig_0_same_seed0.gif
+```
+
+For cross-play, select policies trained with different seeds:
+
+```bash
+JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
+python baselines/IPPO/eval_ippo_overcooked_v3.py \
+  --layout splitnosig_0 \
+  --architecture cnn \
+  --agent-seeds 0 1 \
+  --episodes 3 \
+  --max-steps 400 \
+  --gif evaluation/splitnosig_0_cross_seed0_seed1.gif
+```
+
+With `--agent-seeds`, the evaluator finds the newest final checkpoint for the
+requested layout and seed under `saves/`. To evaluate a specific file, provide
+its path explicitly with `--checkpoint`:
+
+```bash
+python baselines/IPPO/eval_ippo_overcooked_v3.py \
+  --layout splitnosig_0 \
+  --checkpoint saves/splitnosig_0_cnn_baseline_seed0/ippo_cnn_overcooked_v3_splitnosig_0_seed0_vmap0.safetensors \
+  --episodes 1 \
+  --render \
+  --render-delay 0.2
+```
+
+On a headless server, use `--gif` instead of `--render`.
+
+The signal and transition features change the default V3 observation from 30
+to 33 channels, so policies trained before these changes require the legacy
+observation flag during evaluation:
+
+```bash
+python baselines/IPPO/eval_ippo_overcooked_v3.py \
+  --layout splitnosig_0 \
+  --checkpoint PATH_TO_OLD_CHECKPOINT.safetensors \
+  --legacy-observation
+```
+
+For a recent 32-channel checkpoint with transition features but no explicit
+signal channel, use `--no-signal-status`. For a 31-channel checkpoint trained
+with the countdown but without the change mask or signal channel, combine
+`--no-layout-change-mask --no-signal-status`.
+
+## Batch training and evaluation of dynamic maps
+
+Train CNN policies on `dynamic_00` through `dynamic_14`:
+
+```bash
+TRAIN_SEEDS="0 1" \
+TOTAL_TIMESTEPS=3e7 \
+bash scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh \
+  SAVES_DIR=saves
+```
+
+Evaluate same-seed and cross-seed combinations of the trained dynamic-map
+policies:
+
+```bash
+EVALUATION_DIR=evaluation/overcooked_v3/cnn \
+bash scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh
+```
+
+## Tests
+
+Run the Overcooked V2 and V3 regression tests:
+
+```bash
+python -m pytest -q tests/overcooked_v3 tests/overcooked_v2
+```
+
+Run the code-style checks:
+
+```bash
+python -m ruff check .
+```
+
+## Repository layout
+
+| Path | Contents |
+| --- | --- |
+| `jaxmarl/environments/overcooked_v3/` | Overcooked V3 environment implementation |
+| `jaxmarl/environments/overcooked_v2/` | Preserved Overcooked V2 implementation |
+| `baselines/IPPO/ippo_overcooked_v3.py` | CNN/RNN IPPO training entrypoint |
+| `conf/` | Hydra defaults and scenario configurations |
+| `experiment/` | Copy-and-run commands and W&B sweep YAML configurations |
+| `scripts/overcooked_v3/` | Rollout, batch-training, and batch-evaluation scripts |
+| `docs/overcooked_v3/` | Environment design and detailed workflows |
+
+Additional documentation:
+
+- [Executable W&B sweep commands](experiment/role_scenarios.md)
+- [Overcooked V3 documentation](docs/overcooked_v3/index.md)
+- [Training and W&B configuration](docs/overcooked_v3/training.md)
+- [Environment development and evaluation workflow](docs/overcooked_v3/workflow.md)
+
+## Upstream project
+
+This repository is based on [JaxMARL](https://github.com/FLAIROx/JaxMARL). See
+[LICENSE](LICENSE) and the upstream JaxMARL repository for licensing and citation
+information.
