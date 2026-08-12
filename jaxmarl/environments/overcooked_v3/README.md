@@ -15,13 +15,15 @@ Layout definitions live in `dynamic_layout_data.py` and are validated by
 objects on changed cells, and relocates agents that would otherwise be covered
 by a newly blocked tile.
 
-The default V3 observation adds two channels to V2's 30-channel grid encoding.
-The penultimate channel contains a spatially constant, continuous countdown
-and the final channel contains a binary map-change mask. Both stay at zero until
-`transition_warning_steps` (20 by default) before a transition. During that
-window, the countdown decreases from `1.0` to `0.05`, and the mask marks cells
-whose static object differs in the next phase. Set both transition options to
-`False` when loading a legacy 30-channel policy.
+The default V3 observation adds three channels to V2's 30-channel grid encoding.
+The first added channel is a public signal timer located on the signal tile. It
+decreases from `1.0` to `0.1` over 10 observed steps after a press. Each press
+costs `0.1` team reward by default. The remaining channels contain a spatially
+constant transition countdown and a binary map-change mask. Both stay at zero
+until `transition_warning_steps` (20 by default) before a transition. During
+that window, the countdown decreases from `1.0` to `0.05`, and the mask marks
+cells whose static object differs in the next phase. Disable all three added
+features when loading a legacy 30-channel policy.
 
 ## Role-coordination scenarios
 

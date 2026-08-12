@@ -22,12 +22,14 @@ disappears during the outage, so the left agent must pass onions through the
 shared center counter. NoSig uses an inert, non-storage indicator where Sig
 provides the activatable public signal, keeping the remaining geometry equal.
 
-Overcooked V3 exposes the upcoming layout transition to every agent. The final
-two channels of the default 32-channel observation contain a global continuous
-countdown and a binary map-change mask. Both stay at zero until 20 steps before
-the transition. During that warning window, the countdown decreases from `1.0`
-to `0.05` and the mask marks tiles whose static object will change. Rendered
-GIFs blink an orange border and draw the remaining step count directly on every
+Overcooked V3 exposes public signals and upcoming layout transitions to every
+agent. The final three channels of the default 33-channel observation contain a
+spatial signal timer, a global transition countdown, and a binary map-change
+mask. Pressing a signal button sets its public channel to `1.0`; it decreases to
+`0.1` over 10 observed steps. A press costs the team `0.1` sparse reward by
+default. The transition channels stay at zero until 20 steps before a layout
+change. Rendered GIFs label active buttons as `SIG 10...1`, blink an orange
+border on changing tiles, and draw the remaining transition step count on each
 affected tile.
 
 ## Quick start
@@ -245,15 +247,15 @@ GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
 ```
 
 For example, a sweep run is saved under a directory such as
-`saves/split_sig_cnn_role-scenarios-v2_seed0/`. The `v2` experiment suffix
-keeps redesigned-layout checkpoints separate from the original scenario runs.
+`saves/split_sig_cnn_role-scenarios-v3_seed0/`. The `v3` experiment suffix
+keeps 33-channel signal-status checkpoints separate from earlier scenario runs.
 
 W&B metrics are grouped by slash-delimited namespaces:
 
 | Namespace | Contents |
 | --- | --- |
 | `train/...` | Episode return and length, sparse/shaped/combined rewards, PPO losses, entropy, learning rate, update, and environment step |
-| `debug/...` | Layout phase, transition fraction and event count, countdown, changed-tile count, and global/left/right workload and resource tile counts |
+| `debug/...` | Layout phase and changes, transition countdown, signal state and activation count, changed-tile count, and global/left/right workload and resource tile counts |
 | `eval/...` | Return and length of the final recorded episode |
 | `visualization/...` | Final-episode MP4 and recording diagnostics |
 
@@ -320,8 +322,8 @@ python baselines/IPPO/eval_ippo_overcooked_v3.py \
 
 On a headless server, use `--gif` instead of `--render`.
 
-The transition features change the default V3 observation from 30 to 32
-channels, so policies trained before these changes require the legacy
+The signal and transition features change the default V3 observation from 30
+to 33 channels, so policies trained before these changes require the legacy
 observation flag during evaluation:
 
 ```bash
@@ -331,8 +333,10 @@ python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --legacy-observation
 ```
 
-For a 31-channel checkpoint trained with the countdown but without the change
-mask, use `--no-layout-change-mask` instead.
+For a recent 32-channel checkpoint with transition features but no explicit
+signal channel, use `--no-signal-status`. For a 31-channel checkpoint trained
+with the countdown but without the change mask or signal channel, combine
+`--no-layout-change-mask --no-signal-status`.
 
 ## Batch training and evaluation of dynamic maps
 

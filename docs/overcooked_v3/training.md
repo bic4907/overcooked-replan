@@ -56,12 +56,15 @@ NoSig의 signal 위치는 물건을 보관할 수 없는 비활성 indicator이�
 
 기존 dynamic map 기본값은 `scenario=dynamic_00`이다.
 
-V3 기본 관측은 V2의 30채널에 phase 전환 countdown과 change mask를 추가한
-32채널이다. 두 채널은 전환 20 step 전까지 0이다. 마지막 20 step 동안 뒤에서
-두 번째 채널은 `1.0`부터 `0.05`로 감소하고, 마지막 binary 채널은 다음 phase에서
-static object가 달라질 위치를 표시한다. 경고 구간은
+V3 기본 관측은 V2의 30채널에 public signal status, phase 전환 countdown,
+change mask를 추가한 33채널이다. 뒤에서 세 번째 채널은 signal button 위치에서
+활성 직후 `1.0`이고 10 observed step 동안 `0.1`까지 감소한다. 버튼을 누를 때마다
+기본 `0.1`의 team sparse reward cost가 발생한다. 마지막 두 채널은 전환 20 step
+전까지 0이다. 경고 구간에서 countdown은 `1.0`부터 `0.05`로 감소하고, 마지막
+binary 채널은 다음 phase에서 static object가 달라질 위치를 표시한다. 경고 구간은
 `ENV_KWARGS.transition_warning_steps`로 조정할 수 있다.
 이전 30채널 규격으로 학습하려면
+`ENV_KWARGS.include_signal_status=false`,
 `ENV_KWARGS.include_transition_countdown=false`와
 `ENV_KWARGS.include_layout_change_mask=false`를 모두 명시한다. 관측 규격이 다른
 checkpoint는 첫 CNN layer shape이 달라 서로 호환되지 않는다.

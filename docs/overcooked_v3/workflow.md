@@ -10,7 +10,7 @@
 | 기반 환경 | `OvercookedV2` |
 | 레시피 | 양파 3개로 만드는 단일 양파 수프 |
 | 에이전트 수 | 2 |
-| 관측 | V2 30채널 + countdown + change mask, 단일 재료 맵 기준 `height × width × 32` |
+| 관측 | V2 30채널 + signal status + countdown + change mask, 단일 재료 맵 기준 `height × width × 33` |
 | 정책 | IPPO CNN |
 | 시작 위치 | 맵의 `A` 위치로 고정 |
 | 에이전트 초기 방향 | 에피소드 reset마다 무작위 |
