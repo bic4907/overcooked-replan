@@ -1,4 +1,4 @@
-name: overcooked-v3-role-scenarios
+name: overcooked-v3-role-scenarios-v2
 program: baselines/IPPO/ippo_overcooked_v3.py
 project: overcooked-v3-role-coordination
 method: grid
@@ -28,7 +28,7 @@ parameters:
   SAVES_DIR:
     value: saves
   EXPERIMENT_FOLDER:
-    value: role-scenarios
+    value: role-scenarios-v2
   recording:
     value: enabled
 

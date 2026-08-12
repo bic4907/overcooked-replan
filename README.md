@@ -244,7 +244,8 @@ GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
 ```
 
 For example, a sweep run is saved under a directory such as
-`saves/split_sig_cnn_role-scenarios_seed0/`.
+`saves/split_sig_cnn_role-scenarios-v2_seed0/`. The `v2` experiment suffix
+keeps redesigned-layout checkpoints separate from the original scenario runs.
 
 W&B metrics are grouped by slash-delimited namespaces:
 
