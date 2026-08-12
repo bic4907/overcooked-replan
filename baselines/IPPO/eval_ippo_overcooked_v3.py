@@ -9,11 +9,15 @@ import jax.numpy as jnp
 import numpy as np
 
 import jaxmarl
-from ippo_overcooked_v3 import ActorCriticCNN, ActorCriticRNN, ScannedRNN
 from jaxmarl.environments.overcooked_v3 import overcooked_v3_layouts
 from jaxmarl.environments.overcooked_v3.common import OvercookedActionsEnum
 from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
 from jaxmarl.wrappers.baselines import load_params
+
+try:
+    from .ippo_overcooked_v3 import ActorCriticCNN, ActorCriticRNN, ScannedRNN
+except ImportError:  # Direct execution: python baselines/IPPO/<script>.py
+    from ippo_overcooked_v3 import ActorCriticCNN, ActorCriticRNN, ScannedRNN
 
 
 def parse_args(default_architecture="cnn"):

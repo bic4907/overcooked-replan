@@ -81,6 +81,18 @@ def _timestamp():
     return datetime.now().strftime("%H:%M:%S")
 
 
+def _resolve_wandb_mode(config, environ=None):
+    """Fall back from online to offline when no API key is configured."""
+    if environ is None:
+        environ = os.environ
+    mode = str(config.get("wandb_mode", "online")).lower()
+    if mode not in {"online", "offline", "disabled"}:
+        raise ValueError("wandb_mode must be online, offline, or disabled")
+    if mode == "online" and not environ.get("WANDB_API_KEY", "").strip():
+        return "offline"
+    return mode
+
+
 def _architecture(config):
     architecture = config.get("ARCHITECTURE", "rnn").lower()
     if architecture not in {"cnn", "rnn"}:
@@ -119,6 +131,46 @@ def _wandb_metadata(config):
         f"{_checkpoint_prefix(config)}_{condition}_seed{config['SEED']}"
     )
     return name, group, tags
+
+
+def _log_final_checkpoint_artifact(config, checkpoint_paths, config_path):
+    """Log final checkpoints and their resolved config as one W&B artifact."""
+    if not config.get("upload_final_checkpoint", False):
+        return None
+    if wandb.run is None:
+        raise RuntimeError("upload_final_checkpoint requires an active W&B run")
+    if not checkpoint_paths:
+        raise RuntimeError("No final checkpoints were saved for artifact upload")
+
+    artifact_name = f"overcooked-v3-{wandb.run.id}-final-checkpoint"
+    artifact = wandb.Artifact(
+        artifact_name,
+        type="checkpoint",
+        description="Final Overcooked V3 IPPO checkpoint(s).",
+        metadata={
+            "run_id": wandb.run.id,
+            "architecture": _architecture(config),
+            "layout": config["ENV_KWARGS"]["layout"],
+            "seed": int(config["SEED"]),
+            "num_seeds": int(config["NUM_SEEDS"]),
+            "checkpoint_format": "safetensors",
+        },
+    )
+    for checkpoint_path in checkpoint_paths:
+        checkpoint_path = Path(checkpoint_path)
+        artifact.add_file(str(checkpoint_path), name=checkpoint_path.name)
+    if config_path is not None:
+        config_path = Path(config_path)
+        artifact.add_file(str(config_path), name=config_path.name)
+
+    logged_artifact = wandb.run.log_artifact(artifact, aliases=["final"])
+    wandb.run.summary["checkpoint/artifact_name"] = artifact_name
+    wandb.run.summary["checkpoint/uploaded"] = True
+    print(
+        f"[{_timestamp()}] Queued final checkpoint artifact: {artifact_name}:final",
+        flush=True,
+    )
+    return logged_artifact
 
 
 def _record_final_episode(config, params, video_path):
@@ -852,9 +904,7 @@ def make_train(config):
                 "wall_tile_count": traj_batch.info["wall_tile_count"][-1],
                 "ingredient_pile_count": traj_batch.info["ingredient_pile_count"][-1],
                 "signal_tile_count": traj_batch.info["signal_tile_count"][-1],
-                "signal_steps_remaining": traj_batch.info[
-                    "signal_steps_remaining"
-                ][-1],
+                "signal_steps_remaining": traj_batch.info["signal_steps_remaining"][-1],
                 "signal_active": traj_batch.info["signal_active"][-1],
                 "left_workload_tile_count": traj_batch.info["left_workload_tile_count"][
                     -1
@@ -966,12 +1016,26 @@ def make_train(config):
 
 def run(config):
     config = OmegaConf.to_container(config, resolve=True)
+    requested_wandb_mode = str(config.get("wandb_mode", "online")).lower()
+    config["wandb_mode"] = _resolve_wandb_mode(config)
+    if requested_wandb_mode == "online" and config["wandb_mode"] == "offline":
+        print(
+            f"[{_timestamp()}] WANDB_API_KEY is not set; using offline W&B mode",
+            flush=True,
+        )
 
     layout_name = config["ENV_KWARGS"]["layout"]
     num_seeds = config["NUM_SEEDS"]
     architecture = _architecture(config)
     checkpoint_prefix = _checkpoint_prefix(config)
     save_dir = None
+    config_path = None
+
+    upload_requested = bool(config.get("upload_final_checkpoint", True))
+    wandb_enabled = str(config.get("wandb_mode", "disabled")).lower() != "disabled"
+    upload_final_checkpoint = upload_requested and wandb_enabled
+    if upload_final_checkpoint and config.get("SAVES_DIR") is None:
+        raise ValueError("upload_final_checkpoint requires SAVES_DIR")
 
     if config.get("SAVES_DIR") is not None:
         experiment_name, save_dir = _checkpoint_metadata(config)
@@ -988,7 +1052,7 @@ def run(config):
         project=config["PROJECT"],
         tags=wandb_tags,
         config=config,
-        mode=config["WANDB_MODE"],
+        mode=config["wandb_mode"],
         name=wandb_name,
         group=wandb_group,
         job_type="train",
@@ -1007,6 +1071,7 @@ def run(config):
         out = jax.block_until_ready(jax.vmap(train_jit)(rngs, seed_indices))
 
     model_state = out["runner_state"][0]
+    checkpoint_paths = []
     if save_dir is not None:
         from jaxmarl.wrappers.baselines import save_params
 
@@ -1018,10 +1083,13 @@ def run(config):
                 f"vmap{i}.safetensors",
             )
             save_params(params, checkpoint_path)
+            checkpoint_paths.append(Path(checkpoint_path))
             print(f"[{_timestamp()}] Saved checkpoint: {checkpoint_path}")
 
+    if upload_final_checkpoint:
+        _log_final_checkpoint_artifact(config, checkpoint_paths, config_path)
+
     recording_enabled = bool(config.get("RECORD_FINAL_EPISODE", True))
-    wandb_enabled = str(config.get("WANDB_MODE", "disabled")).lower() != "disabled"
     if recording_enabled and wandb_enabled:
         params = jax.tree.map(lambda x: x[0], model_state.params)
         video_filename = (

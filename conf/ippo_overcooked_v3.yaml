@@ -42,13 +42,14 @@ SEED: 0
 NUM_SEEDS: 1
 LOG_INTERVAL: 10
 CHECKPOINT_INTERVAL: 0  # Training updates; 0 disables intermediate checkpoints.
+upload_final_checkpoint: true
 
 SAVES_DIR: saves
 EXPERIMENT_FOLDER: null
 
 ENTITY: ${oc.env:WANDB_ENTITY,''}
 PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-role-coordination}
-WANDB_MODE: ${oc.env:WANDB_MODE,disabled}
+wandb_mode: ${oc.env:WANDB_MODE,online}
 WANDB_GROUP: null
 WANDB_TAGS: []
 RUN_NAME: null
