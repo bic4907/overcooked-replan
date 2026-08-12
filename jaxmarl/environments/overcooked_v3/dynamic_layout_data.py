@@ -7,10 +7,10 @@
 # display. Both block movement and neither stores objects, so the comparison
 # changes signaling capability without adding a spare handoff counter.
 #
-# Kitchen Split keeps two passages open between the bays. The complete cooking
-# workload (two pots, plates, and serving) alternates sides, while onions remain
-# available in both bays. The agent in the inactive bay therefore has a reason
-# to carry a resource across a passage and assist the active bay.
+# Kitchen Split starts with one open central doorway. After 40 steps, that
+# doorway becomes a handoff counter and traps agents in their chosen bays until
+# the next cycle. The left bay has onions and two pots, while the right bay has
+# plates and serving, so agents must occupy different sides and divide labor.
 #
 # Resource Outage permanently separates two otherwise complete kitchens. Each
 # bay owns a pot, plate pile, serving station, and onion pile in the normal
@@ -20,54 +20,54 @@
 split_no_sig = [
     [
         """
-WWWWWWWWWWWWW
-W0    W    0W
-WP          W
-WP  A R A   W
-WB          W
-WX    W     W
-WWWWWWWWWWWWW
+WWWWWWWWWWW
+W0   W  B W
+W    R    W
+W A     A W
+WP   W    W
+WP   W  X W
+WWWWWWWWWWW
 """,
-        100,
+        40,
     ],
     [
         """
-WWWWWWWWWWWWW
-W0    W    0W
-W          PW
-W   A R A  PW
-W          BW
-W     W    XW
-WWWWWWWWWWWWW
+WWWWWWWWWWW
+W0   W  B W
+W    R    W
+W A  W  A W
+WP   W    W
+WP   W  X W
+WWWWWWWWWWW
 """,
-        100,
+        160,
     ],
 ]
 
 split_sig = [
     [
         """
-WWWWWWWWWWWWW
-W0    W    0W
-WP          W
-WP  A L A   W
-WB          W
-WX    W     W
-WWWWWWWWWWWWW
+WWWWWWWWWWW
+W0   W  B W
+W    L    W
+W A     A W
+WP   W    W
+WP   W  X W
+WWWWWWWWWWW
 """,
-        100,
+        40,
     ],
     [
         """
-WWWWWWWWWWWWW
-W0    W    0W
-W          PW
-W   A L A  PW
-W          BW
-W     W    XW
-WWWWWWWWWWWWW
+WWWWWWWWWWW
+W0   W  B W
+W    L    W
+W A  W  A W
+WP   W    W
+WP   W  X W
+WWWWWWWWWWW
 """,
-        100,
+        160,
     ],
 ]
 
