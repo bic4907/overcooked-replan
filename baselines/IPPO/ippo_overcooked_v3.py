@@ -190,6 +190,7 @@ def _record_final_episode(config, params, video_path):
     visualizer = OvercookedV3Visualizer(
         tile_size=24,
         seconds_per_step=1.0 / fps,
+        transition_warning_steps=env.transition_warning_steps,
     )
     visualizer.save_video(
         states,

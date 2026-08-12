@@ -158,9 +158,13 @@ def test_change_mask_marks_only_the_next_static_tile_change(
     env = OvercookedV3(layout=layout_name, max_steps=220)
     obs, state = env.reset(jax.random.PRNGKey(0))
     change_x, change_y = change_position
-    change_mask = obs["agent_0"][..., -1]
 
     assert state.layout_change_mask[change_y, change_x]
+    assert jnp.all(obs["agent_0"][..., -1] == 0.0)
+
+    warning_state = state.replace(step=jnp.array(80))
+    warning_obs = env.get_obs(warning_state)
+    change_mask = warning_obs["agent_0"][..., -1]
     assert change_mask[change_y, change_x] == 1.0
     assert jnp.sum(change_mask) == change_count
 
@@ -170,10 +174,45 @@ def test_visualizer_formats_transition_countdown_in_seconds():
     _, state = env.reset(jax.random.PRNGKey(0))
     visualizer = OvercookedV3Visualizer(seconds_per_step=0.2)
 
+    assert visualizer.caption_with_countdown(state, "step=0") == "step=0"
     assert (
-        visualizer.caption_with_countdown(state, "step=0")
-        == "step=0 | next layout change in 20.0s"
+        visualizer.caption_with_countdown(
+            state.replace(step=jnp.array(79), steps_until_layout_change=21),
+            "step=79",
+        )
+        == "step=79"
     )
+    assert (
+        visualizer.caption_with_countdown(
+            state.replace(step=jnp.array(80), steps_until_layout_change=20),
+            "step=80",
+        )
+        == "step=80 | layout change in 20 steps (4.0s)"
+    )
+
+
+def test_visualizer_blinks_and_draws_count_on_each_changing_tile():
+    env = OvercookedV3(layout="split_no_sig", max_steps=220)
+    _, state = env.reset(jax.random.PRNGKey(0))
+    visualizer = OvercookedV3Visualizer(tile_size=24)
+    before_warning = state.replace(step=jnp.array(79), steps_until_layout_change=21)
+    warning_on = state.replace(step=jnp.array(80), steps_until_layout_change=20)
+    warning_off = state.replace(step=jnp.array(81), steps_until_layout_change=19)
+
+    raw_before = np.asarray(visualizer._render_state(before_warning))
+    frame_before = visualizer._render_frame(before_warning)
+    raw_warning_on = np.asarray(visualizer._render_state(warning_on))
+    raw_warning_off = np.asarray(visualizer._render_state(warning_off))
+    frame_warning = visualizer._render_frame(warning_on)
+
+    assert np.array_equal(frame_before, raw_before)
+    assert not np.array_equal(raw_warning_on, raw_warning_off)
+
+    changed_pixels = np.any(frame_warning != raw_warning_on, axis=-1)
+    changed_tiles = np.zeros_like(state.layout_change_mask, dtype=bool)
+    for tile_y, tile_x in np.argwhere(changed_pixels):
+        changed_tiles[tile_y // visualizer.tile_size, tile_x // visualizer.tile_size] = True
+    assert np.array_equal(changed_tiles, np.asarray(state.layout_change_mask))
 
 
 def test_visualizer_saves_low_resolution_mp4(tmp_path):

@@ -272,7 +272,9 @@ def main(default_architecture="cnn"):
 
     if args.gif is not None:
         args.gif.parent.mkdir(parents=True, exist_ok=True)
-        viz = OvercookedV3Visualizer()
+        viz = OvercookedV3Visualizer(
+            transition_warning_steps=env.transition_warning_steps
+        )
         viz.animate(
             first_states,
             agent_view_size=env.agent_view_size,
@@ -282,7 +284,9 @@ def main(default_architecture="cnn"):
         print(f"Saved animation: {args.gif}")
 
     if args.render:
-        viz = OvercookedV3Visualizer()
+        viz = OvercookedV3Visualizer(
+            transition_warning_steps=env.transition_warning_steps
+        )
         window = viz._lazy_init_window()
         for state, caption in zip(first_states, first_captions):
             viz.render(

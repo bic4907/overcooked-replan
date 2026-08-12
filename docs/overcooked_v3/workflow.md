@@ -349,7 +349,7 @@ evaluation/overcooked_v3/cnn/dynamic_00/
 GIF에는 첫 번째 평가 episode만 저장된다. 초당 5 frame으로 재생되고 마지막 frame에서 3초 기다린 뒤 처음부터 반복한다. caption에는 다음 전환까지 남은 시간도 초 단위로 표시한다.
 
 ```text
-step=<현재 step> score=<누적 sparse score> actions=<agent_0>/<agent_1> | next layout change in <남은 초>s
+step=<현재 step> score=<누적 sparse score> actions=<agent_0>/<agent_1> | layout change in <남은 step> steps (<남은 초>s)
 ```
 
 에이전트 관측의 뒤에서 두 번째 채널은 현재 phase 시작 시 `1.0`이고 전환 직전

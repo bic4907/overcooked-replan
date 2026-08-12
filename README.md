@@ -24,10 +24,11 @@ provides the activatable public signal, keeping the remaining geometry equal.
 
 Overcooked V3 exposes the upcoming layout transition to every agent. The final
 two channels of the default 32-channel observation contain a global continuous
-countdown and a binary map-change mask. The countdown decreases from `1.0` to
-`0.0` within each phase, while the mask marks tiles whose static object will
-change in the next phase. Rendered GIFs show the countdown at 5 FPS and draw an
-orange warning border around those tiles.
+countdown and a binary map-change mask. Both stay at zero until 20 steps before
+the transition. During that warning window, the countdown decreases from `1.0`
+to `0.05` and the mask marks tiles whose static object will change. Rendered
+GIFs blink an orange border and draw the remaining step count directly on every
+affected tile.
 
 ## Quick start
 

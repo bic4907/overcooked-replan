@@ -73,7 +73,9 @@ def main():
         from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
 
         args.gif.parent.mkdir(parents=True, exist_ok=True)
-        OvercookedV3Visualizer().animate(
+        OvercookedV3Visualizer(
+            transition_warning_steps=env.transition_warning_steps
+        ).animate(
             states,
             filename=str(args.gif),
             agent_view_size=env.agent_view_size,

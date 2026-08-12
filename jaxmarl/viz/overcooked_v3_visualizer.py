@@ -18,6 +18,7 @@ from jaxmarl.viz.window import Window
 
 TILE_PIXELS = 32
 DEFAULT_SECONDS_PER_STEP = 0.2
+DEFAULT_TRANSITION_WARNING_STEPS = 20
 
 COLORS = {
     "red": jnp.array([255, 0, 0], dtype=jnp.uint8),
@@ -76,14 +77,18 @@ class OvercookedV3Visualizer:
         tile_size=TILE_PIXELS,
         subdivs=3,
         seconds_per_step=DEFAULT_SECONDS_PER_STEP,
+        transition_warning_steps=DEFAULT_TRANSITION_WARNING_STEPS,
     ):
         if seconds_per_step <= 0:
             raise ValueError("seconds_per_step must be greater than zero")
+        if transition_warning_steps <= 0:
+            raise ValueError("transition_warning_steps must be greater than zero")
         self.window: Optional[Window] = None
 
         self.tile_size = tile_size
         self.subdivs = subdivs
         self.seconds_per_step = seconds_per_step
+        self.transition_warning_steps = transition_warning_steps
 
     def _lazy_init_window(self) -> Window:
         if self.window is None:
@@ -94,10 +99,12 @@ class OvercookedV3Visualizer:
         self._lazy_init_window().show(block=block)
 
     def _caption_with_countdown_steps(self, steps_remaining, caption=""):
-        if steps_remaining <= 0:
+        if not 0 < steps_remaining <= self.transition_warning_steps:
             return caption
         seconds_remaining = steps_remaining * self.seconds_per_step
-        countdown = f"next layout change in {seconds_remaining:.1f}s"
+        countdown = (
+            f"layout change in {steps_remaining} steps ({seconds_remaining:.1f}s)"
+        )
         return f"{caption} | {countdown}" if caption else countdown
 
     def caption_with_countdown(self, state, caption=""):
@@ -108,7 +115,7 @@ class OvercookedV3Visualizer:
         """Method for rendering the state in a window. Esp. useful for interactive mode."""
         window = self._lazy_init_window()
 
-        img = self._render_state(state, agent_view_size)
+        img = self._render_frame(state, agent_view_size)
 
         window.set_caption(self.caption_with_countdown(state, caption))
         window.show_img(img)
@@ -156,24 +163,15 @@ class OvercookedV3Visualizer:
         )
 
     def _animation_frames(self, state_seq, agent_view_size=None, captions=None):
-        if isinstance(state_seq, (list, tuple)):
-            frame_seq = [
-                self._render_state(state, agent_view_size) for state in state_seq
-            ]
-        else:
-            frame_seq = jax.vmap(self._render_state, in_axes=(0, None))(
-                state_seq, agent_view_size
-            )
-        frame_seq = [np.asarray(frame) for frame in frame_seq]
+        states = self._state_sequence_to_list(state_seq)
+        frame_seq = [self._render_frame(state, agent_view_size) for state in states]
+        countdown_steps = [
+            int(np.asarray(state.steps_until_layout_change)) for state in states
+        ]
 
-        if isinstance(state_seq, (list, tuple)):
-            countdown_steps = [
-                int(np.asarray(state.steps_until_layout_change)) for state in state_seq
-            ]
-        else:
-            countdown_steps = np.asarray(state_seq.steps_until_layout_change).tolist()
-
-        if captions is not None or any(steps > 0 for steps in countdown_steps):
+        if captions is not None or any(
+            0 < steps <= self.transition_warning_steps for steps in countdown_steps
+        ):
             from PIL import Image, ImageDraw, ImageFont
 
             if captions is None:
@@ -214,10 +212,69 @@ class OvercookedV3Visualizer:
         return frame_seq
 
     def render_sequence(self, state_seq, agent_view_size=None):
-        frame_seq = jax.vmap(self._render_state, in_axes=(0, None))(
-            state_seq, agent_view_size
+        states = self._state_sequence_to_list(state_seq)
+        return np.stack(
+            [self._render_frame(state, agent_view_size) for state in states]
         )
-        return frame_seq
+
+    @staticmethod
+    def _state_sequence_to_list(state_seq):
+        if isinstance(state_seq, (list, tuple)):
+            return list(state_seq)
+        sequence_length = int(np.asarray(state_seq.step).shape[0])
+        return [
+            jax.tree_util.tree_map(lambda value: value[index], state_seq)
+            for index in range(sequence_length)
+        ]
+
+    def _render_frame(self, state, agent_view_size=None):
+        frame = np.asarray(self._render_state(state, agent_view_size))
+        return self._overlay_tile_countdown(frame, state)
+
+    def _overlay_tile_countdown(self, frame, state):
+        steps_remaining = int(np.asarray(state.steps_until_layout_change))
+        if not 0 < steps_remaining <= self.transition_warning_steps:
+            return frame
+
+        from PIL import Image, ImageDraw, ImageFont
+
+        image = Image.fromarray(frame)
+        draw = ImageDraw.Draw(image)
+        font_size = max(7, min(14, self.tile_size // 2))
+        try:
+            font = ImageFont.truetype("DejaVuSans-Bold.ttf", font_size)
+        except OSError:
+            font = ImageFont.load_default()
+
+        label = str(steps_remaining)
+        text_box = draw.textbbox((0, 0), label, font=font, stroke_width=1)
+        text_width = text_box[2] - text_box[0]
+        text_height = text_box[3] - text_box[1]
+        change_positions = np.argwhere(np.asarray(state.layout_change_mask))
+        for tile_y, tile_x in change_positions:
+            center_x = int(tile_x * self.tile_size + self.tile_size / 2)
+            center_y = int(tile_y * self.tile_size + self.tile_size / 2)
+            padding = max(1, self.tile_size // 16)
+            left = center_x - text_width // 2 - padding
+            top = center_y - text_height // 2 - padding
+            right = center_x + (text_width + 1) // 2 + padding
+            bottom = center_y + (text_height + 1) // 2 + padding
+            draw.rounded_rectangle(
+                (left, top, right, bottom),
+                radius=max(1, padding),
+                fill=(25, 25, 25),
+                outline=(230, 180, 0),
+                width=1,
+            )
+            draw.text(
+                (center_x - text_width / 2, center_y - text_height / 2),
+                label,
+                fill=(255, 255, 255),
+                font=font,
+                stroke_width=1,
+                stroke_fill=(25, 25, 25),
+            )
+        return np.asarray(image)
 
     @classmethod
     def _encode_agent_extras(cls, direction, idx):
@@ -290,8 +347,14 @@ class OvercookedV3Visualizer:
 
                 highlight_mask |= agent_mask
 
+        warning_active = (state.steps_until_layout_change > 0) & (
+            state.steps_until_layout_change <= self.transition_warning_steps
+        )
+        blink_on = jnp.mod(state.steps_until_layout_change, 4) < 2
+        visible_change_mask = state.layout_change_mask & warning_active & blink_on
+
         # Render the whole grid
-        img = self._render_grid(grid, highlight_mask, state.layout_change_mask)
+        img = self._render_grid(grid, highlight_mask, visible_change_mask)
         return img
 
     @staticmethod
