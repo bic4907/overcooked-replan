@@ -27,6 +27,7 @@ def test_default_training_config_preserves_dynamic_00():
     assert config.SAVES_DIR == "saves"
     assert config.ENV_KWARGS.include_transition_countdown is True
     assert config.ENV_KWARGS.include_layout_change_mask is True
+    assert config.ENV_KWARGS.transition_warning_steps == 20
     assert config.get("WANDB_DIR") is None
     assert config.RECORD_FINAL_EPISODE is True
     assert config.RECORD_MAX_STEPS == 400

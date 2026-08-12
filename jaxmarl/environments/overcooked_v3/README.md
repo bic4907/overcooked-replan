@@ -17,10 +17,11 @@ by a newly blocked tile.
 
 The default V3 observation adds two channels to V2's 30-channel grid encoding.
 The penultimate channel contains a spatially constant, continuous countdown
-that decreases from `1.0` at the start of a phase toward `0.0` immediately
-before the next layout change. The final binary channel marks cells whose
-static object differs in the next phase. Set both transition options to `False`
-when loading a legacy 30-channel policy.
+and the final channel contains a binary map-change mask. Both stay at zero until
+`transition_warning_steps` (20 by default) before a transition. During that
+window, the countdown decreases from `1.0` to `0.05`, and the mask marks cells
+whose static object differs in the next phase. Set both transition options to
+`False` when loading a legacy 30-channel policy.
 
 ## Role-coordination scenarios
 

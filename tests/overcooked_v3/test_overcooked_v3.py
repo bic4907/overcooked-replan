@@ -69,30 +69,58 @@ def test_default_observation_adds_countdown_and_layout_change_mask():
     assert obs["agent_0"].shape == (env.height, env.width, 32)
     assert state.layout_index.item() == 0
     assert state.steps_until_layout_change.item() == 100
-    assert jnp.all(obs["agent_0"][..., -2] == 1.0)
+    assert jnp.all(obs["agent_0"][..., -2] == 0.0)
+    assert jnp.all(obs["agent_0"][..., -1] == 0.0)
+    assert jnp.any(state.layout_change_mask)
+
+    warning_state = state.replace(step=jnp.array(80))
+    warning_obs = env.get_obs(warning_state)
+    assert jnp.all(warning_obs["agent_0"][..., -2] == 1.0)
     assert jnp.array_equal(
-        obs["agent_0"][..., -1].astype(jnp.bool_),
+        warning_obs["agent_0"][..., -1].astype(jnp.bool_),
         state.layout_change_mask,
     )
 
 
 def test_transition_countdown_decreases_and_resets_after_layout_change():
-    env = _env(BASE.replace("W A W", "W AWW", 1), first_steps=4, second_steps=6)
+    env = _env(
+        BASE.replace("W A W", "W AWW", 1),
+        first_steps=4,
+        second_steps=6,
+        transition_warning_steps=2,
+    )
     obs, state = env.reset(jax.random.PRNGKey(0))
 
     assert state.steps_until_layout_change.item() == 4
+    assert jnp.all(obs["agent_0"][..., -2] == 0.0)
+    assert jnp.all(obs["agent_0"][..., -1] == 0.0)
+
+    state = state.replace(step=jnp.array(2))
+    obs = env.get_obs(state)
     assert jnp.all(obs["agent_0"][..., -2] == 1.0)
+    assert jnp.any(obs["agent_0"][..., -1])
 
     state = state.replace(step=jnp.array(3))
     obs = env.get_obs(state)
-    assert jnp.allclose(obs["agent_0"][..., -2], 0.25)
+    assert jnp.allclose(obs["agent_0"][..., -2], 0.5)
 
     obs, state, _, _, info = _step(env, state)
     assert state.layout_index.item() == 1
     assert state.steps_until_layout_change.item() == 6
-    assert jnp.all(obs["agent_0"][..., -2] == 1.0)
+    assert jnp.all(obs["agent_0"][..., -2] == 0.0)
+    assert jnp.all(obs["agent_0"][..., -1] == 0.0)
     assert jnp.all(info["steps_until_layout_change"] == 6)
-    assert jnp.all(info["transition_countdown"] == 1.0)
+    assert jnp.all(info["transition_countdown"] == 0.0)
+
+
+@pytest.mark.parametrize("warning_steps", (0, -1, 1.5, True))
+def test_transition_warning_steps_must_be_a_positive_integer(warning_steps):
+    with pytest.raises(ValueError, match="positive integer"):
+        OvercookedV3(
+            layout="dynamic_00",
+            max_steps=20,
+            transition_warning_steps=warning_steps,
+        )
 
 
 def test_transition_countdown_can_be_disabled_for_old_checkpoints():
@@ -114,7 +142,8 @@ def test_layout_change_mask_can_be_disabled_independently():
         include_transition_countdown=True,
         include_layout_change_mask=False,
     )
-    obs, _ = env.reset(jax.random.PRNGKey(0))
+    _, state = env.reset(jax.random.PRNGKey(0))
+    obs = env.get_obs(state.replace(step=jnp.array(80)))
 
     assert env.obs_shape == (env.height, env.width, 31)
     assert jnp.all(obs["agent_0"][..., -1] == 1.0)
@@ -126,7 +155,9 @@ def test_featurized_observation_appends_countdown_and_flat_change_mask():
         max_steps=20,
         observation_type=ObservationType.FEATURIZED,
     )
-    obs, state = env.reset(jax.random.PRNGKey(0))
+    _, state = env.reset(jax.random.PRNGKey(0))
+    state = state.replace(step=jnp.array(80))
+    obs = env.get_obs(state)
     agent_obs = obs["agent_0"]
     mask_size = env.height * env.width
 

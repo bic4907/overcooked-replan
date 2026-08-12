@@ -10,6 +10,7 @@ ENV_KWARGS:
   random_agent_positions: false
   include_transition_countdown: true
   include_layout_change_mask: true
+  transition_warning_steps: 20
 
 LR: 0.00025
 ANNEAL_LR: true

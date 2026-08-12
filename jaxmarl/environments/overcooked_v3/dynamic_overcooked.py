@@ -38,14 +38,23 @@ class OvercookedV3(OvercookedV3Base):
         layout: Union[str, DynamicLayout] = "dynamic_cramped_room",
         include_transition_countdown: bool = True,
         include_layout_change_mask: Union[bool, None] = None,
+        transition_warning_steps: int = 20,
         **kwargs,
     ):
+        if isinstance(transition_warning_steps, bool) or not isinstance(
+            transition_warning_steps, int
+        ):
+            raise ValueError("transition_warning_steps must be a positive integer")
+        if transition_warning_steps <= 0:
+            raise ValueError("transition_warning_steps must be a positive integer")
+
         self.include_transition_countdown = include_transition_countdown
         self.include_layout_change_mask = (
             include_transition_countdown
             if include_layout_change_mask is None
             else include_layout_change_mask
         )
+        self.transition_warning_steps = transition_warning_steps
         if isinstance(layout, str):
             if layout not in dynamic_layouts:
                 raise ValueError(
@@ -121,11 +130,18 @@ class OvercookedV3(OvercookedV3Base):
         return self.phase_ends[layout_index] - cycle_step
 
     def get_transition_countdown(self, step: jax.Array) -> jax.Array:
-        layout_index = self.get_layout_index(step)
         steps_remaining = self.get_steps_until_layout_change(step)
-        return steps_remaining.astype(jnp.float32) / self.phase_durations[
-            layout_index
-        ].astype(jnp.float32)
+        warning_active = self.get_transition_warning_active(step)
+        countdown = steps_remaining.astype(jnp.float32) / float(
+            self.transition_warning_steps
+        )
+        return jnp.where(warning_active, countdown, 0.0)
+
+    def get_transition_warning_active(self, step: jax.Array) -> jax.Array:
+        steps_remaining = self.get_steps_until_layout_change(step)
+        return (steps_remaining > 0) & (
+            steps_remaining <= self.transition_warning_steps
+        )
 
     def get_layout_change_mask(self, step: jax.Array) -> jax.Array:
         layout_index = self.get_layout_index(step)
@@ -134,6 +150,9 @@ class OvercookedV3(OvercookedV3Base):
             self.phase_static_objects[layout_index]
             != self.phase_static_objects[next_layout_index]
         )
+
+    def get_observation_layout_change_mask(self, step: jax.Array) -> jax.Array:
+        return self.get_layout_change_mask(step) & self.get_transition_warning_active(step)
 
     def _set_transition_awareness(self, state: State) -> State:
         return state.replace(
@@ -149,7 +168,9 @@ class OvercookedV3(OvercookedV3Base):
                 jnp.full((*obs.shape[:-1], 1), countdown, dtype=jnp.float32)
             )
         if self.include_layout_change_mask:
-            change_mask = self.get_layout_change_mask(step).astype(jnp.float32)
+            change_mask = self.get_observation_layout_change_mask(step).astype(
+                jnp.float32
+            )
             change_mask = jnp.broadcast_to(
                 change_mask,
                 (*obs.shape[:-3], *change_mask.shape),
@@ -167,7 +188,9 @@ class OvercookedV3(OvercookedV3Base):
                 jnp.full((*obs.shape[:-1], 1), countdown, dtype=jnp.float32)
             )
         if self.include_layout_change_mask:
-            change_mask = self.get_layout_change_mask(step).astype(jnp.float32)
+            change_mask = self.get_observation_layout_change_mask(step).astype(
+                jnp.float32
+            )
             transition_features.append(
                 jnp.broadcast_to(
                     change_mask.flatten(), (*obs.shape[:-1], change_mask.size)
