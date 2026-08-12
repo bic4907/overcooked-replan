@@ -139,8 +139,9 @@ def test_resource_outage_separates_agents_but_keeps_a_shared_handoff(layout_name
 
     for object_type in (StaticObject.POT, StaticObject.PLATE_PILE, StaticObject.GOAL):
         positions = np.argwhere(outage_phase == object_type)
-        assert positions.shape == (1, 2)
-        assert positions[0, 1] > 5
+        assert positions.shape == (2, 2)
+        assert jnp.sum(positions[:, 1] < 5) == 1
+        assert jnp.sum(positions[:, 1] > 5) == 1
 
 
 @pytest.mark.parametrize(
@@ -296,7 +297,7 @@ def test_split_runtime_moves_workload_at_step_100():
     assert jnp.all(infos["layout_changed"])
 
 
-def test_outage_runtime_removes_only_the_cook_side_onion_at_step_100():
+def test_outage_runtime_removes_only_the_right_kitchen_onion_at_step_100():
     env = OvercookedV3(layout="outage_no_sig", max_steps=220)
     _, state = env.reset(jax.random.PRNGKey(0))
     state = state.replace(step=jnp.array(99))
@@ -308,7 +309,7 @@ def test_outage_runtime_removes_only_the_cook_side_onion_at_step_100():
     assert state.layout_index.item() == 1
     assert state.grid[1, 1, 0].item() == StaticObject.ingredient_pile(0)
     assert state.grid[1, 9, 0].item() == StaticObject.WALL
-    assert jnp.all(infos["left_workload_tile_count"] == 0)
+    assert jnp.all(infos["left_workload_tile_count"] == 3)
     assert jnp.all(infos["right_workload_tile_count"] == 3)
     assert jnp.all(infos["left_ingredient_pile_count"] == 1)
     assert jnp.all(infos["right_ingredient_pile_count"] == 0)

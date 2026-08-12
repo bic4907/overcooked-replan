@@ -12,9 +12,10 @@
 # available in both bays. The agent in the inactive bay therefore has a reason
 # to carry a resource across a passage and assist the active bay.
 #
-# Resource Outage permanently separates the agents with a counter wall. The
-# right bay owns cooking and serving. When its onion pile disappears, the left
-# agent must place onions on the shared counter at (5, 2) for the right agent.
+# Resource Outage permanently separates two otherwise complete kitchens. Each
+# bay owns a pot, plate pile, serving station, and onion pile in the normal
+# phase. When the right onion pile disappears, the left agent must trade off
+# local cooking against supplying onions through the shared counter at (5, 2).
 
 split_no_sig = [
     [
@@ -75,10 +76,10 @@ outage_no_sig = [
         """
 WWWWWWWWWWW
 W0   W   0W
-W    W    W
-W  A W A PW
-W    R   BW
-W    W   XW
+WP   W   PW
+W  A W A  W
+WB   R   BW
+WX   W   XW
 WWWWWWWWWWW
 """,
         100,
@@ -87,10 +88,10 @@ WWWWWWWWWWW
         """
 WWWWWWWWWWW
 W0   W   WW
-W    W    W
-W  A W A PW
-W    R   BW
-W    W   XW
+WP   W   PW
+W  A W A  W
+WB   R   BW
+WX   W   XW
 WWWWWWWWWWW
 """,
         100,
@@ -102,10 +103,10 @@ outage_sig = [
         """
 WWWWWWWWWWW
 W0   W   0W
-W    W    W
-W  A W A PW
-W    L   BW
-W    W   XW
+WP   W   PW
+W  A W A  W
+WB   L   BW
+WX   W   XW
 WWWWWWWWWWW
 """,
         100,
@@ -114,10 +115,10 @@ WWWWWWWWWWW
         """
 WWWWWWWWWWW
 W0   W   WW
-W    W    W
-W  A W A PW
-W    L   BW
-W    W   XW
+WP   W   PW
+W  A W A  W
+WB   L   BW
+WX   W   XW
 WWWWWWWWWWW
 """,
         100,
