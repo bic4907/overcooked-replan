@@ -43,10 +43,11 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 | `scenario=outage_no_sig` | Resource Outage | No |
 | `scenario=outage_sig` | Resource Outage | Yes |
 
-Kitchen Split은 좌우 bay 사이의 통로 두 개를 계속 열어둔다. Phase 0에는 왼쪽,
-Phase 1에는 오른쪽에 pot 두 개·plate pile·serving station이 모인다. 양파는 양쪽에
-유지되므로 inactive bay의 에이전트가 재료를 들고 active bay로 이동해 보조할 수
-있다.
+Kitchen Split은 처음 40 step 동안 중앙 통로 하나가 열려 있고, 이후 160 step 동안
+그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
+plate pile과 serving station이 있다. 벽이 닫히기 전에 두 에이전트가 서로 다른
+bay를 선택해야 하며, 닫힌 뒤에는 중앙 counter로 재료와 dish를 전달하면서
+cook–server 역할을 유지해야 한다.
 
 Resource Outage는 중앙 counter wall로 두 에이전트의 이동 영역을 분리하되, 양쪽
 주방 모두 pot·plate·serving·onion을 갖는다. outage phase에는 오른쪽 양파만

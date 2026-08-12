@@ -115,8 +115,8 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
     }
     assert set(sweep["parameters"]["scenario"]["values"]) == set(SCENARIOS)
     assert sweep["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4]
-    assert sweep["name"] == "overcooked-v3-role-scenarios-v4"
-    assert sweep["parameters"]["EXPERIMENT_FOLDER"]["value"] == "role-scenarios-v4"
+    assert sweep["name"] == "overcooked-v3-role-scenarios-v5"
+    assert sweep["parameters"]["EXPERIMENT_FOLDER"]["value"] == "role-scenarios-v5"
     assert sweep["parameters"]["SAVES_DIR"]["value"] == "saves"
     assert sweep["parameters"]["recording"]["value"] == "enabled"
     assert "${args_no_hyphens}" in sweep["command"]

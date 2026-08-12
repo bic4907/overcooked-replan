@@ -27,10 +27,11 @@ features when loading a legacy 30-channel policy.
 
 ## Role-coordination scenarios
 
-`split_no_sig` and `split_sig` contain connected left and right kitchen bays.
-The full cooking workload (two pots, plates, and serving) alternates between
-the bays every 100 steps, while both onion piles remain available. This gives
-the agent in the inactive bay a concrete reason to cross over and assist.
+`split_no_sig` and `split_sig` open one central doorway for 40 steps, then turn
+it into a handoff counter for 160 steps. The left bay contains onions and two
+pots, while the right bay contains plates and serving. Agents must choose
+opposite sides before the wall closes, then coordinate cook–server work through
+the counter.
 
 `outage_no_sig` and `outage_sig` have disconnected movement regions and one
 shared handoff counter. Both bays are complete kitchens with a pot, plates,
