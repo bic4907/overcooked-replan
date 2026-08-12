@@ -8,7 +8,9 @@ ARG GID=1000
 ARG USERNAME=runner
 ARG INSTALL_EXTRAS=algs
 
-ENV DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND=noninteractive \
+    TF_CPP_MIN_LOG_LEVEL=3 \
+    GLOG_minloglevel=3
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
