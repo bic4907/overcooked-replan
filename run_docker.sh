@@ -2,13 +2,15 @@
 
 set -Eeuo pipefail
 
-PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-IMAGE_NAME="${IMAGE_NAME:-ghkdrmaghks/overcooked-replan:latest}"
+PROJECT_DIR="${PROJECT_DIR:-$(pwd -P)}"
+IMAGE_NAME="${IMAGE_NAME:-bic4907/overcooked:cu13}"
 BASE_IMAGE="${BASE_IMAGE:-nvcr.io/nvidia/jax:26.04-py3}"
 INSTALL_EXTRAS="${INSTALL_EXTRAS:-algs}"
 DOCKER_SHM_SIZE="${DOCKER_SHM_SIZE:-16g}"
 DOCKER_GPUS="${DOCKER_GPUS:-all}"
 REBUILD_IMAGE="${REBUILD_IMAGE:-0}"
+REINSTALL_PROJECT="${REINSTALL_PROJECT:-0}"
+ENV_FILE="${ENV_FILE:-${PROJECT_DIR}/.env}"
 
 build_image() {
     docker build \
@@ -37,6 +39,10 @@ docker_args=(
     --volume "${PROJECT_DIR}:/workspace"
     --workdir /workspace
 )
+
+if [[ -f "${ENV_FILE}" ]]; then
+    docker_args+=(--env-file "${ENV_FILE}")
+fi
 
 if [[ -n "${SAVES_DIR:-}" && "${SAVES_DIR}" == /* ]]; then
     if [[ ! -d "${SAVES_DIR}" ]]; then
@@ -77,6 +83,30 @@ done
 
 if [[ $# -eq 0 ]]; then
     set -- bash
+fi
+
+if [[ "${REINSTALL_PROJECT}" == "1" ]]; then
+    docker_args+=(--env "INSTALL_EXTRAS=${INSTALL_EXTRAS}")
+    reinstall_project_cmd='
+set -Eeuo pipefail
+
+constraints_file="$(mktemp)"
+python -m pip freeze \
+    | grep -iE "^(jax|jaxlib|jax-cuda[0-9]+)" \
+    > "${constraints_file}" || true
+
+install_args=(--user --force-reinstall)
+if [[ -s "${constraints_file}" ]]; then
+    install_args+=(--constraint "${constraints_file}")
+fi
+install_args+=(-e ".[${INSTALL_EXTRAS:-algs}]")
+
+python -m pip install "${install_args[@]}"
+rm -f "${constraints_file}"
+
+exec "$@"
+'
+    exec docker run "${docker_args[@]}" "${IMAGE_NAME}" bash -lc "${reinstall_project_cmd}" bash "$@"
 fi
 
 exec docker run "${docker_args[@]}" "${IMAGE_NAME}" "$@"

@@ -32,7 +32,7 @@
 | `baselines/IPPO/eval_ippo_overcooked_v3.py` | CNN/RNN 통합 평가 코드 |
 | `scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh` | same/cross-seed 일괄 평가 |
 | `jaxmarl/viz/overcooked_v3_visualizer.py` | GUI 및 GIF 렌더링 |
-| `scripts/run_docker.sh` | Docker 실행 및 NAS/GPU 마운트 |
+| `run_docker.sh` | Docker 실행 및 NAS/GPU 마운트 |
 
 ## 2. 맵 데이터 작성법
 
@@ -186,10 +186,10 @@ phase 전환 시 정적 타일 종류가 바뀐 칸은 새 phase의 타일 템�
 서버의 프로젝트 루트에서 다음처럼 컨테이너를 연다.
 
 ```bash
-bash scripts/run_docker.sh bash
+./run_docker.sh bash
 ```
 
-`scripts/run_docker.sh`는 다음을 수행한다.
+`run_docker.sh`는 다음을 수행한다.
 
 - 프로젝트를 `/workspace`에 bind mount
 - 호스트 UID/GID로 실행
@@ -251,7 +251,7 @@ bash scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh
 호스트에서 컨테이너까지 한 번에 실행하려면 다음 명령을 사용한다.
 
 ```bash
-bash scripts/run_docker.sh env \
+./run_docker.sh env \
   GPU_ID=0 \
   TRAIN_SEEDS="0 1" \
   bash scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh
@@ -315,7 +315,7 @@ bash scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh
 호스트에서 Docker로 실행:
 
 ```bash
-bash scripts/run_docker.sh bash scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh
+./run_docker.sh bash scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh
 ```
 
 기본 평가는 CPU에서 실행한다. GPU 평가가 필요하면 다음처럼 실행한다.
@@ -470,7 +470,7 @@ JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp python ...
 
 ### `I have no name!` 또는 group 이름 오류
 
-업데이트된 `scripts/run_docker.sh`는 호스트의 `/etc/passwd`와 `/etc/group`을 읽기 전용으로 연결한다. 서버의 실행 스크립트가 최신인지 확인한다.
+업데이트된 `run_docker.sh`는 호스트의 `/etc/passwd`와 `/etc/group`을 읽기 전용으로 연결한다. 서버의 실행 스크립트가 최신인지 확인한다.
 
 ### NAS 경로 오류
 
@@ -482,7 +482,7 @@ saves
 
 NAS를 사용하려면 학습 명령에 `SAVES_DIR=/mnt/nas/overcooked-replan`을 Hydra
 override로 전달하고, 평가에는 `--saves-dir /mnt/nas/overcooked-replan`을
-전달한다. Docker에서는 공유 `scripts/run_docker.sh`가 host 경로를 mount하기
+전달한다. Docker에서는 공유 `run_docker.sh`가 host 경로를 mount하기
 위해서만 `SAVES_DIR` 환경변수를 읽는다. 이 값은 Hydra 학습 설정으로 자동
 적용되지 않으므로 컨테이너 내부 학습 명령에도 같은 경로를 Hydra override로
 전달해야 한다.
