@@ -234,6 +234,20 @@ class OvercookedV3(OvercookedV3Base):
         signal_tile_count = jnp.sum(
             static_objects == StaticObject.BUTTON_RECIPE_INDICATOR
         )
+        center_column = static_objects.shape[1] // 2
+        column_indices = jnp.arange(static_objects.shape[1])[None, :]
+        left_mask = column_indices < center_column
+        right_mask = column_indices > center_column
+        workload_mask = (
+            (static_objects == StaticObject.POT)
+            | (static_objects == StaticObject.PLATE_PILE)
+            | (static_objects == StaticObject.GOAL)
+        )
+        ingredient_pile_mask = StaticObject.is_ingredient_pile(static_objects)
+        left_workload_tile_count = jnp.sum(workload_mask & left_mask)
+        right_workload_tile_count = jnp.sum(workload_mask & right_mask)
+        left_ingredient_pile_count = jnp.sum(ingredient_pile_mask & left_mask)
+        right_ingredient_pile_count = jnp.sum(ingredient_pile_mask & right_mask)
         infos = {
             **infos,
             "layout_index": jnp.full((self.num_agents,), layout_index),
@@ -250,6 +264,18 @@ class OvercookedV3(OvercookedV3Base):
                 (self.num_agents,), ingredient_pile_count
             ),
             "signal_tile_count": jnp.full((self.num_agents,), signal_tile_count),
+            "left_workload_tile_count": jnp.full(
+                (self.num_agents,), left_workload_tile_count
+            ),
+            "right_workload_tile_count": jnp.full(
+                (self.num_agents,), right_workload_tile_count
+            ),
+            "left_ingredient_pile_count": jnp.full(
+                (self.num_agents,), left_ingredient_pile_count
+            ),
+            "right_ingredient_pile_count": jnp.full(
+                (self.num_agents,), right_ingredient_pile_count
+            ),
         }
         return (
             lax.stop_gradient(obs),

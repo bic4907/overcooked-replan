@@ -9,10 +9,18 @@ The following role-coordination experiments are currently available:
 
 | Hydra scenario | Environment | Signal counter | Research question |
 | --- | --- | --- | --- |
-| `split_no_sig` | Kitchen Split | No | Can agents form complementary spatial roles using movement alone? |
-| `split_sig` | Kitchen Split | Yes | Does a shared counter reduce role conflicts and incorrect area choices? |
-| `outage_no_sig` | Resource Outage | No | Can agents reallocate collection and cooking roles after a resource outage? |
-| `outage_sig` | Resource Outage | Yes | Does signaling accelerate role reallocation and recovery? |
+| `split_no_sig` | Kitchen Split | No | Can both agents detect the active cooking bay and relocate to its heavier workload? |
+| `split_sig` | Kitchen Split | Yes | Does signaling accelerate the joint move when the active bay changes sides? |
+| `outage_no_sig` | Resource Outage | No | Can a separated collector start supplying the cook through a shared handoff counter? |
+| `outage_sig` | Resource Outage | Yes | Does signaling speed up the switch to collector–cook cooperation after the outage? |
+
+Kitchen Split keeps two cross-bay passages open. Two pots, the plate pile, and
+the serving station move from the left bay to the right bay every 100 steps;
+onion piles remain on both sides. Resource Outage instead keeps the agents in
+disconnected bays. The right bay owns cooking and serving, and its onion pile
+disappears during the outage, so the left agent must pass onions through the
+shared center counter. NoSig uses an inert, non-storage indicator where Sig
+provides the activatable public signal, keeping the remaining geometry equal.
 
 Overcooked V3 exposes the upcoming layout transition to every agent. The final
 two channels of the default 32-channel observation contain a global continuous
@@ -243,7 +251,7 @@ W&B metrics are grouped by slash-delimited namespaces:
 | Namespace | Contents |
 | --- | --- |
 | `train/...` | Episode return and length, sparse/shaped/combined rewards, PPO losses, entropy, learning rate, update, and environment step |
-| `debug/...` | Layout phase, transition fraction and event count, countdown, changed-tile count, and wall/resource/signal tile counts |
+| `debug/...` | Layout phase, transition fraction and event count, countdown, changed-tile count, and global/left/right workload and resource tile counts |
 | `eval/...` | Return and length of the final recorded episode |
 | `visualization/...` | Final-episode MP4 and recording diagnostics |
 

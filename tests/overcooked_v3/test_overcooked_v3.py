@@ -321,4 +321,8 @@ def test_jitted_step_reports_v2_reward_and_dynamic_layout_info():
         "wall_tile_count",
         "ingredient_pile_count",
         "signal_tile_count",
+        "left_workload_tile_count",
+        "right_workload_tile_count",
+        "left_ingredient_pile_count",
+        "right_ingredient_pile_count",
     }

@@ -43,6 +43,17 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 | `scenario=outage_no_sig` | Resource Outage | No |
 | `scenario=outage_sig` | Resource Outage | Yes |
 
+Kitchen Split은 좌우 bay 사이의 통로 두 개를 계속 열어둔다. Phase 0에는 왼쪽,
+Phase 1에는 오른쪽에 pot 두 개·plate pile·serving station이 모인다. 양파는 양쪽에
+유지되므로 inactive bay의 에이전트가 재료를 들고 active bay로 이동해 보조할 수
+있다.
+
+Resource Outage는 중앙 counter wall로 두 에이전트의 이동 영역을 분리한다. 오른쪽
+에이전트만 pot·plate·serving에 접근하며, outage phase에는 오른쪽 양파가 사라진다.
+왼쪽 에이전트가 중앙 shared counter로 양파를 넘겨야 조리를 계속할 수 있다.
+NoSig의 signal 위치는 물건을 보관할 수 없는 비활성 indicator이고, Sig에서만 같은
+위치가 activatable public signal이 된다.
+
 기존 dynamic map 기본값은 `scenario=dynamic_00`이다.
 
 V3 기본 관측은 V2의 30채널에 phase 전환 countdown과 change mask를 추가한
@@ -161,7 +172,7 @@ W&B 지표는 `/` namespace로 구분한다.
 | Namespace | 기록 내용 |
 | --- | --- |
 | `train/...` | episode return/length, sparse·shaped·combined reward, PPO loss, entropy, learning rate, update, environment step |
-| `debug/...` | layout phase, 전환 비율·횟수, countdown, 변경 예정 tile 수, wall/resource/signal tile 수 |
+| `debug/...` | layout phase, 전환 비율·횟수, countdown, 변경 예정 tile 수, 전체 및 좌우 workload/resource tile 수 |
 | `eval/...` | 학습 종료 후 녹화한 episode의 return과 length |
 | `visualization/...` | 최종 episode MP4와 녹화 상태 |
 

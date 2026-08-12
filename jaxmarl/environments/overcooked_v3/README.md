@@ -21,3 +21,17 @@ that decreases from `1.0` at the start of a phase toward `0.0` immediately
 before the next layout change. The final binary channel marks cells whose
 static object differs in the next phase. Set both transition options to `False`
 when loading a legacy 30-channel policy.
+
+## Role-coordination scenarios
+
+`split_no_sig` and `split_sig` contain connected left and right kitchen bays.
+The full cooking workload (two pots, plates, and serving) alternates between
+the bays every 100 steps, while both onion piles remain available. This gives
+the agent in the inactive bay a concrete reason to cross over and assist.
+
+`outage_no_sig` and `outage_sig` have disconnected movement regions and one
+shared handoff counter. Cooking and serving are in the right bay. During the
+outage, the right onion pile becomes a wall, so the left agent must supply the
+right agent through the handoff counter. Sig layouts replace one inert recipe
+display with the activatable public signal; it cannot be used as extra object
+storage in either condition.

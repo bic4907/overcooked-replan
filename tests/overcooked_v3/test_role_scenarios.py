@@ -5,6 +5,7 @@ import pytest
 
 from jaxmarl.environments.overcooked_v3.common import (
     Direction,
+    DynamicObject,
     OvercookedActionsEnum,
     Position,
     StaticObject,
@@ -22,21 +23,49 @@ ROLE_SCENARIOS = (
 )
 
 
-@pytest.mark.parametrize("layout_name", ROLE_SCENARIOS)
-def test_role_scenario_is_registered_and_resettable(layout_name):
+def _reachable_floor(static_objects, start):
+    width = static_objects.shape[1]
+    height = static_objects.shape[0]
+    frontier = [start]
+    reached = {start}
+    while frontier:
+        x, y = frontier.pop()
+        for next_x, next_y in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            next_pos = (next_x, next_y)
+            if (
+                0 <= next_x < width
+                and 0 <= next_y < height
+                and static_objects[next_y, next_x] == StaticObject.EMPTY
+                and next_pos not in reached
+            ):
+                reached.add(next_pos)
+                frontier.append(next_pos)
+    return reached
+
+
+@pytest.mark.parametrize(
+    ("layout_name", "grid_shape"),
+    (
+        ("split_no_sig", (7, 13, 3)),
+        ("split_sig", (7, 13, 3)),
+        ("outage_no_sig", (7, 11, 3)),
+        ("outage_sig", (7, 11, 3)),
+    ),
+)
+def test_role_scenario_is_registered_and_resettable(layout_name, grid_shape):
     env = OvercookedV3(layout=layout_name, max_steps=220)
     obs, state = env.reset(jax.random.PRNGKey(0))
 
-    assert state.grid.shape == (7, 11, 3)
-    assert obs["agent_0"].shape == (7, 11, 32)
+    assert state.grid.shape == grid_shape
+    assert obs["agent_0"].shape == (*grid_shape[:2], 32)
     assert state.layout_index.item() == 0
 
 
 @pytest.mark.parametrize(
     ("no_sig_name", "sig_name", "signal_position"),
     (
-        ("split_no_sig", "split_sig", (5, 2)),
-        ("outage_no_sig", "outage_sig", (5, 3)),
+        ("split_no_sig", "split_sig", (6, 3)),
+        ("outage_no_sig", "outage_sig", (5, 4)),
     ),
 )
 def test_sig_pair_only_replaces_one_counter_with_button(
@@ -52,34 +81,79 @@ def test_sig_pair_only_replaces_one_counter_with_button(
         differences = np.argwhere(no_sig_static != sig_static)
 
         assert differences.tolist() == [[signal_y, signal_x]]
-        assert no_sig_static[signal_y, signal_x] == StaticObject.WALL
+        assert no_sig_static[signal_y, signal_x] == StaticObject.RECIPE_INDICATOR
         assert sig_static[signal_y, signal_x] == StaticObject.BUTTON_RECIPE_INDICATOR
 
 
-def test_kitchen_split_closes_center_and_distributes_resources():
+def test_kitchen_split_moves_the_complete_workload_between_connected_bays():
     layout = dynamic_layouts["split_no_sig"]
-    choose_phase = layout.phases[0].layout.static_objects
-    split_phase = layout.phases[1].layout.static_objects
+    left_active = layout.phases[0].layout.static_objects
+    right_active = layout.phases[1].layout.static_objects
+    workload_objects = (StaticObject.POT, StaticObject.PLATE_PILE, StaticObject.GOAL)
 
-    assert choose_phase[3, 5] == StaticObject.EMPTY
-    assert split_phase[3, 5] == StaticObject.WALL
-    assert choose_phase[1, 1] == StaticObject.ingredient_pile(0)
-    assert choose_phase[5, 1] == StaticObject.POT
-    assert choose_phase[1, 8] == StaticObject.PLATE_PILE
-    assert choose_phase[5, 8] == StaticObject.GOAL
+    def workload_count(static_objects, columns):
+        return sum(
+            np.count_nonzero(static_objects[:, columns] == object_type)
+            for object_type in workload_objects
+        )
+
+    assert workload_count(left_active, slice(1, 6)) == 4
+    assert workload_count(left_active, slice(7, 12)) == 0
+    assert workload_count(right_active, slice(1, 6)) == 0
+    assert workload_count(right_active, slice(7, 12)) == 4
+
+    onion_pile = StaticObject.ingredient_pile(0)
+    for static_objects in (left_active, right_active):
+        assert static_objects[1, 1] == onion_pile
+        assert static_objects[1, 11] == onion_pile
+        assert static_objects[2, 6] == StaticObject.EMPTY
+        assert static_objects[4, 6] == StaticObject.EMPTY
+
+    support_positions = ((2, 2), (10, 2))
+    for phase, support_position in zip(layout.phases, support_positions):
+        first_start, second_start = phase.agent_positions
+        first_reachable = _reachable_floor(phase.layout.static_objects, first_start)
+        assert second_start in first_reachable
+        assert support_position in first_reachable
+
+
+@pytest.mark.parametrize("layout_name", ("outage_no_sig", "outage_sig"))
+def test_resource_outage_separates_agents_but_keeps_a_shared_handoff(layout_name):
+    layout = dynamic_layouts[layout_name]
+    onion_pile = StaticObject.ingredient_pile(0)
+
+    for phase in layout.phases:
+        static_objects = phase.layout.static_objects
+        left_start, right_start = phase.agent_positions
+        assert right_start not in _reachable_floor(static_objects, left_start)
+        assert static_objects[2, 5] == StaticObject.WALL
+        assert static_objects[2, 4] == StaticObject.EMPTY
+        assert static_objects[2, 6] == StaticObject.EMPTY
+
+    normal_phase = layout.phases[0].layout.static_objects
+    outage_phase = layout.phases[1].layout.static_objects
+    assert normal_phase[1, 1] == onion_pile
+    assert normal_phase[1, 9] == onion_pile
+    assert outage_phase[1, 1] == onion_pile
+    assert outage_phase[1, 9] == StaticObject.WALL
+
+    for object_type in (StaticObject.POT, StaticObject.PLATE_PILE, StaticObject.GOAL):
+        positions = np.argwhere(outage_phase == object_type)
+        assert positions.shape == (1, 2)
+        assert positions[0, 1] > 5
 
 
 @pytest.mark.parametrize(
-    ("layout_name", "change_position"),
+    ("layout_name", "change_position", "change_count"),
     (
-        ("split_no_sig", (5, 3)),
-        ("split_sig", (5, 3)),
-        ("outage_no_sig", (9, 1)),
-        ("outage_sig", (9, 1)),
+        ("split_no_sig", (1, 2), 8),
+        ("split_sig", (1, 2), 8),
+        ("outage_no_sig", (9, 1), 1),
+        ("outage_sig", (9, 1), 1),
     ),
 )
 def test_change_mask_marks_only_the_next_static_tile_change(
-    layout_name, change_position
+    layout_name, change_position, change_count
 ):
     env = OvercookedV3(layout=layout_name, max_steps=220)
     obs, state = env.reset(jax.random.PRNGKey(0))
@@ -88,7 +162,7 @@ def test_change_mask_marks_only_the_next_static_tile_change(
 
     assert state.layout_change_mask[change_y, change_x]
     assert change_mask[change_y, change_x] == 1.0
-    assert jnp.sum(change_mask) == 1
+    assert jnp.sum(change_mask) == change_count
 
 
 def test_visualizer_formats_transition_countdown_in_seconds():
@@ -98,7 +172,7 @@ def test_visualizer_formats_transition_countdown_in_seconds():
 
     assert (
         visualizer.caption_with_countdown(state, "step=0")
-        == "step=0 | next layout change in 8.0s"
+        == "step=0 | next layout change in 20.0s"
     )
 
 
@@ -122,38 +196,91 @@ def test_visualizer_saves_low_resolution_mp4(tmp_path):
     assert video_path.read_bytes()[4:8] == b"ftyp"
 
 
-@pytest.mark.parametrize("layout_name", ("outage_no_sig", "outage_sig"))
-def test_resource_outage_removes_right_onion_station(layout_name):
-    layout = dynamic_layouts[layout_name]
-    normal_phase = layout.phases[0].layout.static_objects
-    outage_phase = layout.phases[1].layout.static_objects
-    onion_pile = StaticObject.ingredient_pile(0)
+def test_outage_agents_can_pass_an_onion_across_the_shared_counter():
+    env = OvercookedV3(layout="outage_no_sig", max_steps=20)
+    _, state = env.reset(jax.random.PRNGKey(0))
+    onion = DynamicObject.ingredient(0)
+    state = state.replace(
+        agents=state.agents.replace(
+            pos=Position(
+                x=state.agents.pos.x.at[0].set(4),
+                y=state.agents.pos.y.at[0].set(2),
+            ),
+            dir=state.agents.dir.at[0].set(Direction.RIGHT),
+            inventory=state.agents.inventory.at[0].set(onion),
+        )
+    )
+    actions = {
+        env.agents[0]: jnp.array(OvercookedActionsEnum.interact),
+        env.agents[1]: jnp.array(OvercookedActionsEnum.stay),
+    }
+    _, state, _, _, _ = env.step_env(jax.random.PRNGKey(1), state, actions)
 
-    assert np.count_nonzero(normal_phase == onion_pile) == 2
-    assert np.count_nonzero(outage_phase == onion_pile) == 1
-    assert normal_phase[1, 9] == onion_pile
-    assert outage_phase[1, 9] == StaticObject.WALL
+    assert state.agents.inventory[0] == DynamicObject.EMPTY
+    assert state.grid[2, 5, 1] == onion
+
+    state = state.replace(
+        agents=state.agents.replace(
+            pos=Position(
+                x=state.agents.pos.x.at[1].set(6),
+                y=state.agents.pos.y.at[1].set(2),
+            ),
+            dir=state.agents.dir.at[1].set(Direction.LEFT),
+        )
+    )
+    actions = {
+        env.agents[0]: jnp.array(OvercookedActionsEnum.stay),
+        env.agents[1]: jnp.array(OvercookedActionsEnum.interact),
+    }
+    _, state, _, _, _ = env.step_env(jax.random.PRNGKey(2), state, actions)
+
+    assert state.grid[2, 5, 1] == DynamicObject.EMPTY
+    assert state.agents.inventory[1] == onion
 
 
-def test_split_runtime_enters_closed_phase_at_step_40():
+def test_split_runtime_moves_workload_at_step_100():
     env = OvercookedV3(layout="split_no_sig", max_steps=220)
     _, state = env.reset(jax.random.PRNGKey(0))
-    state = state.replace(step=jnp.array(39))
+    state = state.replace(step=jnp.array(99))
     actions = {agent: jnp.array(OvercookedActionsEnum.stay) for agent in env.agents}
 
     _, state, _, _, infos = jax.jit(env.step_env)(jax.random.PRNGKey(1), state, actions)
 
-    assert state.step.item() == 40
+    assert state.step.item() == 100
     assert state.layout_index.item() == 1
-    assert state.grid[3, 5, 0].item() == StaticObject.WALL
+    assert state.grid[2, 1, 0].item() == StaticObject.EMPTY
+    assert state.grid[2, 11, 0].item() == StaticObject.POT
+    assert jnp.all(infos["left_workload_tile_count"] == 0)
+    assert jnp.all(infos["right_workload_tile_count"] == 4)
+    assert jnp.all(infos["left_ingredient_pile_count"] == 1)
+    assert jnp.all(infos["right_ingredient_pile_count"] == 1)
+    assert jnp.all(infos["layout_changed"])
+
+
+def test_outage_runtime_removes_only_the_cook_side_onion_at_step_100():
+    env = OvercookedV3(layout="outage_no_sig", max_steps=220)
+    _, state = env.reset(jax.random.PRNGKey(0))
+    state = state.replace(step=jnp.array(99))
+    actions = {agent: jnp.array(OvercookedActionsEnum.stay) for agent in env.agents}
+
+    _, state, _, _, infos = jax.jit(env.step_env)(jax.random.PRNGKey(1), state, actions)
+
+    assert state.step.item() == 100
+    assert state.layout_index.item() == 1
+    assert state.grid[1, 1, 0].item() == StaticObject.ingredient_pile(0)
+    assert state.grid[1, 9, 0].item() == StaticObject.WALL
+    assert jnp.all(infos["left_workload_tile_count"] == 0)
+    assert jnp.all(infos["right_workload_tile_count"] == 3)
+    assert jnp.all(infos["left_ingredient_pile_count"] == 1)
+    assert jnp.all(infos["right_ingredient_pile_count"] == 0)
     assert jnp.all(infos["layout_changed"])
 
 
 @pytest.mark.parametrize(
     ("layout_name", "signal_position", "standing_position"),
     (
-        ("split_sig", (5, 2), (4, 2)),
-        ("outage_sig", (5, 3), (4, 3)),
+        ("split_sig", (6, 3), (5, 3)),
+        ("outage_sig", (5, 4), (4, 4)),
     ),
 )
 def test_sig_button_produces_public_timed_signal(
@@ -185,16 +312,17 @@ def test_sig_button_produces_public_timed_signal(
     assert rewards[env.agents[0]].item() == -INDICATOR_ACTIVATION_COST
 
 
-def test_no_sig_counter_does_not_activate():
+def test_no_sig_placeholder_does_not_activate_or_store_objects():
     env = OvercookedV3(layout="split_no_sig", max_steps=20)
     _, state = env.reset(jax.random.PRNGKey(0))
     state = state.replace(
         agents=state.agents.replace(
             pos=Position(
-                x=state.agents.pos.x.at[0].set(4),
-                y=state.agents.pos.y.at[0].set(2),
+                x=state.agents.pos.x.at[0].set(5),
+                y=state.agents.pos.y.at[0].set(3),
             ),
             dir=state.agents.dir.at[0].set(Direction.RIGHT),
+            inventory=state.agents.inventory.at[0].set(DynamicObject.ingredient(0)),
         )
     )
     actions = {
@@ -206,5 +334,8 @@ def test_no_sig_counter_does_not_activate():
         jax.random.PRNGKey(1), state, actions
     )
 
-    assert state.grid[2, 5, 2].item() == 0
+    assert state.grid[3, 6, 0].item() == StaticObject.RECIPE_INDICATOR
+    assert state.grid[3, 6, 1].item() == DynamicObject.EMPTY
+    assert state.grid[3, 6, 2].item() == 0
+    assert state.agents.inventory[0] == DynamicObject.ingredient(0)
     assert rewards[env.agents[0]].item() == 0

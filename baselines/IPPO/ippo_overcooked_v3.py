@@ -50,6 +50,10 @@ DEBUG_METRIC_NAMES = {
     "wall_tile_count": "wall_tile_count",
     "ingredient_pile_count": "ingredient_pile_count",
     "signal_tile_count": "signal_tile_count",
+    "left_workload_tile_count": "left_workload_tile_count",
+    "right_workload_tile_count": "right_workload_tile_count",
+    "left_ingredient_pile_count": "left_ingredient_pile_count",
+    "right_ingredient_pile_count": "right_ingredient_pile_count",
 }
 
 
@@ -843,6 +847,18 @@ def make_train(config):
                 "wall_tile_count": traj_batch.info["wall_tile_count"][-1],
                 "ingredient_pile_count": traj_batch.info["ingredient_pile_count"][-1],
                 "signal_tile_count": traj_batch.info["signal_tile_count"][-1],
+                "left_workload_tile_count": traj_batch.info["left_workload_tile_count"][
+                    -1
+                ],
+                "right_workload_tile_count": traj_batch.info[
+                    "right_workload_tile_count"
+                ][-1],
+                "left_ingredient_pile_count": traj_batch.info[
+                    "left_ingredient_pile_count"
+                ][-1],
+                "right_ingredient_pile_count": traj_batch.info[
+                    "right_ingredient_pile_count"
+                ][-1],
                 "total_loss": total_loss,
                 "value_loss": value_loss,
                 "actor_loss": actor_loss,

@@ -3,60 +3,70 @@
 # Role-formation scenarios -------------------------------------------------
 #
 # The Sig/NoSig pairs differ only at one shared cell: ``L`` is V2's
-# interactable button indicator, while ``W`` is an ordinary counter. This
-# keeps the geometry fixed while adding/removing a dedicated public signal.
+# interactable button indicator, while ``R`` is a non-interactable recipe
+# display. Both block movement and neither stores objects, so the comparison
+# changes signaling capability without adding a spare handoff counter.
+#
+# Kitchen Split keeps two passages open between the bays. The complete cooking
+# workload (two pots, plates, and serving) alternates sides, while onions remain
+# available in both bays. The agent in the inactive bay therefore has a reason
+# to carry a resource across a passage and assist the active bay.
+#
+# Resource Outage permanently separates the agents with a counter wall. The
+# right bay owns cooking and serving. When its onion pile disappears, the left
+# agent must place onions on the shared counter at (5, 2) for the right agent.
 
 split_no_sig = [
     [
         """
-WWWWWWWWWWW
-W0   W  B W
-W    W    W
-W A     A W
-W    W    W
-WP   W  X W
-WWWWWWWWWWW
+WWWWWWWWWWWWW
+W0    W    0W
+WP          W
+WP  A R A   W
+WB          W
+WX    W     W
+WWWWWWWWWWWWW
 """,
-        40,
+        100,
     ],
     [
         """
-WWWWWWWWWWW
-W0   W  B W
-W    W    W
-W A  W  A W
-W    W    W
-WP   W  X W
-WWWWWWWWWWW
+WWWWWWWWWWWWW
+W0    W    0W
+W          PW
+W   A R A  PW
+W          BW
+W     W    XW
+WWWWWWWWWWWWW
 """,
-        160,
+        100,
     ],
 ]
 
 split_sig = [
     [
         """
-WWWWWWWWWWW
-W0   W  B W
-W    L    W
-W A     A W
-W    W    W
-WP   W  X W
-WWWWWWWWWWW
+WWWWWWWWWWWWW
+W0    W    0W
+WP          W
+WP  A L A   W
+WB          W
+WX    W     W
+WWWWWWWWWWWWW
 """,
-        40,
+        100,
     ],
     [
         """
-WWWWWWWWWWW
-W0   W  B W
-W    L    W
-W A  W  A W
-W    W    W
-WP   W  X W
-WWWWWWWWWWW
+WWWWWWWWWWWWW
+W0    W    0W
+W          PW
+W   A L A  PW
+W          BW
+W     W    XW
+WWWWWWWWWWWWW
 """,
-        160,
+        100,
     ],
 ]
 
@@ -64,11 +74,11 @@ outage_no_sig = [
     [
         """
 WWWWWWWWWWW
-W0       0W
-W    P    W
-W A  W  A W
-W    B    W
-WX       XW
+W0   W   0W
+W    W    W
+W  A W A PW
+W    R   BW
+W    W   XW
 WWWWWWWWWWW
 """,
         100,
@@ -76,11 +86,11 @@ WWWWWWWWWWW
     [
         """
 WWWWWWWWWWW
-W0       WW
-W    P    W
-W A  W  A W
-W    B    W
-WX       XW
+W0   W   WW
+W    W    W
+W  A W A PW
+W    R   BW
+W    W   XW
 WWWWWWWWWWW
 """,
         100,
@@ -91,11 +101,11 @@ outage_sig = [
     [
         """
 WWWWWWWWWWW
-W0       0W
-W    P    W
-W A  L  A W
-W    B    W
-WX       XW
+W0   W   0W
+W    W    W
+W  A W A PW
+W    L   BW
+W    W   XW
 WWWWWWWWWWW
 """,
         100,
@@ -103,11 +113,11 @@ WWWWWWWWWWW
     [
         """
 WWWWWWWWWWW
-W0       WW
-W    P    W
-W A  L  A W
-W    B    W
-WX       XW
+W0   W   WW
+W    W    W
+W  A W A PW
+W    L   BW
+W    W   XW
 WWWWWWWWWWW
 """,
         100,
