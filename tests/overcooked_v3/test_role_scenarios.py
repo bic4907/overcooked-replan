@@ -57,7 +57,7 @@ def test_role_scenario_is_registered_and_resettable(layout_name, grid_shape):
     obs, state = env.reset(jax.random.PRNGKey(0))
 
     assert state.grid.shape == grid_shape
-    assert obs["agent_0"].shape == (*grid_shape[:2], 32)
+    assert obs["agent_0"].shape == (*grid_shape[:2], 33)
     assert state.layout_index.item() == 0
 
 
@@ -343,12 +343,61 @@ def test_sig_button_produces_public_timed_signal(
         env.agents[1]: jnp.array(OvercookedActionsEnum.stay),
     }
 
-    _, state, rewards, _, _ = jax.jit(env.step_env)(
+    obs, state, rewards, _, _ = jax.jit(env.step_env)(
         jax.random.PRNGKey(1), state, actions
     )
 
-    assert state.grid[signal_y, signal_x, 2].item() > 0
-    assert rewards[env.agents[0]].item() == -INDICATOR_ACTIVATION_COST
+    assert state.grid[signal_y, signal_x, 2].item() == env.signal_activation_time
+    assert obs[env.agents[0]][signal_y, signal_x, -3].item() == 1.0
+    assert obs[env.agents[1]][signal_y, signal_x, -3].item() == 1.0
+    assert rewards[env.agents[0]].item() == pytest.approx(
+        -INDICATOR_ACTIVATION_COST
+    )
+    assert rewards[env.agents[1]].item() == pytest.approx(
+        -INDICATOR_ACTIVATION_COST
+    )
+
+    stay_actions = {
+        env.agents[0]: jnp.array(OvercookedActionsEnum.stay),
+        env.agents[1]: jnp.array(OvercookedActionsEnum.stay),
+    }
+    for expected_steps in range(env.signal_activation_time - 1, 0, -1):
+        obs, state, _, _, _ = jax.jit(env.step_env)(
+            jax.random.PRNGKey(expected_steps + 10), state, stay_actions
+        )
+        assert state.grid[signal_y, signal_x, 2].item() == expected_steps
+        assert obs[env.agents[1]][signal_y, signal_x, -3].item() == pytest.approx(
+            expected_steps / env.signal_activation_time
+        )
+
+    obs, state, _, _, _ = jax.jit(env.step_env)(
+        jax.random.PRNGKey(30), state, stay_actions
+    )
+    assert state.grid[signal_y, signal_x, 2].item() == 0
+    assert obs[env.agents[1]][signal_y, signal_x, -3].item() == 0.0
+
+
+def test_active_signal_is_labeled_in_rendered_button_tile():
+    env = OvercookedV3(layout="split_sig", max_steps=20)
+    _, state = env.reset(jax.random.PRNGKey(0))
+    signal_x, signal_y = 6, 3
+    state = state.replace(
+        grid=state.grid.at[signal_y, signal_x, 2].set(env.signal_activation_time)
+    )
+    visualizer = OvercookedV3Visualizer(tile_size=32)
+
+    raw_frame = np.asarray(visualizer._render_state(state))
+    labeled_frame = visualizer._render_frame(state)
+    changed_pixels = np.any(raw_frame != labeled_frame, axis=-1)
+    changed_tiles = np.zeros_like(state.layout_change_mask, dtype=bool)
+    for pixel_y, pixel_x in np.argwhere(changed_pixels):
+        changed_tiles[pixel_y // visualizer.tile_size, pixel_x // visualizer.tile_size] = (
+            True
+        )
+
+    expected_tiles = np.zeros_like(changed_tiles)
+    expected_tiles[signal_y, signal_x] = True
+    assert np.array_equal(changed_tiles, expected_tiles)
 
 
 def test_no_sig_placeholder_does_not_activate_or_store_objects():

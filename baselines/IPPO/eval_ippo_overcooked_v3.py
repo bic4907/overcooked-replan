@@ -95,6 +95,11 @@ def parse_args(default_architecture="cnn"):
         action="store_true",
         help="Use the 31-channel countdown-only observation.",
     )
+    parser.add_argument(
+        "--no-signal-status",
+        action="store_true",
+        help="Disable the public signal-status channel for older checkpoints.",
+    )
     return parser.parse_args()
 
 
@@ -204,6 +209,9 @@ def main(default_architecture="cnn"):
         layout=args.layout,
         max_steps=args.max_steps,
         random_agent_positions=False,
+        include_signal_status=(
+            not args.legacy_observation and not args.no_signal_status
+        ),
         include_transition_countdown=not args.legacy_observation,
         include_layout_change_mask=(
             not args.legacy_observation and not args.no_layout_change_mask
@@ -273,7 +281,8 @@ def main(default_architecture="cnn"):
     if args.gif is not None:
         args.gif.parent.mkdir(parents=True, exist_ok=True)
         viz = OvercookedV3Visualizer(
-            transition_warning_steps=env.transition_warning_steps
+            transition_warning_steps=env.transition_warning_steps,
+            signal_activation_time=env.signal_activation_time,
         )
         viz.animate(
             first_states,
@@ -285,7 +294,8 @@ def main(default_architecture="cnn"):
 
     if args.render:
         viz = OvercookedV3Visualizer(
-            transition_warning_steps=env.transition_warning_steps
+            transition_warning_steps=env.transition_warning_steps,
+            signal_activation_time=env.signal_activation_time,
         )
         window = viz._lazy_init_window()
         for state, caption in zip(first_states, first_captions):

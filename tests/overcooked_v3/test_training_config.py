@@ -27,7 +27,10 @@ def test_default_training_config_preserves_dynamic_00():
     assert config.SAVES_DIR == "saves"
     assert config.ENV_KWARGS.include_transition_countdown is True
     assert config.ENV_KWARGS.include_layout_change_mask is True
+    assert config.ENV_KWARGS.include_signal_status is True
     assert config.ENV_KWARGS.transition_warning_steps == 20
+    assert config.ENV_KWARGS.signal_activation_time == 10
+    assert config.ENV_KWARGS.signal_activation_cost == 0.1
     assert config.get("WANDB_DIR") is None
     assert config.RECORD_FINAL_EPISODE is True
     assert config.RECORD_MAX_STEPS == 400
@@ -112,8 +115,8 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
     }
     assert set(sweep["parameters"]["scenario"]["values"]) == set(SCENARIOS)
     assert sweep["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4]
-    assert sweep["name"] == "overcooked-v3-role-scenarios-v2"
-    assert sweep["parameters"]["EXPERIMENT_FOLDER"]["value"] == "role-scenarios-v2"
+    assert sweep["name"] == "overcooked-v3-role-scenarios-v3"
+    assert sweep["parameters"]["EXPERIMENT_FOLDER"]["value"] == "role-scenarios-v3"
     assert sweep["parameters"]["SAVES_DIR"]["value"] == "saves"
     assert sweep["parameters"]["recording"]["value"] == "enabled"
     assert "${args_no_hyphens}" in sweep["command"]
@@ -128,6 +131,9 @@ def test_wandb_metrics_are_split_into_train_and_debug_namespaces():
             "layout_index": 1,
             "layout_change_events": 2,
             "transition_countdown": 0.25,
+            "signal_steps_remaining": 7,
+            "signal_active": 1.0,
+            "signal_activation_events": 3,
         }
     )
 
@@ -138,6 +144,9 @@ def test_wandb_metrics_are_split_into_train_and_debug_namespaces():
         "debug/layout_index": 1,
         "debug/layout_change_events": 2,
         "debug/transition_countdown": 0.25,
+        "debug/signal_steps_remaining": 7,
+        "debug/signal_active": 1.0,
+        "debug/signal_activation_events": 3,
     }
 
 

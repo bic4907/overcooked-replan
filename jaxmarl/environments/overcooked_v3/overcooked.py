@@ -114,6 +114,8 @@ class OvercookedV3Base(MultiAgentEnv):
         op_ingredient_permutations: Optional[List[int]] = None,
         initial_state_buffer: Optional[State] = None,
         force_path_planning: bool = False,
+        signal_activation_time: int = INDICATOR_ACTIVATION_TIME,
+        signal_activation_cost: float = INDICATOR_ACTIVATION_COST,
     ):
         """
         Initializes the OvercookedV3Base environment.
@@ -133,6 +135,18 @@ class OvercookedV3Base(MultiAgentEnv):
             initial_state_buffer (State): Initial state buffer to be used to reset the environment. On each reset, a state from this buffer will be used.
             force_path_planning (bool): Whether to force path planning in the environment. Used to access featurized obs manually.
         """
+
+        if isinstance(signal_activation_time, bool) or not isinstance(
+            signal_activation_time, int
+        ):
+            raise ValueError("signal_activation_time must be a positive integer")
+        if signal_activation_time <= 0:
+            raise ValueError("signal_activation_time must be a positive integer")
+        if signal_activation_cost < 0:
+            raise ValueError("signal_activation_cost must be non-negative")
+
+        self.signal_activation_time = signal_activation_time
+        self.signal_activation_cost = float(signal_activation_cost)
 
         if isinstance(layout, str):
             if layout not in overcooked_v3_base_layouts:
@@ -1349,7 +1363,7 @@ class OvercookedV3Base(MultiAgentEnv):
         use_pot_extra = successful_pot_start_cooking | auto_cook
         new_extra = (
             use_pot_extra * POT_COOK_TIME
-            + successful_indicator_activation * INDICATOR_ACTIVATION_TIME
+            + successful_indicator_activation * (self.signal_activation_time + 1)
             + ~use_pot_extra * ~successful_indicator_activation * interact_extra
         )
 
@@ -1381,7 +1395,7 @@ class OvercookedV3Base(MultiAgentEnv):
         )
 
         # Cost for activating a button recipe indicator
-        reward -= successful_indicator_activation * INDICATOR_ACTIVATION_COST
+        reward -= successful_indicator_activation * self.signal_activation_cost
 
         # Plate pickup reward: number of plates in player hands < number ready/cooking/partially full pot
         inventory_is_plate = new_inventory == DynamicObject.PLATE
