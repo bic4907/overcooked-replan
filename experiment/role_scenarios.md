@@ -1,5 +1,5 @@
 ```bash
-wandb sweep --entity inchangbaek4907 --project overcooked-v3-role-coordination experiment/sweeps/overcooked_v3_role_scenarios.yaml
+wandb sweep --entity inchangbaek4907 --project overcooked-v3-role-coordination sweeps/overcooked_v3_role_scenarios.yaml
 ```
 
 W&B prints an agent command containing the full sweep path:

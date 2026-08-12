@@ -1,9 +1,5 @@
-name: overcooked-v3-role-scenarios-v5
 program: baselines/IPPO/ippo_overcooked_v3.py
-project: overcooked-v3-role-coordination
 method: grid
-run_cap: 20
-
 metric:
   goal: maximize
   name: train/episode_return
@@ -16,19 +12,7 @@ parameters:
       - outage_no_sig
       - outage_sig
   SEED:
-    values: [0, 1, 2, 3, 4]
-  NUM_SEEDS:
-    value: 1
-  ARCHITECTURE:
-    value: cnn
-  PROJECT:
-    value: overcooked-v3-role-coordination
-  WANDB_MODE:
-    value: online
-  SAVES_DIR:
-    value: saves
-  EXPERIMENT_FOLDER:
-    value: role-scenarios-v5
+    values: [0, 1]
   recording:
     value: enabled
 
