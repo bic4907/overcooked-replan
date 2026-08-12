@@ -6,18 +6,12 @@ from pathlib import Path
 import jax
 
 from jaxmarl import make
-
-ROLE_SCENARIOS = (
-    "split_no_sig",
-    "split_sig",
-    "outage_no_sig",
-    "outage_sig",
-)
+from jaxmarl.environments.overcooked_v3 import ROLE_SCENARIO_LAYOUT_NAMES
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--layout", choices=ROLE_SCENARIOS, required=True)
+    parser.add_argument("--layout", choices=ROLE_SCENARIO_LAYOUT_NAMES, required=True)
     parser.add_argument("--steps", type=int, default=220)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--gif", type=Path)

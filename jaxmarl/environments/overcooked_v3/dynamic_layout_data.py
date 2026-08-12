@@ -15,9 +15,13 @@
 # Resource Outage permanently separates two otherwise complete kitchens. Each
 # bay owns a pot, plate pile, serving station, and onion pile in the normal
 # phase. When the right onion pile disappears, the left agent must trade off
-# local cooking against supplying onions through the shared counter at (5, 2).
+# local cooking against supplying onions through the shared center counters.
+#
+# Canonical role-layout names have no underscores inside the category name:
+# ``splitnosig_0`` ... ``splitnosig_9`` and likewise for ``splitsig``,
+# ``outagenosig``, and ``outagesig``. Variant 0 preserves the original layout.
 
-split_no_sig = [
+splitnosig_0 = [
     [
         """
 WWWWWWWWWWW
@@ -44,7 +48,7 @@ WWWWWWWWWWW
     ],
 ]
 
-split_sig = [
+splitsig_0 = [
     [
         """
 WWWWWWWWWWW
@@ -71,7 +75,7 @@ WWWWWWWWWWW
     ],
 ]
 
-outage_no_sig = [
+outagenosig_0 = [
     [
         """
 WWWWWWWWWWW
@@ -98,7 +102,7 @@ WWWWWWWWWWW
     ],
 ]
 
-outage_sig = [
+outagesig_0 = [
     [
         """
 WWWWWWWWWWW
@@ -124,6 +128,120 @@ WWWWWWWWWWW
         100,
     ],
 ]
+
+
+def _role_grid(resources, agent_positions, signal_row, signal_enabled, door=None):
+    """Build one 7x11 role-scenario phase from explicit design constraints."""
+    width, height, center_x = 11, 7, 5
+    rows = [["W"] * width for _ in range(height)]
+    for y in range(1, height - 1):
+        for x in range(1, width - 1):
+            rows[y][x] = " "
+        rows[y][center_x] = "W"
+
+    rows[signal_row][center_x] = "L" if signal_enabled else "R"
+    if door is not None:
+        door_row, is_open = door
+        rows[door_row][center_x] = " " if is_open else "W"
+
+    for symbol, (x, y) in resources:
+        if rows[y][x] not in {"W", " "}:
+            raise ValueError(f"Role-layout resource collision at {(x, y)}")
+        rows[y][x] = symbol
+    for x, y in agent_positions:
+        if rows[y][x] != " ":
+            raise ValueError(f"Role-layout agent collision at {(x, y)}")
+        rows[y][x] = "A"
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+# door row, signal row, agents, left (onion/pot/pot), right (plate/goal)
+_SPLIT_VARIANT_SPECS = (
+    (3, 2, ((2, 3), (8, 3)), ((1, 0), (3, 0), (0, 4)), ((8, 0), (10, 4))),
+    (2, 4, ((3, 2), (7, 2)), ((0, 1), (0, 3), (2, 6)), ((9, 0), (10, 5))),
+    (4, 2, ((2, 4), (8, 4)), ((4, 0), (0, 2), (3, 6)), ((6, 0), (10, 3))),
+    (3, 5, ((3, 3), (7, 3)), ((1, 6), (0, 1), (4, 0)), ((9, 6), (10, 1))),
+    (2, 5, ((2, 2), (8, 2)), ((2, 0), (0, 4), (4, 6)), ((7, 0), (10, 4))),
+    (4, 1, ((3, 4), (7, 4)), ((0, 5), (1, 0), (3, 0)), ((10, 5), (8, 0))),
+    (3, 1, ((2, 3), (8, 3)), ((3, 6), (0, 2), (2, 0)), ((7, 6), (10, 2))),
+    (2, 4, ((3, 2), (7, 2)), ((4, 6), (0, 3), (1, 6)), ((6, 6), (10, 3))),
+    (4, 2, ((2, 4), (8, 4)), ((0, 1), (4, 0), (2, 6)), ((10, 1), (9, 6))),
+)
+
+
+# signal row, agents, left complete-kitchen positions in onion/pot/plate/goal order.
+# The right kitchen mirrors every resource so pre-outage capabilities match.
+_OUTAGE_VARIANT_SPECS = (
+    (4, ((2, 3), (8, 3)), ((1, 0), (0, 2), (3, 6), (0, 5))),
+    (2, ((3, 3), (7, 3)), ((0, 1), (2, 0), (0, 4), (4, 6))),
+    (4, ((2, 3), (8, 3)), ((4, 0), (0, 2), (1, 6), (0, 5))),
+    (2, ((3, 3), (7, 3)), ((0, 5), (3, 0), (0, 2), (2, 6))),
+    (5, ((2, 2), (8, 2)), ((1, 6), (0, 1), (4, 0), (0, 4))),
+    (1, ((3, 4), (7, 4)), ((0, 3), (2, 6), (0, 5), (4, 0))),
+    (4, ((2, 3), (8, 3)), ((3, 0), (0, 1), (4, 6), (0, 5))),
+    (2, ((3, 3), (7, 3)), ((0, 4), (1, 0), (0, 1), (3, 6))),
+    (5, ((2, 2), (8, 2)), ((2, 0), (0, 5), (4, 6), (0, 1))),
+)
+
+
+def _build_split_variant(spec, signal_enabled):
+    door_row, signal_row, agents, left_positions, right_positions = spec
+    resources = list(zip(("0", "P", "P"), left_positions))
+    resources.extend(zip(("B", "X"), right_positions))
+    open_grid = _role_grid(
+        resources,
+        agents,
+        signal_row,
+        signal_enabled,
+        door=(door_row, True),
+    )
+    closed_grid = _role_grid(
+        resources,
+        agents,
+        signal_row,
+        signal_enabled,
+        door=(door_row, False),
+    )
+    return [[open_grid, 40], [closed_grid, 160]]
+
+
+def _build_outage_variant(spec, signal_enabled):
+    signal_row, agents, left_positions = spec
+    right_positions = tuple((10 - x, y) for x, y in left_positions)
+    left_resources = list(zip(("0", "P", "B", "X"), left_positions))
+    right_resources = list(zip(("0", "P", "B", "X"), right_positions))
+    normal_grid = _role_grid(
+        left_resources + right_resources,
+        agents,
+        signal_row,
+        signal_enabled,
+    )
+    outage_right_resources = [("W", right_positions[0]), *right_resources[1:]]
+    outage_grid = _role_grid(
+        left_resources + outage_right_resources,
+        agents,
+        signal_row,
+        signal_enabled,
+    )
+    return [[normal_grid, 100], [outage_grid, 100]]
+
+
+def _register_role_variants():
+    for variant_index, spec in enumerate(_SPLIT_VARIANT_SPECS, start=1):
+        globals()[f"splitnosig_{variant_index}"] = _build_split_variant(spec, False)
+        globals()[f"splitsig_{variant_index}"] = _build_split_variant(spec, True)
+    for variant_index, spec in enumerate(_OUTAGE_VARIANT_SPECS, start=1):
+        globals()[f"outagenosig_{variant_index}"] = _build_outage_variant(spec, False)
+        globals()[f"outagesig_{variant_index}"] = _build_outage_variant(spec, True)
+
+
+_register_role_variants()
+
+# Backward-compatible aliases for existing commands and checkpoints.
+split_no_sig = splitnosig_0
+split_sig = splitsig_0
+outage_no_sig = outagenosig_0
+outage_sig = outagesig_0
 
 dynamic_00 = [
     [

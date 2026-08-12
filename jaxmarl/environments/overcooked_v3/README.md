@@ -27,16 +27,18 @@ features when loading a legacy 30-channel policy.
 
 ## Role-coordination scenarios
 
-`split_no_sig` and `split_sig` open one central doorway for 40 steps, then turn
-it into a handoff counter for 160 steps. The left bay contains onions and two
-pots, while the right bay contains plates and serving. Agents must choose
-opposite sides before the wall closes, then coordinate cook–server work through
-the counter.
+`splitnosig_0` ... `splitnosig_9` and their `splitsig_*` pairs open one central
+doorway for 40 steps, then turn it into a handoff counter for 160 steps. The
+left bay contains onions and two pots, while the right bay contains plates and
+serving. Agents must choose opposite sides before the wall closes, then
+coordinate cook–server work through the counter.
 
-`outage_no_sig` and `outage_sig` have disconnected movement regions and one
-shared handoff counter. Both bays are complete kitchens with a pot, plates,
-serving, and onions. During the outage, the right onion pile becomes a wall, so
-the left cook must trade off local production against supplying the right cook
-through the handoff counter. Sig layouts replace one inert recipe display with
-the activatable public signal; it cannot be used as extra object storage in
-either condition.
+`outagenosig_0` ... `outagenosig_9` and their `outagesig_*` pairs have
+disconnected movement regions and shared center counters. Both bays are
+complete kitchens with a pot, plates, serving, and onions. During the outage,
+the right onion pile becomes a wall, so the left cook must trade off local
+production against supplying the right cook through a handoff counter. Sig
+layouts replace one inert recipe display with the activatable public signal;
+it cannot be used as extra object storage in either condition. Variant 0
+preserves the original geometry, while variants 1-9 alter travel distances and
+resource placement without changing the category's coordination mechanism.
