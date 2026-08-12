@@ -48,9 +48,10 @@ Phase 1에는 오른쪽에 pot 두 개·plate pile·serving station이 모인다
 유지되므로 inactive bay의 에이전트가 재료를 들고 active bay로 이동해 보조할 수
 있다.
 
-Resource Outage는 중앙 counter wall로 두 에이전트의 이동 영역을 분리한다. 오른쪽
-에이전트만 pot·plate·serving에 접근하며, outage phase에는 오른쪽 양파가 사라진다.
-왼쪽 에이전트가 중앙 shared counter로 양파를 넘겨야 조리를 계속할 수 있다.
+Resource Outage는 중앙 counter wall로 두 에이전트의 이동 영역을 분리하되, 양쪽
+주방 모두 pot·plate·serving·onion을 갖는다. outage phase에는 오른쪽 양파만
+사라진다. 평소 각자 조리하던 왼쪽 에이전트가 자기 생산을 일부 포기하고 중앙
+shared counter로 양파를 넘겨야 오른쪽 주방이 조리를 계속할 수 있다.
 NoSig의 signal 위치는 물건을 보관할 수 없는 비활성 indicator이고, Sig에서만 같은
 위치가 activatable public signal이 된다.
 

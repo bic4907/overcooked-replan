@@ -11,15 +11,16 @@ The following role-coordination experiments are currently available:
 | --- | --- | --- | --- |
 | `split_no_sig` | Kitchen Split | No | Can both agents detect the active cooking bay and relocate to its heavier workload? |
 | `split_sig` | Kitchen Split | Yes | Does signaling accelerate the joint move when the active bay changes sides? |
-| `outage_no_sig` | Resource Outage | No | Can a separated collector start supplying the cook through a shared handoff counter? |
-| `outage_sig` | Resource Outage | Yes | Does signaling speed up the switch to collector–cook cooperation after the outage? |
+| `outage_no_sig` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
+| `outage_sig` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
 
 Kitchen Split keeps two cross-bay passages open. Two pots, the plate pile, and
 the serving station move from the left bay to the right bay every 100 steps;
-onion piles remain on both sides. Resource Outage instead keeps the agents in
-disconnected bays. The right bay owns cooking and serving, and its onion pile
-disappears during the outage, so the left agent must pass onions through the
-shared center counter. NoSig uses an inert, non-storage indicator where Sig
+onion piles remain on both sides. Resource Outage instead keeps two complete
+kitchens in disconnected bays; both sides have a pot, plate pile, serving
+station, and onion pile. The right onion pile disappears during the outage, so
+the left cook must trade off local production against passing onions through
+the shared center counter. NoSig uses an inert, non-storage indicator where Sig
 provides the activatable public signal, keeping the remaining geometry equal.
 
 Overcooked V3 exposes public signals and upcoming layout transitions to every
@@ -247,8 +248,8 @@ GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
 ```
 
 For example, a sweep run is saved under a directory such as
-`saves/split_sig_cnn_role-scenarios-v3_seed0/`. The `v3` experiment suffix
-keeps 33-channel signal-status checkpoints separate from earlier scenario runs.
+`saves/split_sig_cnn_role-scenarios-v4_seed0/`. The `v4` experiment suffix
+keeps the complete-kitchen outage redesign separate from earlier scenario runs.
 
 W&B metrics are grouped by slash-delimited namespaces:
 

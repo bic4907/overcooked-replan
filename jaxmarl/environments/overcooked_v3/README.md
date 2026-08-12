@@ -33,8 +33,9 @@ the bays every 100 steps, while both onion piles remain available. This gives
 the agent in the inactive bay a concrete reason to cross over and assist.
 
 `outage_no_sig` and `outage_sig` have disconnected movement regions and one
-shared handoff counter. Cooking and serving are in the right bay. During the
-outage, the right onion pile becomes a wall, so the left agent must supply the
-right agent through the handoff counter. Sig layouts replace one inert recipe
-display with the activatable public signal; it cannot be used as extra object
-storage in either condition.
+shared handoff counter. Both bays are complete kitchens with a pot, plates,
+serving, and onions. During the outage, the right onion pile becomes a wall, so
+the left cook must trade off local production against supplying the right cook
+through the handoff counter. Sig layouts replace one inert recipe display with
+the activatable public signal; it cannot be used as extra object storage in
+either condition.
