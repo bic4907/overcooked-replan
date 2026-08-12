@@ -280,7 +280,7 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
   TOTAL_TIMESTEPS=3e7 \
   LOG_INTERVAL=10 \
   CHECKPOINT_INTERVAL=50 \
-  WANDB_MODE=disabled \
+  wandb_mode=disabled \
   SAVES_DIR=saves
 ```
 
@@ -402,7 +402,68 @@ python baselines/IPPO/eval_ippo_overcooked_v3.py \
 
 GUI 창으로 직접 보려면 `--render --render-delay 0.2`를 추가한다. GUI가 없는 서버에서는 GIF 방식을 사용한다.
 
-### 7.3 평가 통계 PNG/CSV 생성
+### 7.3 W&B run artifact 기반 cross-play
+
+학습 시 최종 checkpoint artifact 업로드는 기본적으로 켜져 있다.
+
+```bash
+python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=splitsig_0 \
+  SEED=0
+```
+
+두 학습 run ID를 사용해 checkpoint artifact를 자동으로 내려받고 cross-play를
+실행한다. 결과는 기본적으로 별도 `overcooked-v3-crossplay` project의 evaluation
+run으로 기록된다.
+
+```bash
+python -u baselines/IPPO/eval_wandb_crossplay_overcooked_v3.py \
+  --entity inchangbaek4907 \
+  --source-project overcooked-v3-role-coordination \
+  --project overcooked-v3-crossplay \
+  --run-ids AGENT_0_RUN_ID AGENT_1_RUN_ID \
+  --layout splitsig_0 \
+  --episodes 10 \
+  --max-steps 400
+```
+
+`--run-ids`에는 `entity/project/run_id` 전체 경로를 직접 넣을 수도 있다. 각 run에서
+`checkpoint` type이면서 `final` alias인 artifact를 선택하며, 기본적으로 두
+artifact의 `vmap0` policy를 사용한다. 다른 vmap policy는
+`--agent-vmap-indices 1 0`처럼 지정한다.
+
+다운로드 cache는 `evaluation/overcooked_v3/wandb_artifacts/`, 첫 episode MP4는
+`evaluation/overcooked_v3/crossplay/`에 저장된다. W&B에는 다음 namespace로
+기록한다.
+
+| Namespace | 기록 내용 |
+|---|---|
+| `eval/...` | episode별 return/length와 mean/std/min/max return |
+| `visualization/...` | 첫 cross-play episode MP4 |
+
+두 run의 network architecture·hidden dimension·관측 채널 설정이 다르면 평가 전에
+명시적인 compatibility 오류로 중단한다. 서로 다른 layout에서 학습된 policy를
+평가할 때는 target `--layout`을 반드시 지정한다.
+
+여러 run의 self-play와 양방향 cross-play ordered pair 전체를 실행하려면 배치
+스크립트를 사용한다.
+
+```bash
+LAYOUT=splitsig_0 \
+EPISODES=10 \
+bash scripts/overcooked_v3/eval_all_wandb_crossplay_overcooked_v3_cnn.sh \
+  RUN_ID_SEED0 RUN_ID_SEED1
+```
+
+두 run이면 `(0,0)`, `(0,1)`, `(1,0)`, `(1,1)` 네 evaluation run이 만들어진다.
+self-play를 제외하려면 `PAIR_MODE=cross-only`를 추가한다. Run ID 대신 전체
+`entity/project/run_id` 경로도 사용할 수 있다. 배치 실행 중에는 행이 `agent_0`,
+열이 `agent_1`인 mean-return matrix가 각 ordered pair 평가 직후 터미널에
+출력된다. 마지막 CUI snapshot은
+`evaluation/overcooked_v3/crossplay/matrices/` 아래의 텍스트 파일로도 저장되므로
+GUI가 없는 서버에서도 진행 상황과 최종 결과를 바로 확인할 수 있다.
+
+### 7.4 평가 통계 PNG/CSV 생성
 
 `dynamic_00`부터 `dynamic_14`까지의 IPPO v2 평가 로그를 통계로 변환하려면 다음 명령을 사용한다.
 

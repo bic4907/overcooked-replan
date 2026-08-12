@@ -33,15 +33,18 @@ username을 넣는다. W&B workspace URL이 `https://wandb.ai/<entity>/<project>
 기록하지 않는다.
 직접 학습 명령에는 `dotenv run` prefix가 필요하지 않으며, 로드에 성공하면
 credential 값 없이 `Loaded project .env`만 출력된다.
+`wandb_mode`의 기본값은 `online`이다. `WANDB_API_KEY`가 설정되지 않았으면 실행
+시 자동으로 `offline` mode로 전환하며, W&B를 완전히 끄려면
+`wandb_mode=disabled`를 명시한다.
 
 ## 시나리오
 
 | Hydra option | Scenario | Signal |
 | --- | --- | --- |
-| `scenario=split_no_sig` | Kitchen Split | No |
-| `scenario=split_sig` | Kitchen Split | Yes |
-| `scenario=outage_no_sig` | Resource Outage | No |
-| `scenario=outage_sig` | Resource Outage | Yes |
+| `scenario=splitnosig_0` ... `_9` | Kitchen Split | No |
+| `scenario=splitsig_0` ... `_9` | Kitchen Split | Yes |
+| `scenario=outagenosig_0` ... `_9` | Resource Outage | No |
+| `scenario=outagesig_0` ... `_9` | Resource Outage | Yes |
 
 Kitchen Split은 처음 40 step 동안 중앙 통로 하나가 열려 있고, 이후 160 step 동안
 그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
@@ -55,6 +58,11 @@ Resource Outage는 중앙 counter wall로 두 에이전트의 이동 영역을 �
 shared counter로 양파를 넘겨야 오른쪽 주방이 조리를 계속할 수 있다.
 NoSig의 signal 위치는 물건을 보관할 수 없는 비활성 indicator이고, Sig에서만 같은
 위치가 activatable public signal이 된다.
+
+각 category에는 같은 동작 원리를 유지하면서 resource 위치, 이동 거리, doorway와
+signal 위치가 다른 10개 레이아웃이 직접 등록되어 있다. 예를 들어
+`scenario=splitsig_3`처럼 선택한다. 모든 레이아웃은 7×11이라 CNN parameter
+shape가 같고, 같은 번호의 Sig/NoSig pair는 signal indicator 한 타일만 다르다.
 
 기존 dynamic map 기본값은 `scenario=dynamic_00`이다.
 
@@ -75,7 +83,7 @@ checkpoint는 첫 CNN layer shape이 달라 서로 호환되지 않는다.
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=split_no_sig \
+  scenario=splitnosig_3 \
   SEED=0 \
   NUM_SEEDS=1
 ```
@@ -93,7 +101,7 @@ saves/<experiment-folder>/
 파라미터는 이름에 넣지 않는다.
 
 ```text
-split_sig_cnn_seed0
+splitsig_0_cnn_seed0
 ```
 
 사람이 읽기 쉬운 prefix를 지정할 수도 있다. LR ablation처럼 평소 고정된
@@ -101,14 +109,14 @@ split_sig_cnn_seed0
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=split_sig \
+  scenario=splitsig_4 \
   EXPERIMENT_FOLDER=lr-1e-4 \
   LR=0.0001 \
   SEED=0
 ```
 
-결과 폴더는 `saves/split_sig_cnn_lr-1e-4_seed0`이다. W&B 기본 run 이름은
-`ippo_cnn_split_sig_seed0`이다. 동일 layout, architecture, seed를 다시 실행하면
+결과 폴더는 `saves/splitsig_4_cnn_lr-1e-4_seed0`이다. W&B 기본 run 이름은
+`ippo_cnn_splitsig_4_seed0`이다. 동일 layout, architecture, seed를 다시 실행하면
 기존 결과를 덮어쓸 수 있으므로 별도 실행은 `SEED` 또는 `EXPERIMENT_FOLDER`로
 구분한다.
 
@@ -116,10 +124,10 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
 
 ```text
 saves/
-└── split_sig_cnn_seed0/
-    ├── ippo_cnn_overcooked_v3_split_sig_seed0_config.yaml
-    ├── ippo_cnn_overcooked_v3_split_sig_seed0_vmap0.safetensors
-    └── ippo_cnn_split_sig_seed0_vmap0_final_episode.mp4
+└── splitsig_0_cnn_seed0/
+    ├── ippo_cnn_overcooked_v3_splitsig_0_seed0_config.yaml
+    ├── ippo_cnn_overcooked_v3_splitsig_0_seed0_vmap0.safetensors
+    └── ippo_cnn_splitsig_0_seed0_vmap0_final_episode.mp4
 ```
 
 `saves/`에는 실험 config와 checkpoint만 저장한다. Hydra와 W&B는 별도 경로
@@ -136,19 +144,34 @@ NAS 등 다른 루트를 쓰려면 학습 명령에
 `SAVES_DIR=/mnt/nas/overcooked-replan`을 Hydra override로 추가한다. 그 경우에도
 지정한 경로 바로 아래에 실험 폴더가 만들어진다.
 
+최종 checkpoint는 기본적으로 로컬에 저장하고 W&B artifact에도 업로드한다. 모든
+`vmap*.safetensors`와 resolved config가 `checkpoint` type artifact 하나에 들어가며
+`final` alias가 붙는다.
+
+```bash
+python -u baselines/IPPO/ippo_overcooked_v3.py \
+  scenario=splitsig_0 \
+  SEED=0
+```
+
+업로드를 원하지 않으면 `upload_final_checkpoint=false`를 지정한다. W&B mode가
+`disabled`이면 이 값이 `true`여도 업로드는 건너뛰고 로컬 checkpoint만 저장한다.
+업로드할 때는 `SAVES_DIR`가 설정되어 있어야 하며 W&B mode는 `online` 또는
+`offline`이어야 한다. Offline run의 artifact는 이후 `wandb sync`가 필요하다.
+
 최종 Hydra 설정만 확인할 수 있다.
 
 ```bash
 python baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=outage_sig \
+  scenario=outagesig_0 \
   --cfg job --resolve
 ```
 
 ## W&B sweep
 
-`experiment/sweeps/overcooked_v3_role_scenarios.yaml`은 네 조건과 seed 5개를
-조합한 20-run grid다. Mac에서 W&B 로그인을 마친 뒤 다음 명령으로 sweep을
-생성한다.
+`experiment/sweeps/overcooked_v3_role_scenarios.yaml`은 네 category, layout
+10개, seed 6개를 조합한 240-run grid다. Mac에서 W&B 로그인을 마친 뒤
+다음 명령으로 sweep을 생성한다.
 
 ```bash
 wandb sweep \
@@ -190,14 +213,14 @@ Sweep 최적화 지표는 `train/episode_return`이다. `debug/layout_index`와
 
 학습이 끝나면 첫 번째 학습 seed의 deterministic policy로 episode 하나를 실행한다.
 기본 10 FPS MP4는 해당 `saves/<experiment-folder>/`에 저장되고
-`visualization/final_episode`로 업로드된다. `WANDB_MODE=disabled`일 때는 녹화를
+`visualization/final_episode`로 업로드된다. `wandb_mode=disabled`일 때는 녹화를
 건너뛴다. Hydra 기본 설정은 `recording=enabled`다. 온라인·오프라인 W&B
 run에서도 끄려면 `recording=disabled`를 사용한다. 길이, FPS, 압축 품질은 각각
 `RECORD_MAX_STEPS`, `RECORD_VIDEO_FPS`, `RECORD_VIDEO_QUALITY`로 바꿀 수 있다.
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=split_sig \
+  scenario=splitsig_0 \
   recording=disabled \
   SEED=0
 ```

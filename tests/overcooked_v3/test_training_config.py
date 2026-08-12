@@ -148,7 +148,7 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
     }
     assert set(sweep["parameters"]["scenario"]["values"]) == set(SCENARIOS)
     assert "LAYOUT_VARIANT" not in sweep["parameters"]
-    assert sweep["parameters"]["SEED"]["values"] == [0, 1, 2]
+    assert sweep["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
     assert sweep["parameters"]["recording"]["value"] == "enabled"
     assert "${args_no_hyphens}" in sweep["command"]
 

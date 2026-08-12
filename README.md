@@ -9,10 +9,10 @@ The following role-coordination experiments are currently available:
 
 | Hydra scenario | Environment | Signal counter | Research question |
 | --- | --- | --- | --- |
-| `split_no_sig` | Kitchen Split | No | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
-| `split_sig` | Kitchen Split | Yes | Does signaling reduce same-side choices before the kitchen splits? |
-| `outage_no_sig` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
-| `outage_sig` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
+| `splitnosig_0` ... `_9` | Kitchen Split | No | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
+| `splitsig_0` ... `_9` | Kitchen Split | Yes | Does signaling reduce same-side choices before the kitchen splits? |
+| `outagenosig_0` ... `_9` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
+| `outagesig_0` ... `_9` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
 
 Kitchen Split starts with one central doorway open for 40 steps. It then becomes
 a handoff counter for 160 steps, preventing agents from changing bays. The left
@@ -23,6 +23,10 @@ in disconnected bays; the right onion pile disappears during the outage, so
 the left cook must trade off local production against supplying the right bay.
 NoSig uses an inert, non-storage indicator where Sig provides the activatable
 public signal, keeping the remaining geometry equal.
+
+Each category has ten directly registered 7×11 layouts. Select one through its
+Hydra scenario name, such as `scenario=splitsig_3`; layout 0 preserves the
+original geometry. Matching Sig/NoSig indices differ only at the signal tile.
 
 Overcooked V3 exposes public signals and upcoming layout transitions to every
 agent. The final three channels of the default 33-channel observation contain a
@@ -54,13 +58,13 @@ works correctly:
 
 ```bash
 python scripts/overcooked_v3/run_role_scenario.py \
-  --layout split_sig \
+  --layout splitsig_0 \
   --steps 220 \
   --seed 0 \
-  --gif evaluation/previews/split_sig.gif
+  --gif evaluation/previews/splitsig_0.gif
 ```
 
-The resulting GIF is saved to `evaluation/previews/split_sig.gif`.
+The resulting GIF is saved to `evaluation/previews/splitsig_0.gif`.
 
 ## W&B and environment variables
 
@@ -87,6 +91,8 @@ to an organization, open the target team workspace and use that team's slug.
 The training entrypoint automatically loads `.env` from the project root. The
 file is excluded from Git. Set `WANDB_MODE=disabled` when W&B is not needed.
 Direct training commands do not need a `dotenv run` prefix.
+The V3 trainer defaults to online mode and automatically falls back to offline
+mode when `WANDB_API_KEY` is not set.
 
 W&B-related settings use the following precedence order. This does not apply to
 `SAVES_DIR`.
@@ -102,7 +108,7 @@ W&B-related settings use the following precedence order. This does not apply to
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=split_no_sig \
+  scenario=splitnosig_0 \
   EXPERIMENT_FOLDER=baseline \
   SEED=0 \
   NUM_SEEDS=1
@@ -111,16 +117,16 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
 Change only the `scenario` override to run another condition:
 
 ```bash
-scenario=split_sig
-scenario=outage_no_sig
-scenario=outage_sig
+scenario=splitsig_0
+scenario=outagenosig_0
+scenario=outagesig_0
 ```
 
 CNN is the default policy architecture. Select the RNN policy as follows:
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=outage_sig \
+  scenario=outagesig_0 \
   ARCHITECTURE=rnn \
   EXPERIMENT_FOLDER=baseline \
   SEED=0
@@ -136,7 +142,7 @@ one update and verify the training and output paths:
 ```bash
 JAX_PLATFORMS=cpu XLA_PYTHON_CLIENT_PREALLOCATE=false \
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=split_no_sig \
+  scenario=splitnosig_0 \
   EXPERIMENT_FOLDER=dry-run \
   NUM_ENVS=2 \
   NUM_STEPS=2 \
@@ -145,11 +151,11 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
   TOTAL_TIMESTEPS=4 \
   REW_SHAPING_HORIZON=4 \
   LOG_INTERVAL=1 \
-  WANDB_MODE=disabled
+  wandb_mode=disabled
 ```
 
 This command writes the experiment to
-`saves/split_no_sig_cnn_dry-run_seed0/`.
+`saves/splitnosig_0_cnn_dry-run_seed0/`.
 
 ### Inspect the resolved Hydra configuration
 
@@ -157,7 +163,7 @@ Print the effective configuration without starting training:
 
 ```bash
 python baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=outage_sig \
+  scenario=outagesig_0 \
   --cfg job --resolve
 ```
 
@@ -177,17 +183,17 @@ saves/
 For example, this configuration:
 
 ```text
-scenario=split_sig ARCHITECTURE=cnn EXPERIMENT_FOLDER=baseline SEED=2
+scenario=splitsig_3 ARCHITECTURE=cnn EXPERIMENT_FOLDER=baseline SEED=2
 ```
 
 creates the following directory:
 
 ```text
-saves/split_sig_cnn_baseline_seed2/
+saves/splitsig_3_cnn_baseline_seed2/
 ```
 
 If `EXPERIMENT_FOLDER` is omitted, the directory is
-`saves/split_sig_cnn_seed2/`. Include only meaningful experimental axes in the
+`saves/splitsig_3_cnn_seed2/`. Include only meaningful experimental axes in the
 name. For example, when a normally fixed learning rate becomes an ablation
 variable, use a name such as `EXPERIMENT_FOLDER=lr-1e-4`.
 
@@ -201,7 +207,7 @@ not hardcoded anywhere in the training code.
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=split_sig \
+  scenario=splitsig_3 \
   SAVES_DIR=/mnt/nas/overcooked-replan \
   EXPERIMENT_FOLDER=baseline \
   SEED=0
@@ -220,8 +226,9 @@ Auxiliary outputs use separate default directories:
 
 ## W&B sweep
 
-`experiment/sweeps/overcooked_v3_role_scenarios.yaml` defines a 20-run grid
-over four scenarios and five seeds. Create it on a Mac with the W&B CLI:
+`experiment/sweeps/overcooked_v3_role_scenarios.yaml` defines a 240-run grid
+over four categories, ten layouts, and six seeds. Create it on a Mac
+with the W&B CLI:
 
 ```bash
 wandb sweep \
@@ -249,8 +256,7 @@ GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
 ```
 
 For example, a sweep run is saved under a directory such as
-`saves/split_sig_cnn_role-scenarios-v5_seed0/`. The `v5` experiment suffix
-keeps the wall-closing Kitchen Split redesign separate from earlier runs.
+`saves/splitsig_3_cnn_seed0/`; the resolved layout name keeps variants separate.
 
 W&B metrics are grouped by slash-delimited namespaces:
 
@@ -271,11 +277,11 @@ A compact 10 FPS MP4 is saved in the experiment directory and uploaded as
 `visualization/final_episode`. The Hydra default is `recording=enabled`; pass
 `recording=disabled` to turn it off. With recording enabled, customize it using
 `RECORD_MAX_STEPS`, `RECORD_VIDEO_FPS`, and `RECORD_VIDEO_QUALITY`. Recording is
-also skipped when `WANDB_MODE=disabled`.
+also skipped when `wandb_mode=disabled`.
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=split_sig \
+  scenario=splitsig_0 \
   recording=disabled \
   SEED=0
 ```
@@ -288,12 +294,12 @@ a GIF:
 ```bash
 JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
 python baselines/IPPO/eval_ippo_overcooked_v3.py \
-  --layout split_no_sig \
+  --layout splitnosig_0 \
   --architecture cnn \
   --agent-seeds 0 0 \
   --episodes 3 \
   --max-steps 400 \
-  --gif evaluation/split_no_sig_same_seed0.gif
+  --gif evaluation/splitnosig_0_same_seed0.gif
 ```
 
 For cross-play, select policies trained with different seeds:
@@ -301,12 +307,12 @@ For cross-play, select policies trained with different seeds:
 ```bash
 JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
 python baselines/IPPO/eval_ippo_overcooked_v3.py \
-  --layout split_no_sig \
+  --layout splitnosig_0 \
   --architecture cnn \
   --agent-seeds 0 1 \
   --episodes 3 \
   --max-steps 400 \
-  --gif evaluation/split_no_sig_cross_seed0_seed1.gif
+  --gif evaluation/splitnosig_0_cross_seed0_seed1.gif
 ```
 
 With `--agent-seeds`, the evaluator finds the newest final checkpoint for the
@@ -315,8 +321,8 @@ its path explicitly with `--checkpoint`:
 
 ```bash
 python baselines/IPPO/eval_ippo_overcooked_v3.py \
-  --layout split_no_sig \
-  --checkpoint saves/split_no_sig_cnn_baseline_seed0/ippo_cnn_overcooked_v3_split_no_sig_seed0_vmap0.safetensors \
+  --layout splitnosig_0 \
+  --checkpoint saves/splitnosig_0_cnn_baseline_seed0/ippo_cnn_overcooked_v3_splitnosig_0_seed0_vmap0.safetensors \
   --episodes 1 \
   --render \
   --render-delay 0.2
@@ -330,7 +336,7 @@ observation flag during evaluation:
 
 ```bash
 python baselines/IPPO/eval_ippo_overcooked_v3.py \
-  --layout split_no_sig \
+  --layout splitnosig_0 \
   --checkpoint PATH_TO_OLD_CHECKPOINT.safetensors \
   --legacy-observation
 ```

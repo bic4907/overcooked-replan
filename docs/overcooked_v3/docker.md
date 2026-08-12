@@ -32,7 +32,7 @@ Run a short training job:
 
 ```bash
 ./run_docker.sh python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=split_sig \
+  scenario=splitsig_0 \
   SEED=0 \
   NUM_SEEDS=1
 ```
