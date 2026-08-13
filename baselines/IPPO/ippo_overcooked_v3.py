@@ -116,6 +116,7 @@ def _checkpoint_metadata(config):
 
 def _wandb_metadata(config):
     """Build stable W&B names while keeping Hydra overrides authoritative."""
+    algorithm = str(config.get("ALGORITHM", "IPPO"))
     architecture = _architecture(config)
     layout_name = config["ENV_KWARGS"]["layout"]
     condition = layout_name
@@ -123,7 +124,9 @@ def _wandb_metadata(config):
     signal_tag = "Sig" if config.get("SIGNAL_ENABLED", False) else "NoSig"
 
     tags = list(config.get("WANDB_TAGS") or [])
-    tags.extend(["IPPO", architecture.upper(), "OvercookedV3", experiment, signal_tag])
+    tags.extend(
+        [algorithm, architecture.upper(), "OvercookedV3", experiment, signal_tag]
+    )
     tags = list(dict.fromkeys(tags))
 
     group = config.get("WANDB_GROUP") or experiment
@@ -149,6 +152,7 @@ def _log_final_checkpoint_artifact(config, checkpoint_paths, config_path):
         description="Final Overcooked V3 IPPO checkpoint(s).",
         metadata={
             "run_id": wandb.run.id,
+            "algorithm": str(config.get("ALGORITHM", "IPPO")),
             "architecture": _architecture(config),
             "layout": config["ENV_KWARGS"]["layout"],
             "seed": int(config["SEED"]),

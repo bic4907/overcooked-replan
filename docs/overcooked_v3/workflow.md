@@ -441,9 +441,10 @@ artifact의 `vmap0` policy를 사용한다. 다른 vmap policy는
 | `eval/...` | episode별 return/length와 mean/std/min/max return |
 | `visualization/...` | 첫 cross-play episode MP4 |
 
-두 run의 network architecture·hidden dimension·관측 채널 설정이 다르면 평가 전에
-명시적인 compatibility 오류로 중단한다. 서로 다른 layout에서 학습된 policy를
-평가할 때는 target `--layout`을 반드시 지정한다.
+두 run의 관측 채널 설정이 다르면 평가 전에 명시적인 compatibility 오류로
+중단한다. CNN/RNN과 hidden dimension은 agent별로 복원하므로 달라도 평가할 수
+있다. 서로 다른 layout에서 학습된 policy를 평가할 때는 target `--layout`을 반드시
+지정한다.
 
 여러 run의 self-play와 양방향 cross-play ordered pair 전체를 실행하려면 배치
 스크립트를 사용한다.
@@ -463,7 +464,57 @@ self-play를 제외하려면 `PAIR_MODE=cross-only`를 추가한다. Run ID 대�
 `evaluation/overcooked_v3/crossplay/matrices/` 아래의 텍스트 파일로도 저장되므로
 GUI가 없는 서버에서도 진행 상황과 최종 결과를 바로 확인할 수 있다.
 
-### 7.4 평가 통계 PNG/CSV 생성
+### 7.4 W&B project 기반 전체 cross-play matrix
+
+run ID를 직접 나열하지 않고 학습 project, 알고리즘, 평가할 맵을 지정해 전체
+ordered matrix를 만들 수 있다. 알고리즘은 run config의 `ALGORITHM`을 우선
+사용하고, 기존 run은 W&B tag로 인식한다. 현재 IPPO 학습 기본값은
+`ALGORITHM=IPPO`다.
+
+```bash
+JAX_PLATFORMS=cuda \
+XLA_PYTHON_CLIENT_PREALLOCATE=false \
+python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
+  inchangbaek4907/overcooked-v3-role-coordination \
+  --algorithms IPPO \
+  --layout splitsig_0 \
+  --output-project inchangbaek4907/overcooked-v3-crossplay-matrix \
+  --seeds 0 1 2 3 4 5 \
+  --episodes 20 \
+  --max-steps 400
+```
+
+한 evaluation run은 `--layout`으로 지정한 맵 하나만 평가한다. 요청한 알고리즘과
+같은 맵으로 학습된 run만 선택한다. 기본적으로
+알고리즘·맵·학습 seed별 가장 최근의 finished run을 사용하며, 각 run의 `final`
+checkpoint artifact 안에 있는 모든 최종 `vmap*.safetensors`를 평가한다.
+`--no-latest-per-seed`, `--vmap-indices`, `--artifact-alias`로 선택 규칙을 바꿀 수
+있다.
+
+같은 artifact의 같은 vmap checkpoint를 두 자리에 배치한 대각선 pair만 SP다.
+run, seed, artifact 또는 vmap index 중 하나라도 달라 다른 checkpoint라면 XP로
+분류한다. agent 자리 효과를 보존하기 위해 `(A, B)`와 `(B, A)`를 모두 계산한다.
+
+별도 W&B evaluation run에는 다음 결과가 기록된다.
+
+| Key | 기록 내용 |
+|---|---|
+| `SP`, `XP`, `SP-XP_gap` | 이 run의 단일 맵 scalar 평균과 `SP - XP` |
+| `matrices/models...` | 알고리즘이 하나이거나 알고리즘당 모델이 여러 개일 때 checkpoint matrix |
+| `matrices/algorithms...` | 알고리즘이 여러 개일 때 알고리즘 pair 평균 matrix |
+| `results/pairs` | 모든 ordered pair의 run, seed, vmap, mean/std return table |
+
+평가 맵은 `pair_results.csv`의 `map` 열에 기록한다. 로컬에는 run마다
+`saves/crossplay/<run>-<timestamp>-p<pid>/` 폴더가 생긴다. 이 안에 다운로드
+checkpoint, W&B SDK local files, 실행 source snapshot, `command.txt`,
+`run_config.json`, `run.log`, `models.json`, `pair_results.json`, `pair_results.csv`,
+`summary.json`, worker 파일과 matrix PNG가 함께 저장된다. 다운로드 checkpoint와
+W&B 내부 cache를 제외한 실행 및 결과 파일은 `crossplay-evaluation` artifact로
+업로드된다.
+긴 평가를 재개하려면 첫 실행과 같은 `--output-dir`을 넘기면 완료된 pair를
+건너뛴다(`pair_cache.json` 사용).
+
+### 7.5 평가 통계 PNG/CSV 생성
 
 `dynamic_00`부터 `dynamic_14`까지의 IPPO v2 평가 로그를 통계로 변환하려면 다음 명령을 사용한다.
 

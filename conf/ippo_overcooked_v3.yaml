@@ -4,6 +4,7 @@ defaults:
   - scenario: dynamic_00
 
 ENV_NAME: overcooked_v3
+ALGORITHM: IPPO
 ARCHITECTURE: cnn
 ENV_KWARGS:
   layout: dynamic_00

@@ -138,14 +138,28 @@ def resolve_checkpoint(
     return max(candidates, key=lambda path: (path.stat().st_mtime_ns, path.name))
 
 
-def evaluate_episode(policy, params, env_step, env, key, hidden_size):
+def evaluate_episode(
+    policy,
+    params,
+    env_step,
+    env,
+    key,
+    hidden_size,
+    record_trajectory=True,
+):
     key, reset_key = jax.random.split(key)
     obs, state = env.reset(reset_key)
-    hidden = ScannedRNN.initialize_carry(env.num_agents, hidden_size)
+    if isinstance(hidden_size, (tuple, list)):
+        hidden = tuple(
+            ScannedRNN.initialize_carry(1, agent_hidden_size)
+            for agent_hidden_size in hidden_size
+        )
+    else:
+        hidden = ScannedRNN.initialize_carry(env.num_agents, hidden_size)
     last_done = jnp.zeros((env.num_agents,), dtype=jnp.bool_)
 
-    state_seq = [state]
-    captions = ["step=0 score=0 actions=-/-"]
+    state_seq = [state] if record_trajectory else None
+    captions = ["step=0 score=0 actions=-/-"] if record_trajectory else None
     episode_return = 0.0
 
     for step in range(env.max_steps):
@@ -163,12 +177,15 @@ def evaluate_episode(policy, params, env_step, env, key, hidden_size):
 
         obs, state, reward, done, info = env_step(step_key, state, actions)
         episode_return += float(reward["agent_0"])
-        state_seq.append(state)
-        action_names = [OvercookedActionsEnum(int(action[i])).name for i in range(2)]
-        captions.append(
-            f"step={step + 1} score={episode_return:g} "
-            f"actions={action_names[0]}/{action_names[1]}"
-        )
+        if record_trajectory:
+            state_seq.append(state)
+            action_names = [
+                OvercookedActionsEnum(int(action[i])).name for i in range(2)
+            ]
+            captions.append(
+                f"step={step + 1} score={episode_return:g} "
+                f"actions={action_names[0]}/{action_names[1]}"
+            )
         last_done = jnp.asarray([done[agent] for agent in env.agents])
 
         if bool(done["__all__"]):

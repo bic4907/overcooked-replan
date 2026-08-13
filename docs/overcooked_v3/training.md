@@ -147,6 +147,8 @@ NAS 등 다른 루트를 쓰려면 학습 명령에
 최종 checkpoint는 기본적으로 로컬에 저장하고 W&B artifact에도 업로드한다. 모든
 `vmap*.safetensors`와 resolved config가 `checkpoint` type artifact 하나에 들어가며
 `final` alias가 붙는다.
+학습 알고리즘 이름은 `ALGORITHM` config와 artifact metadata/W&B tag에 함께
+기록되며 기본값은 `IPPO`다. Project 단위 cross-play 검색은 이 값을 우선 사용한다.
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \

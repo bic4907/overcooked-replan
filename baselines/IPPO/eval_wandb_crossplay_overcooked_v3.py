@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 import jax
@@ -204,6 +205,95 @@ def _source_layout(run_config):
     return (run_config.get("ENV_KWARGS") or {}).get("layout")
 
 
+def _target_layout(run_configs, requested_layout):
+    source_layouts = tuple(_source_layout(config) for config in run_configs)
+    if requested_layout is not None:
+        return requested_layout
+    if source_layouts[0] != source_layouts[1] or source_layouts[0] is None:
+        raise ValueError(
+            "--layout is required when source runs were trained on different layouts"
+        )
+    return source_layouts[0]
+
+
+def evaluation_signature(run_configs, args):
+    """Return a hashable signature for sharing one compiled evaluation runtime."""
+    return (
+        _target_layout(run_configs, args.layout),
+        int(args.max_steps),
+        bool(args.stochastic),
+        tuple(tuple(sorted(_policy_config(config).items())) for config in run_configs),
+        tuple(
+            tuple(sorted(_observation_config(config).items())) for config in run_configs
+        ),
+    )
+
+
+@dataclass
+class CrossplayRuntime:
+    layout: str
+    env: object
+    env_step: object
+    policy: object
+    hidden_sizes: tuple[int, int]
+
+
+def prepare_crossplay_runtime(run_configs, args):
+    """Build and JIT the environment/policies shared by compatible model pairs."""
+    policy_configs = tuple(_policy_config(config) for config in run_configs)
+    observation_configs = tuple(_observation_config(config) for config in run_configs)
+    if observation_configs[0] != observation_configs[1]:
+        raise ValueError(
+            "The two runs use incompatible observation configurations: "
+            f"{observation_configs}"
+        )
+
+    layout = _target_layout(run_configs, args.layout)
+    env = jaxmarl.make(
+        "overcooked_v3",
+        layout=layout,
+        max_steps=args.max_steps,
+        random_agent_positions=False,
+        **observation_configs[0],
+    )
+    networks = tuple(
+        (ActorCriticRNN if config["ARCHITECTURE"] == "rnn" else ActorCriticCNN)(
+            env.action_space(agent).n, config=config
+        )
+        for agent, config in zip(env.agents, policy_configs)
+    )
+
+    def select_action(params, hidden, obs, dones, action_key):
+        action_keys = jax.random.split(action_key, env.num_agents)
+        next_hidden = []
+        actions = []
+        for agent_index in range(env.num_agents):
+            agent_hidden, pi, _ = networks[agent_index].apply(
+                params[agent_index],
+                hidden[agent_index],
+                (
+                    obs[:, agent_index : agent_index + 1],
+                    dones[:, agent_index : agent_index + 1],
+                ),
+            )
+            action = (
+                pi.sample(seed=action_keys[agent_index])
+                if args.stochastic
+                else pi.mode()
+            )
+            next_hidden.append(agent_hidden)
+            actions.append(action)
+        return tuple(next_hidden), jnp.concatenate(actions, axis=1)
+
+    return CrossplayRuntime(
+        layout=layout,
+        env=env,
+        env_step=jax.jit(env.step_env),
+        policy=jax.jit(select_action),
+        hidden_sizes=tuple(config["GRU_HIDDEN_DIM"] for config in policy_configs),
+    )
+
+
 def write_metrics_json(path, run_paths, run_ids, layout, summary):
     """Atomically write one ordered-pair result for the matrix viewer."""
     path = Path(path)
@@ -221,71 +311,18 @@ def write_metrics_json(path, run_paths, run_ids, layout, summary):
     temporary_path.replace(path)
 
 
-def evaluate_crossplay(checkpoints, run_configs, args):
-    policy_configs = tuple(_policy_config(config) for config in run_configs)
-    if policy_configs[0] != policy_configs[1]:
-        raise ValueError(
-            "Cross-play currently requires matching architecture and network dimensions; "
-            f"got {policy_configs}"
-        )
-    observation_configs = tuple(_observation_config(config) for config in run_configs)
-    if observation_configs[0] != observation_configs[1]:
-        raise ValueError(
-            "The two runs use incompatible observation configurations: "
-            f"{observation_configs}"
-        )
-
-    source_layouts = tuple(_source_layout(config) for config in run_configs)
-    if args.layout is None:
-        if source_layouts[0] != source_layouts[1] or source_layouts[0] is None:
-            raise ValueError(
-                "--layout is required when source runs were trained on different layouts"
-            )
-        layout = source_layouts[0]
-    else:
-        layout = args.layout
-
-    network_config = policy_configs[0]
-    env = jaxmarl.make(
-        "overcooked_v3",
-        layout=layout,
-        max_steps=args.max_steps,
-        random_agent_positions=False,
-        **observation_configs[0],
-    )
-    network_class = (
-        ActorCriticRNN if network_config["ARCHITECTURE"] == "rnn" else ActorCriticCNN
-    )
-    networks = tuple(
-        network_class(env.action_space(agent).n, config=network_config)
-        for agent in env.agents
-    )
-    params = tuple(load_params(checkpoint) for checkpoint in checkpoints)
-
-    def select_action(params, hidden, obs, dones, action_key):
-        action_keys = jax.random.split(action_key, env.num_agents)
-        next_hidden = []
-        actions = []
-        for agent_index in range(env.num_agents):
-            agent_hidden, pi, _ = networks[agent_index].apply(
-                params[agent_index],
-                hidden[agent_index : agent_index + 1],
-                (
-                    obs[:, agent_index : agent_index + 1],
-                    dones[:, agent_index : agent_index + 1],
-                ),
-            )
-            action = (
-                pi.sample(seed=action_keys[agent_index])
-                if args.stochastic
-                else pi.mode()
-            )
-            next_hidden.append(agent_hidden)
-            actions.append(action)
-        return jnp.concatenate(next_hidden), jnp.concatenate(actions, axis=1)
-
-    policy = jax.jit(select_action)
-    env_step = jax.jit(env.step_env)
+def evaluate_crossplay(
+    checkpoints,
+    run_configs,
+    args,
+    runtime=None,
+    params=None,
+    episode_callback=None,
+    record_trajectory=True,
+):
+    runtime = runtime or prepare_crossplay_runtime(run_configs, args)
+    if params is None:
+        params = tuple(load_params(checkpoint) for checkpoint in checkpoints)
     key = jax.random.PRNGKey(args.seed)
     returns = []
     lengths = []
@@ -294,34 +331,37 @@ def evaluate_crossplay(checkpoints, run_configs, args):
 
     for episode in range(args.episodes):
         episode_return, length, states, captions, key = evaluate_episode(
-            policy,
+            runtime.policy,
             params,
-            env_step,
-            env,
+            runtime.env_step,
+            runtime.env,
             key,
-            network_config["GRU_HIDDEN_DIM"],
+            runtime.hidden_sizes,
+            record_trajectory=record_trajectory,
         )
         returns.append(episode_return)
         lengths.append(length)
-        if first_states is None:
+        if record_trajectory and first_states is None:
             first_states = states
             first_captions = captions
-        wandb.log(
-            {
-                "eval/episode": episode + 1,
-                "eval/episode_return": episode_return,
-                "eval/episode_length": length,
-            }
-        )
-        print(f"episode={episode + 1} return={episode_return:.2f} length={length}")
+        if episode_callback is not None:
+            episode_callback(
+                {
+                    "eval/episode": episode + 1,
+                    "eval/episode_return": episode_return,
+                    "eval/episode_length": length,
+                }
+            )
+        if record_trajectory:
+            print(f"episode={episode + 1} return={episode_return:.2f} length={length}")
 
     return {
-        "layout": layout,
+        "layout": runtime.layout,
         "returns": np.asarray(returns),
         "lengths": np.asarray(lengths),
         "states": first_states,
         "captions": first_captions,
-        "env": env,
+        "env": runtime.env,
     }
 
 
@@ -386,7 +426,12 @@ def main():
             checkpoints.append(checkpoint)
             print(f"Using {source_run.id} checkpoint: {checkpoint}")
 
-        result = evaluate_crossplay(tuple(checkpoints), run_configs, args)
+        result = evaluate_crossplay(
+            tuple(checkpoints),
+            run_configs,
+            args,
+            episode_callback=wandb.log,
+        )
         returns = result["returns"]
         lengths = result["lengths"]
         summary = {
