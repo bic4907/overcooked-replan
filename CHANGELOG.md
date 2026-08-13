@@ -44,7 +44,6 @@ JAX: `jax<=0.4.38` upper cap removed, floor set to `>=0.4.25` (`jax.tree` became
 - `MultiAgentEnv` and `SUBMODULE_ENVIRONMENTS` now importable directly from `jaxmarl.registration`
 - `jaxmarl/py.typed`: package now ships type information for IDE support
 - `[tool.pyright]` config in `pyproject.toml` scoped to public API files
-- `.pre-commit-config.yaml`: ruff linting and formatting enforced on commit; switched from `astral-sh/ruff-pre-commit` to `language: system` to use the project-installed ruff and avoid network fetches on first commit
 - `.devcontainer/devcontainer.json`: one-click VS Code dev container with GPU support
 - `make local-test` target for running tests without Docker
 

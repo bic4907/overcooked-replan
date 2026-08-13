@@ -1,0 +1,58 @@
+name: Overcooked V3 tests
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/overcooked-v3-tests.yml"
+      - "baselines/IPPO/**"
+      - "conf/**"
+      - "experiment/sweeps/**"
+      - "jaxmarl/_env.py"
+      - "jaxmarl/_experiment.py"
+      - "jaxmarl/registration.py"
+      - "jaxmarl/environments/__init__.py"
+      - "jaxmarl/environments/overcooked_v2/**"
+      - "jaxmarl/environments/overcooked_v3/**"
+      - "jaxmarl/viz/overcooked_v3_visualizer.py"
+      - "scripts/overcooked_v3/**"
+      - "tests/overcooked_v3/**"
+      - "pyproject.toml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/overcooked-v3-tests.yml"
+      - "baselines/IPPO/**"
+      - "conf/**"
+      - "experiment/sweeps/**"
+      - "jaxmarl/_env.py"
+      - "jaxmarl/_experiment.py"
+      - "jaxmarl/registration.py"
+      - "jaxmarl/environments/__init__.py"
+      - "jaxmarl/environments/overcooked_v2/**"
+      - "jaxmarl/environments/overcooked_v3/**"
+      - "jaxmarl/viz/overcooked_v3_visualizer.py"
+      - "scripts/overcooked_v3/**"
+      - "tests/overcooked_v3/**"
+      - "pyproject.toml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: overcooked-v3-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -e ".[algs,dev]"
+      - run: python -m pytest tests/overcooked_v3 -q

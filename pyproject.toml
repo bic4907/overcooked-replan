@@ -62,7 +62,6 @@ dev = [
   "mpe2",
   "ruff",
   "pyright",
-  "pre-commit",
 ]
 mabrax = [
   "brax>=0.10.3",
