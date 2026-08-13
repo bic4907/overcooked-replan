@@ -46,9 +46,6 @@ JAX: `jax<=0.4.38` upper cap removed, floor set to `>=0.4.25` (`jax.tree` became
 - `[tool.pyright]` config in `pyproject.toml` scoped to public API files
 - `.pre-commit-config.yaml`: ruff linting and formatting enforced on commit; switched from `astral-sh/ruff-pre-commit` to `language: system` to use the project-installed ruff and avoid network fetches on first commit
 - `.devcontainer/devcontainer.json`: one-click VS Code dev container with GPU support
-- `.github/workflows/ci.yml`: lightweight CI (lint, typecheck, pytest on Python 3.11/3.12) without Docker
-- `.github/workflows/docs.yml`: auto-deploy MkDocs docs to GitHub Pages on push to `main`
-- GitHub issue templates (bug report, feature request) and PR checklist
 - `make local-test` target for running tests without Docker
 
 #### Fixed

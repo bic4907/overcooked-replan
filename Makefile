@@ -19,7 +19,7 @@ DOCKER_RUN_DETACHED=docker run -d --rm $(GPUS) -v ${PWD}:/home/$(MYUSER) --shm-s
 USE_CUDA = $(if $(GPUS),true,false)
 ID = $(shell id -u)
 
-.PHONY: build run test local-test workflow-test run-baseline-set
+.PHONY: build run test local-test run-baseline-set
 
 # make file commands
 build:
@@ -33,10 +33,6 @@ test:
 
 local-test:
 	pytest ./tests/ -v
-
-workflow-test:
-	# without -it flag; JAX_PLATFORMS=cpu prevents the CUDA plugin from segfaulting when no GPU driver is present
-	docker run --rm -e JAX_PLATFORMS=cpu -v ${PWD}:/home/$(MYUSER) --shm-size 20G $(IMAGE) /bin/bash -c "pytest ./tests/"
 
 run-baseline-set:
 	$(DOCKER_RUN_DETACHED) python baselines/run_minimal_baseline_set.py $(ARGS)
