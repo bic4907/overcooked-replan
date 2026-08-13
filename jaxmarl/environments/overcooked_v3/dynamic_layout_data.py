@@ -17,9 +17,9 @@
 # phase. When the right onion pile disappears, the left agent must trade off
 # local cooking against supplying onions through the shared center counters.
 #
-# Canonical role-layout names have no underscores inside the category name:
-# ``splitnosig_0`` ... ``splitnosig_9`` and likewise for ``splitsig``,
-# ``outagenosig``, and ``outagesig``. Variant 0 preserves the original layout.
+# Canonical role-layout names have no suffix beyond their workload index:
+# ``splitnosig_0`` ... ``splitnosig_4`` and likewise for ``splitsig``,
+# ``outagenosig``, and ``outagesig``.
 
 splitnosig_0 = [
     [
@@ -236,6 +236,235 @@ def _register_role_variants():
 
 
 _register_role_variants()
+
+
+# Workload-controlled Split maps. Counts increase across the five variants:
+# (onions, pots, plates, goals) =
+# (1,1,1,1), (1,2,1,1), (2,2,1,1), (1,3,2,1), (2,3,2,2).
+_SPLIT_WORKLOAD_SPECS = (
+    (
+        3,
+        2,
+        ((2, 3), (8, 3)),
+        (("0", (1, 0)), ("P", (3, 0))),
+        (("B", (7, 0)), ("X", (9, 0))),
+    ),
+    (
+        2,
+        4,
+        ((3, 2), (7, 2)),
+        (("0", (1, 0)), ("P", (3, 0)), ("P", (0, 4))),
+        (("B", (7, 0)), ("X", (10, 4))),
+    ),
+    (
+        4,
+        2,
+        ((2, 4), (8, 4)),
+        (("0", (1, 0)), ("0", (0, 2)), ("P", (3, 0)), ("P", (2, 6))),
+        (("B", (7, 0)), ("X", (10, 4))),
+    ),
+    (
+        3,
+        5,
+        ((3, 3), (7, 3)),
+        (
+            ("0", (1, 0)),
+            ("P", (3, 0)),
+            ("P", (0, 2)),
+            ("P", (2, 6)),
+        ),
+        (("B", (7, 0)), ("B", (10, 2)), ("X", (9, 6))),
+    ),
+    (
+        2,
+        5,
+        ((2, 2), (8, 2)),
+        (
+            ("0", (1, 0)),
+            ("0", (0, 4)),
+            ("P", (3, 0)),
+            ("P", (0, 2)),
+            ("P", (2, 6)),
+        ),
+        (
+            ("B", (7, 0)),
+            ("B", (10, 2)),
+            ("X", (9, 6)),
+            ("X", (10, 4)),
+        ),
+    ),
+)
+
+
+def _build_split_workload(spec, signal_enabled):
+    door_row, signal_row, agents, left_resources, right_resources = spec
+    resources = [*left_resources, *right_resources]
+    open_grid = _role_grid(
+        resources,
+        agents,
+        signal_row,
+        signal_enabled,
+        door=(door_row, True),
+    )
+    closed_grid = _role_grid(
+        resources,
+        agents,
+        signal_row,
+        signal_enabled,
+        door=(door_row, False),
+    )
+    return [[open_grid, 40], [closed_grid, 160]]
+
+
+for _workload_index, _workload_spec in enumerate(_SPLIT_WORKLOAD_SPECS):
+    globals()[f"splitnosig_{_workload_index}"] = _build_split_workload(
+        _workload_spec, False
+    )
+    globals()[f"splitsig_{_workload_index}"] = _build_split_workload(
+        _workload_spec, True
+    )
+
+
+def _compact_outage_grid(
+    resources,
+    agent_positions,
+    signal_row,
+    signal_enabled,
+    notches=(),
+):
+    """Build a compact 6x9 kitchen with permanently separated movement bays."""
+    width, height, center_x = 9, 6, 4
+    rows = [["W"] * width for _ in range(height)]
+    for y in range(1, height - 1):
+        for x in range(1, width - 1):
+            rows[y][x] = " "
+        rows[y][center_x] = "W"
+
+    rows[signal_row][center_x] = "L" if signal_enabled else "R"
+    for x, y in notches:
+        rows[y][x] = "W"
+        rows[y][width - 1 - x] = "W"
+    for symbol, (x, y) in resources:
+        if rows[y][x] not in {"W", " "}:
+            raise ValueError(f"Compact outage resource collision at {(x, y)}")
+        rows[y][x] = symbol
+    for x, y in agent_positions:
+        if rows[y][x] != " ":
+            raise ValueError(f"Compact outage agent collision at {(x, y)}")
+        rows[y][x] = "A"
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+# The compact variants reduce an onion-to-handoff-to-pot transfer to only a few
+# movement steps. A 40-step normal phase permits at most a short warm-up, while
+# the 160-step outage makes sustained right-kitchen production depend on supply
+# from the left cook. Counts match the Split workload progression.
+_COMPACT_OUTAGE_SPECS = (
+    (
+        3,
+        ((2, 2), (6, 2)),
+        (("0", (3, 0)), ("P", (1, 0)), ("B", (1, 5)), ("X", (3, 5))),
+        (),
+    ),
+    (
+        4,
+        ((2, 3), (6, 3)),
+        (
+            ("0", (3, 0)),
+            ("P", (1, 0)),
+            ("P", (0, 3)),
+            ("B", (1, 5)),
+            ("X", (3, 5)),
+        ),
+        (),
+    ),
+    (
+        1,
+        ((2, 3), (6, 3)),
+        (
+            ("0", (3, 0)),
+            ("0", (0, 2)),
+            ("P", (2, 0)),
+            ("P", (0, 4)),
+            ("B", (1, 5)),
+            ("X", (3, 5)),
+        ),
+        (),
+    ),
+    (
+        4,
+        ((2, 3), (6, 3)),
+        (
+            ("0", (3, 0)),
+            ("P", (1, 0)),
+            ("P", (2, 0)),
+            ("P", (0, 3)),
+            ("B", (1, 5)),
+            ("B", (2, 5)),
+            ("X", (3, 5)),
+        ),
+        (),
+    ),
+    (
+        1,
+        ((2, 3), (6, 3)),
+        (
+            ("0", (3, 0)),
+            ("0", (0, 1)),
+            ("P", (1, 0)),
+            ("P", (2, 0)),
+            ("P", (0, 3)),
+            ("B", (1, 5)),
+            ("B", (2, 5)),
+            ("X", (3, 5)),
+            ("X", (0, 4)),
+        ),
+        (),
+    ),
+)
+
+
+def _build_compact_outage_variant(spec, signal_enabled):
+    signal_row, agents, left_resources, notches = spec
+    right_resources = tuple((symbol, (8 - x, y)) for symbol, (x, y) in left_resources)
+    normal_grid = _compact_outage_grid(
+        left_resources + right_resources,
+        agents,
+        signal_row,
+        signal_enabled,
+        notches,
+    )
+    outage_right_resources = [
+        (("W" if symbol == "0" else symbol), position)
+        for symbol, position in right_resources
+    ]
+    outage_grid = _compact_outage_grid(
+        [*left_resources, *outage_right_resources],
+        agents,
+        signal_row,
+        signal_enabled,
+        notches,
+    )
+    return [[normal_grid, 40], [outage_grid, 160]]
+
+
+for _compact_index, _compact_spec in enumerate(_COMPACT_OUTAGE_SPECS):
+    globals()[f"outagenosig_{_compact_index}"] = _build_compact_outage_variant(
+        _compact_spec, False
+    )
+    globals()[f"outagesig_{_compact_index}"] = _build_compact_outage_variant(
+        _compact_spec, True
+    )
+
+# Retire the superseded 7x11 variants so only five maps per family are public.
+for _retired_index in range(5, 10):
+    for _retired_family in (
+        "splitnosig",
+        "splitsig",
+        "outagenosig",
+        "outagesig",
+    ):
+        globals().pop(f"{_retired_family}_{_retired_index}", None)
 
 # Backward-compatible aliases for existing commands and checkpoints.
 split_no_sig = splitnosig_0
