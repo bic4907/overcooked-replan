@@ -8,6 +8,7 @@ import pytest
 
 from baselines.IPPO.eval_crossplay_overcooked_v3 import prepare_gpu_argv
 from baselines.IPPO.eval_wandb_crossplay_matrix_overcooked_v3 import (
+    PolicyModel,
     _write_records_csv,
     add_run_outputs_to_artifact,
     build_algorithm_matrix,
@@ -63,6 +64,24 @@ def test_wandb_run_name_starts_with_xp():
     )
 
     assert evaluation_run_name(settings) == "xp-ippo+fcp-splitsig_0"
+
+
+def test_policy_display_label_omits_run_and_vmap_details(tmp_path):
+    model = PolicyModel(
+        algorithm="IPPO",
+        layout="splitsig_0",
+        seed=0,
+        run_id="abc123",
+        run_path="entity/project/abc123",
+        vmap_index=7,
+        checkpoint=tmp_path / "policy.safetensors",
+        config={},
+        artifact_name="checkpoint:v3",
+    )
+
+    assert model.label == "IPPO|s0"
+    assert "abc123" in model.identity
+    assert "vmap7" in model.identity
 
 
 def test_default_run_paths_keep_all_outputs_under_one_saves_directory():

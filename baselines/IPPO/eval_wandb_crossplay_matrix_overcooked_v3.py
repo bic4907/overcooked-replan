@@ -83,7 +83,7 @@ class PolicyModel:
     @property
     def label(self):
         seed = "?" if self.seed is None else self.seed
-        return f"{self.algorithm}|s{seed}|{self.run_id}|v{self.vmap_index}"
+        return f"{self.algorithm}|s{seed}"
 
 
 def parse_args(argv=None):

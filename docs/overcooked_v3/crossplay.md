@@ -270,6 +270,10 @@ W&B evaluation run:
 평가 맵은 `pair_results.csv`의 첫 번째 `map` 열에 기록한다. JSON/cache에서는 기존
 호환성을 위해 동일한 값을 `layout` 필드로 유지한다.
 
+model matrix의 표시 label은 `IPPO|s0`처럼 알고리즘과 training seed만 사용한다.
+run ID와 vmap index는 label에서 생략하지만 CSV/JSON의 run, vmap, model ID 필드에는
+그대로 기록한다.
+
 예를 들어 IPPO를 `splitsig_0`에서 평가하면 run 이름은 다음처럼 표시된다. seed,
 vmap, episode, step, GPU 등의 세부 설정은 W&B config에서 확인한다.
 
