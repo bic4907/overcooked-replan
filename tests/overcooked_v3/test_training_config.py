@@ -22,8 +22,9 @@ SCENARIO_FAMILIES = {
 SCENARIOS = {
     f"{family}_{variant}": metadata
     for family, metadata in SCENARIO_FAMILIES.items()
-    for variant in range(10)
+    for variant in range(5)
 }
+SELECTED_SWEEP_SCENARIOS = list(SCENARIOS)
 
 
 def test_default_training_config_preserves_dynamic_00():
@@ -136,7 +137,7 @@ def test_explicit_offline_and_disabled_modes_are_preserved():
 def test_wandb_sweep_covers_scenarios_and_seeds():
     sweep = OmegaConf.to_container(
         OmegaConf.load(
-            ROOT / "experiment" / "sweeps" / "overcooked_v3_role_scenarios.yaml"
+            ROOT / "experiment" / "sweeps" / "train_ippo.yaml"
         ),
         resolve=False,
     )
@@ -146,7 +147,7 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
         "goal": "maximize",
         "name": "train/episode_return",
     }
-    assert set(sweep["parameters"]["scenario"]["values"]) == set(SCENARIOS)
+    assert sweep["parameters"]["scenario"]["values"] == SELECTED_SWEEP_SCENARIOS
     assert "LAYOUT_VARIANT" not in sweep["parameters"]
     assert sweep["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
     assert sweep["parameters"]["recording"]["value"] == "enabled"

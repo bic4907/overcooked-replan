@@ -26,14 +26,14 @@ export MPLCONFIGDIR=/tmp
 
 ## 2. 가장 작은 smoke test
 
-아래 명령은 `outagesig_9`의 IPPO seed 4·5 checkpoint를 받아 4개 ordered pair를
+아래 명령은 `outagesig_4`의 IPPO seed 4·5 checkpoint를 받아 4개 ordered pair를
 각각 1 episode, 2 step만 평가한다. W&B evaluation run은 만들지 않는다.
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   inchangbaek4907/overcooked-v3-role-coordination \
   --algorithms IPPO \
-  --layout outagesig_9 \
+  --layout outagesig_4 \
   --seeds 4 5 \
   --episodes 1 \
   --max-steps 2 \
@@ -60,7 +60,7 @@ python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   --output-project inchangbaek4907/overcooked-v3-crossplay
 ```
 
-한 evaluation run은 `--layout`으로 지정한 맵 하나만 평가한다. 여러 맵은 40-map
+한 evaluation run은 `--layout`으로 지정한 맵 하나만 평가한다. 여러 맵은 20-map
 sweep처럼 맵마다 별도의 W&B run으로 실행한다.
 
 ## 4. 여러 GPU로 병렬 평가
@@ -120,12 +120,12 @@ artifact 검색·다운로드, 각 GPU의 첫 JIT compile, 마지막 W&B 업로�
 들어 `CUDA_VISIBLE_DEVICES=3,5`라면 GPU 3만 사용한다. 여러 GPU를 한 eval run에
 할당하려는 경우에만 `--gpus 0 1 2 3`처럼 명시한다.
 
-### 4.1 기존 40개 맵 W&B sweep
+### 4.1 20개 맵 W&B sweep
 
-학습 sweep과 동일한 40개 맵을 한 번씩 평가하는 grid sweep이 준비되어 있다.
+학습 sweep과 동일한 20개 맵을 한 번씩 평가하는 grid sweep이 준비되어 있다.
 
 ```text
-experiment/sweeps/ippo_seedwise_crossplay.yaml
+experiment/sweeps/eval_ippo_seedwise.yaml
 ```
 
 평가 결과를 저장할 별도 project에 sweep을 만든다.
@@ -134,7 +134,7 @@ experiment/sweeps/ippo_seedwise_crossplay.yaml
 wandb sweep \
   --entity inchangbaek4907 \
   --project overcooked-v3-crossplay \
-  experiment/sweeps/ippo_seedwise_crossplay.yaml
+  experiment/sweeps/eval_ippo_seedwise.yaml
 ```
 
 출력된 `ENTITY/PROJECT/SWEEP_ID`를 GPU 서버에서 실행한다.
@@ -150,10 +150,10 @@ bash scripts/overcooked_v3/run_wandb_agents.sh \
 이 방식에서는 W&B agent 하나가 한 GPU에 고정되고 서로 다른 맵을 가져간다. 따라서
 sweep YAML에는 `--gpus`를 넣지 않는다. 더 많은 GPU로 확장하려면 위 명령의 값을
 `GPUS="0 1 2 3"`처럼 바꾼다. 4 GPU라면 최대 네 맵이 동시에 평가되며,
-각 맵 run 안에서는 해당 GPU의 여러 worker가 matrix pair를 분산 처리한다. 40개 맵 전체에서
+각 맵 run 안에서는 해당 GPU의 여러 worker가 matrix pair를 분산 처리한다. 20개 맵 전체에서
 GPU 활용률을 유지하기에는 이 방식이 한 run이 모든 GPU를 점유하는 것보다 적합하다.
 
-`ippo_seedwise_crossplay.yaml`은 현재 `workers-per-gpu: 8`로 설정되어 있어 각
+`eval_ippo_seedwise.yaml`은 현재 `workers-per-gpu: 8`로 설정되어 있어 각
 W&B agent가 자신에게 할당된 GPU에 eval worker 여덟 개를 실행한다. GPU별 instance
 수를 바꾸려면 이 값을 수정한다.
 
@@ -304,3 +304,29 @@ saves/crossplay/xp-ippo-splitsig_0-<timestamp>-p<pid>/
 `--output-dir`을 지정하면 동일한 구조를 지정 경로 아래에 만든다. 다운로드한 source
 checkpoint와 W&B SDK 내부 파일도 로컬 run 폴더에는 보존하지만, W&B 결과 artifact에는
 중복 업로드하지 않는다.
+
+## 10. Rollout·matrix 통합 report
+
+선별된 각 맵에 대해 training project의 final-episode MP4와 cross-play
+project의 최신 matrix를 가져와 옆으로 배치한다. 기본은 training seed 0
+영상을 선택하고, seed 0에 영상이 없을 때만 최신 완료 run으로 fallback한다.
+
+```bash
+python -u baselines/IPPO/build_wandb_role_scenario_report.py \
+  --entity inchangbaek4907 \
+  --training-project overcooked-v3-role-coordination \
+  --crossplay-project overcooked-v3-crossplay \
+  --output-project overcooked-v3-crossplay
+```
+
+로컬 `saves/reports/role-scenarios-<timestamp>/` 아래에 다음을 생성한다.
+
+- `index.html`: map별 video와 matrix를 옆으로 보여주는 report
+- `map_metrics.csv`: map별 `SP`, `XP`, `SP-XP_gap` table
+- `report.json`: run ID와 로컬 media 경로를 포함한 machine-readable report
+- `media/`: W&B에서 다운로드한 MP4와 matrix PNG
+
+W&B에는 `role-scenario-sp-xp-report` run이 생성되며,
+`report/map_results`에 `map | sample_rollout | payoff_matrix | SP | XP | gap`
+형태의 media table을 기록한다. 선택한 레이아웃은 training sweep YAML을
+기본으로 사용하고, 필요하면 `--layouts`로 직접 지정할 수 있다.

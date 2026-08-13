@@ -541,7 +541,8 @@ def write_reproducibility_bundle(output_dir, args, run_name, artifact_dir):
             shutil.copy2(source_path, source_dir / filename)
 
     sweep_path = (
-        script_dir.parents[1] / "experiment/sweeps/ippo_seedwise_crossplay.yaml"
+        script_dir.parents[1]
+        / "experiment/sweeps/eval_ippo_seedwise.yaml"
     )
     if sweep_path.is_file():
         shutil.copy2(sweep_path, source_dir / sweep_path.name)

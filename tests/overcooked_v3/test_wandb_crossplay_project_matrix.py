@@ -124,7 +124,7 @@ def test_reproducibility_bundle_saves_command_config_and_executable_sources(
     assert config["artifact_dir"] == str(artifact_dir)
     assert (tmp_path / "source/eval_crossplay_overcooked_v3.py").is_file()
     assert (tmp_path / "source/eval_wandb_crossplay_matrix_overcooked_v3.py").is_file()
-    assert (tmp_path / "source/ippo_seedwise_crossplay.yaml").is_file()
+    assert (tmp_path / "source/eval_ippo_seedwise.yaml").is_file()
 
 
 def test_result_artifact_excludes_downloaded_checkpoint_cache(tmp_path):

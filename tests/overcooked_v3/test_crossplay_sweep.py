@@ -4,25 +4,25 @@ import yaml
 from wandb.sdk.launch.sweeps.utils import create_sweep_command_args
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-TRAIN_SWEEP = PROJECT_ROOT / "experiment/sweeps/overcooked_v3_role_scenarios.yaml"
-CROSSPLAY_SWEEP = PROJECT_ROOT / "experiment/sweeps/ippo_seedwise_crossplay.yaml"
+TRAIN_SWEEP = PROJECT_ROOT / "experiment/sweeps/train_ippo.yaml"
+CROSSPLAY_SWEEP = PROJECT_ROOT / "experiment/sweeps/eval_ippo_seedwise.yaml"
 
 
 def load_yaml(path):
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def test_crossplay_sweep_contains_exactly_the_forty_training_maps():
+def test_crossplay_sweep_contains_exactly_the_twenty_selected_training_maps():
     training = load_yaml(TRAIN_SWEEP)
     crossplay = load_yaml(CROSSPLAY_SWEEP)
 
     training_maps = training["parameters"]["scenario"]["values"]
     crossplay_maps = crossplay["parameters"]["layout"]["values"]
 
-    assert len(training_maps) == 40
-    assert len(crossplay_maps) == 40
+    assert len(training_maps) == 20
+    assert len(crossplay_maps) == 20
     assert crossplay_maps == training_maps
-    assert len(set(crossplay_maps)) == 40
+    assert len(set(crossplay_maps)) == 20
 
 
 def test_crossplay_sweep_renders_argparse_compatible_flags():
@@ -34,7 +34,12 @@ def test_crossplay_sweep_renders_argparse_compatible_flags():
 
     rendered = create_sweep_command_args({"args": assigned})["args_no_equals"]
 
-    assert rendered[:4] == ["--algorithms", "IPPO", "--layout", "splitnosig_0"]
+    assert rendered[:4] == [
+        "--algorithms",
+        "IPPO",
+        "--layout",
+        "splitnosig_0",
+    ]
     assert "--max-steps" in rendered
     assert rendered[rendered.index("--workers-per-gpu") + 1] == "8"
     assert "--vmap-indices" not in rendered

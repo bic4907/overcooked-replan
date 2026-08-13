@@ -9,14 +9,14 @@ The following role-coordination experiments are currently available:
 
 | Hydra scenario | Environment | Signal counter | Research question |
 | --- | --- | --- | --- |
-| `splitnosig_0` ... `_9` | Kitchen Split | No | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
-| `splitsig_0` ... `_9` | Kitchen Split | Yes | Does signaling reduce same-side choices before the kitchen splits? |
-| `outagenosig_0` ... `_9` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
-| `outagesig_0` ... `_9` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
+| `splitnosig_0` ... `_4` | Kitchen Split | No | Can agents choose opposite bays before the doorway closes and sustain complementary roles under different workloads? |
+| `splitsig_0` ... `_4` | Kitchen Split | Yes | Does signaling reduce same-side choices before the kitchen splits? |
+| `outagenosig_0` ... `_4` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
+| `outagesig_0` ... `_4` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
 
 Kitchen Split starts with one central doorway open for 40 steps. It then becomes
 a handoff counter for 160 steps, preventing agents from changing bays. The left
-bay has onions and two pots; the right bay has plates and serving. Agents must
+bay has onions and pots; the right bay has plates and serving. Agents must
 choose opposite sides before closure and sustain complementary cook–server
 roles through the counter. Resource Outage instead keeps two complete kitchens
 in disconnected bays; the right onion pile disappears during the outage, so
@@ -24,9 +24,17 @@ the left cook must trade off local production against supplying the right bay.
 NoSig uses an inert, non-storage indicator where Sig provides the activatable
 public signal, keeping the remaining geometry equal.
 
-Each category has ten directly registered 7×11 layouts. Select one through its
-Hydra scenario name, such as `scenario=splitsig_3`; layout 0 preserves the
-original geometry. Matching Sig/NoSig indices differ only at the signal tile.
+Each category has exactly five layouts: Split uses 7×11 maps and Outage uses
+shorter 6×9 maps. Their resource counts progress from one to three
+pots, one to two onion/plate piles, and one to two serving stations. Outage's normal
+phase lasts 40 steps and their outage lasts 160, while onion–handoff–pot travel
+requires at most four movement steps across both agents. The central wall always
+separates agent movement, so cross-bay assistance is possible only by placing
+objects on shared handoff counters. This keeps the right cook productive without
+allowing it to walk to the surviving onion pile directly.
+Select a layout through its Hydra scenario name, such as
+`scenario=outagesig_1`. Matching Sig/NoSig indices differ only at the
+signal tile.
 
 Overcooked V3 exposes public signals and upcoming layout transitions to every
 agent. The final three channels of the default 33-channel observation contain a
@@ -226,15 +234,15 @@ Auxiliary outputs use separate default directories:
 
 ## W&B sweep
 
-`experiment/sweeps/overcooked_v3_role_scenarios.yaml` defines a 240-run grid
-over four categories, ten layouts, and six seeds. Create it on a Mac
+`experiment/sweeps/train_ippo.yaml` defines a 120-run grid
+over four categories, five workload layouts, and six seeds. Create it on a Mac
 with the W&B CLI:
 
 ```bash
 wandb sweep \
   --entity inchangbaek4907 \
   --project overcooked-v3-role-coordination \
-  experiment/sweeps/overcooked_v3_role_scenarios.yaml
+  experiment/sweeps/train_ippo.yaml
 ```
 
 W&B prints `inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID`. Copy that
