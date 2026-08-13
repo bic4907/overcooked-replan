@@ -27,18 +27,26 @@ features when loading a legacy 30-channel policy.
 
 ## Role-coordination scenarios
 
-`splitnosig_0` ... `splitnosig_9` and their `splitsig_*` pairs open one central
+`splitnosig_0` ... `splitnosig_4` and their `splitsig_*` pairs open one central
 doorway for 40 steps, then turn it into a handoff counter for 160 steps. The
-left bay contains onions and two pots, while the right bay contains plates and
+left bay contains onions and pots, while the right bay contains plates and
 serving. Agents must choose opposite sides before the wall closes, then
 coordinate cook–server work through the counter.
 
-`outagenosig_0` ... `outagenosig_9` and their `outagesig_*` pairs have
+`outagenosig_0` ... `outagenosig_4` and their `outagesig_*` pairs have compact
+6×9 layouts with
 disconnected movement regions and shared center counters. Both bays are
-complete kitchens with a pot, plates, serving, and onions. During the outage,
-the right onion pile becomes a wall, so the left cook must trade off local
+complete kitchens with pots, plates, serving, and onions. After a 40-step
+normal phase, every right onion pile becomes a wall for 160 steps, so the left cook must trade off local
 production against supplying the right cook through a handoff counter. Sig
 layouts replace one inert recipe display with the activatable public signal;
-it cannot be used as extra object storage in either condition. Variant 0
-preserves the original geometry, while variants 1-9 alter travel distances and
-resource placement without changing the category's coordination mechanism.
+it cannot be used as extra object storage in either condition. The
+onion-to-handoff and handoff-to-right-pot routes each require at most two moves,
+making cross-kitchen supply competitive with continuing local production. The
+center column remains blocked in every phase: agents cannot cross bays and can
+exchange onions only through shared handoff counters.
+
+Across indices 0 through 4, per-bay onion/pot/plate/goal counts are
+`1/1/1/1`, `1/2/1/1`, `2/2/1/1`, `1/3/2/1`, and `2/3/2/2`. Split assigns
+onions/pots to the left and plates/goals to the right. Outage mirrors all
+resources during its normal phase and removes every right onion during outage.

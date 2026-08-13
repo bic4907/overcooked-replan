@@ -1,0 +1,46 @@
+program: baselines/IPPO/eval_crossplay_overcooked_v3.py
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+parameters:
+  algorithms:
+    value: IPPO
+  layout:
+    values:
+      - splitnosig_0
+      - splitnosig_1
+      - splitnosig_2
+      - splitnosig_3
+      - splitnosig_4
+      - splitsig_0
+      - splitsig_1
+      - splitsig_2
+      - splitsig_3
+      - splitsig_4
+      - outagenosig_0
+      - outagenosig_1
+      - outagenosig_2
+      - outagenosig_3
+      - outagenosig_4
+      - outagesig_0
+      - outagesig_1
+      - outagesig_2
+      - outagesig_3
+      - outagesig_4
+  episodes:
+    value: 20
+  max-steps:
+    value: 400
+  workers-per-gpu:
+    value: 8
+  output-project:
+    value: inchangbaek4907/overcooked-v3-crossplay
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - inchangbaek4907/overcooked-v3-role-coordination
+  - ${args_no_equals}

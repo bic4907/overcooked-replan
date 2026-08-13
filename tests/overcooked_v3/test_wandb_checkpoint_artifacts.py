@@ -67,6 +67,7 @@ def test_log_final_checkpoint_artifact_is_optional(tmp_path, monkeypatch):
 
     assert artifact.name == "overcooked-v3-abc123-final-checkpoint"
     assert artifact.type == "checkpoint"
+    assert artifact.metadata["algorithm"] == "IPPO"
     assert artifact.metadata["layout"] == "split_sig"
     assert [name for _path, name in artifact.files] == [
         checkpoint.name,
