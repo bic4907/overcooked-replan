@@ -1,0 +1,10 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: outagesig_12
+  random_agent_positions: false
+
+EXPERIMENT: resource_outage
+CONDITION: outagesig_12
+SIGNAL_ENABLED: true
+WANDB_GROUP: resource_outage

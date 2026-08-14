@@ -20,10 +20,11 @@ SCENARIO_FAMILIES = {
     "outagesig": ("resource_outage", True),
 }
 SCENARIOS = {
-    f"{family}_0": metadata
+    f"{family}_{variant}": metadata
     for family, metadata in SCENARIO_FAMILIES.items()
+    for variant in range(20)
 }
-SELECTED_SWEEP_SCENARIOS = list(SCENARIOS)
+SELECTED_SWEEP_SCENARIOS = [f"{family}_0" for family in SCENARIO_FAMILIES]
 
 
 def test_default_training_config_preserves_dynamic_00():

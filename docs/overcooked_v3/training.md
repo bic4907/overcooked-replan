@@ -41,10 +41,10 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 
 | Hydra option | Scenario | Signal |
 | --- | --- | --- |
-| `scenario=splitnosig_0` | Kitchen Split | No |
-| `scenario=splitsig_0` | Kitchen Split | Yes |
-| `scenario=outagenosig_0` | Resource Outage | No |
-| `scenario=outagesig_0` | Resource Outage | Yes |
+| `scenario=splitnosig_<0-19>` | Kitchen Split | No |
+| `scenario=splitsig_<0-19>` | Kitchen Split | Yes |
+| `scenario=outagenosig_<0-19>` | Resource Outage | No |
+| `scenario=outagesig_<0-19>` | Resource Outage | Yes |
 
 Kitchen Split은 처음 40 step 동안 중앙 통로 하나가 열려 있고, 이후 160 step 동안
 그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
@@ -56,22 +56,33 @@ Resource Outage는 중앙 counter wall로 두 에이전트의 이동 영역을 �
 주방 모두 pot·plate·serving·onion을 갖는다. outage phase에는 오른쪽 양파만
 사라진다. 평소 각자 조리하던 왼쪽 에이전트가 자기 생산을 일부 포기하고 중앙
 shared counter로 양파를 넘겨야 오른쪽 주방이 조리를 계속할 수 있다.
-NoSig의 signal 위치는 물건을 보관할 수 없는 비활성 indicator이고, Sig에서만 같은
-위치가 activatable public signal이 된다.
+recipe indicator는 두 조건 모두 맵 위쪽 중앙의 별도 타일에 유지한다. NoSig의
+signal 위치에는 버튼 없이 물건도 보관할 수 없는 blank blocker를 두고, Sig에서만
+같은 위치가 activatable public signal이 된다.
 
-각 category에는 실험 결과로 선택한 레이아웃 하나만 등록되어 있어 총 4개다.
-Split은 기존 index 2의 양쪽 방 폭을 한 칸씩 줄인 7×9 맵이고, Resource Outage는
-기존 index 0을 더 압축한 5×7 맵이다. Outage는 normal 40 step, outage 160 step이고,
-left onion에서 handoff를 거쳐 right pot까지의
-이동 거리를 두 agent 합계 최대 1 step으로 줄였다. 중앙은 항상 wall/counter로
+각 category에는 `_0`부터 `_19`까지 20개, 총 80개 레이아웃이 등록되어 있다.
+기존 `_0` 맵은 수정하지 않은 canonical layout이다. `_1`~`_19`는 같은 category의
+동작 원리와 맵 크기를 유지하면서 onion·pot·plate·serving 수, 외곽 배치,
+agent 시작 위치를 바꾼다. 같은 번호의 Sig/NoSig pair는 signal tile만 다르다.
+Split은 7×9, Resource Outage는 5×7이다. Outage는 normal 40 step, outage 160 step이다.
+`_0`은 left onion에서 handoff를 거쳐 right pot까지 두 agent 합계 최대 1 step이고,
+나머지 variant도 onion→handoff와 handoff→pot 각각을 최대 1 step으로 제한한다.
+중앙은 항상 wall/counter로
 막혀 두 agent의 이동 영역이 완전히 분리된다. 오른쪽 agent는 왼쪽 onion pile에
 직접 갈 수 없고, left agent가 shared handoff counter에 올려놓은 onion만 받을 수 있다.
 signal tile은 중앙열 아래쪽에 두고, 그 위의 인접한 counter 2칸에 onion을 미리
 적재할 수 있다.
-Sig/NoSig pair는 signal indicator 한 타일만 다르다. Split은 왼쪽에 onion 2개와
-pot 2개, 오른쪽에 plate pile 1개와 serving 1개를 둔다. Outage는 normal phase에서
-각 bay에 onion/pot/plate/serving을 하나씩 주고 outage phase에서 오른쪽 onion을
-제거한다.
+Split은 기존의 양파 3개 레시피를 유지하고, Outage는 양파 2개를 pot에 넣으면
+바로 조리를 시작한다. 모든 scenario의 pot 조리시간은 기존과 동일한 20 step이다.
+Sig/NoSig pair는 signal indicator 한 타일만 다르다. Canonical `_0` Split은
+왼쪽에 onion 2개와 pot 2개, 오른쪽에 plate pile 1개와 serving 1개를 둔다.
+Canonical `_0` Outage는 normal phase에서 각 bay에
+onion/pot/plate/serving을 하나씩 주며, 모든 Outage variant는 outage phase에서
+오른쪽 onion을 전부 제거한다.
+
+예를 들어 variant 12는 `scenario=splitnosig_12` 또는
+`scenario=outagesig_12`처럼 바로 선택할 수 있다. 기본 sweep은 기존 선별 결과를
+재현하기 위해 canonical `_0` 네 개만 유지한다.
 
 기존 dynamic map 기본값은 `scenario=dynamic_00`이다.
 

@@ -27,20 +27,22 @@ features when loading a legacy 30-channel policy.
 
 ## Role-coordination scenarios
 
-`splitnosig_0` and `splitsig_0` use 7×9 layouts. They open one central doorway
+`splitnosig_0` through `splitnosig_19` and their matching `splitsig` layouts use
+7×9 maps. They open one central doorway
 for 40 steps, then turn it into a handoff counter for 160 steps. The
 left bay contains onions and pots, while the right bay contains plates and
 serving. Agents must choose opposite sides before the wall closes, then
 coordinate cook–server work through the counter.
 
-`outagenosig_0` and `outagesig_0` have compact
-5×7 layouts with
+`outagenosig_0` through `outagenosig_19` and their matching `outagesig` layouts
+have compact 5×7 maps with
 disconnected movement regions and shared center counters. Both bays are
 complete kitchens with pots, plates, serving, and onions. After a 40-step
 normal phase, every right onion pile becomes a wall for 160 steps, so the left cook must trade off local
-production against supplying the right cook through a handoff counter. Sig
-layouts replace one inert recipe display with the activatable public signal;
-it cannot be used as extra object storage in either condition. The
+production against supplying the right cook through a handoff counter. Both
+conditions keep a separate fixed recipe display. At the signal cell, Sig uses
+an activatable public button while NoSig uses a blank non-storage blocker with
+no button; neither can be used as extra object storage. The
 onion-to-handoff route requires no movement and the handoff-to-right-pot route
 requires at most one move,
 making cross-kitchen supply competitive with continuing local production. The
@@ -48,6 +50,12 @@ center column remains blocked in every phase: agents cannot cross bays and can
 exchange onions only through shared handoff counters.
 The signal occupies the bottom center tile, leaving two adjacent counters above
 it where the left cook can preload onions.
+Outage uses a two-onion recipe, so its pots begin cooking as soon as the second
+onion is added. Split retains the standard three-onion recipe, and both
+scenarios retain the standard 20-step cooking timer. Index `_0` is the
+unchanged canonical design; indices `_1` through `_19` vary resource counts,
+perimeter placement, and agent starts. Equal Sig/NoSig indices differ only at
+the signal cell.
 
 The selected Split layout assigns two onions and two pots to the left and one
 plate pile and one goal to the right. The selected Outage layout mirrors one of

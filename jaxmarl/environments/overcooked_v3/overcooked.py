@@ -127,7 +127,7 @@ class OvercookedV3Base(MultiAgentEnv):
             agent_view_size (Optional[int]): The number of blocks the agent can view in each direction, None for full grid.
             random_reset (bool): Whether to reset the environment with random agent positions, inventories and pot states.
             random_agent_positions (bool): Whether to randomize agent positions. Agents will not be moved outside of their room if they are placed in an enclosed space.
-            start_cooking_interaction (bool): If false the pot starts cooking automatically once three ingredients are added, if true the pot starts cooking only after the agent interacts with it.
+            start_cooking_interaction (bool): If false the pot starts cooking automatically once the current recipe is complete, if true the pot starts cooking only after the agent interacts with it.
             negative_rewards (bool): Whether to use negative rewards.
             sample_recipe_on_delivery (bool): Whether to sample a new recipe when a delivery is made. Default is on reset only.
             indicate_successful_delivery (bool): Whether to indicate a delivery was successful in the observation.
@@ -186,6 +186,7 @@ class OvercookedV3Base(MultiAgentEnv):
         self.max_steps = max_steps
 
         self.possible_recipes = jnp.array(layout.possible_recipes, dtype=jnp.int32)
+        self.recipe_size = int(self.possible_recipes.shape[1])
 
         self.random_reset = random_reset
         self.random_agent_positions = random_agent_positions
@@ -456,12 +457,14 @@ class OvercookedV3Base(MultiAgentEnv):
             def _sample_pot_states(key):
                 key, key_ing, key_num, key_timer = jax.random.split(key, 4)
                 raw_ingridients = jax.random.randint(
-                    key_ing, (3,), 0, self.layout.num_ingredients
+                    key_ing, (self.recipe_size,), 0, self.layout.num_ingredients
                 )
                 raw_ingridients = jax.vmap(DynamicObject.ingredient)(raw_ingridients)
 
-                partial_recipe = jax.random.randint(key_num, (), 1, 4)
-                mask = jnp.arange(3) < partial_recipe
+                partial_recipe = jax.random.randint(
+                    key_num, (), 1, self.recipe_size + 1
+                )
+                mask = jnp.arange(self.recipe_size) < partial_recipe
 
                 pot_ingridients_masked = jnp.sum(raw_ingridients * mask)
                 if self.start_cooking_interaction:
@@ -647,6 +650,10 @@ class OvercookedV3Base(MultiAgentEnv):
             ]
         )
         static_layers = static_objects[..., None] == static_encoding
+        static_layers = static_layers.at[..., 0].set(
+            static_layers[..., 0]
+            | (static_objects == StaticObject.INERT_SIGNAL_INDICATOR)
+        )
         # print("static_layers: ", static_layers.shape)
 
         def _ingridient_layers(ingredients, ingredient_mapping=None):
@@ -822,7 +829,7 @@ class OvercookedV3Base(MultiAgentEnv):
         ignore_counters = False
 
         onion = DynamicObject.ingredient(0)
-        recipe = 3 * onion
+        recipe = self.recipe_size * onion
         soup = recipe | DynamicObject.COOKED | DynamicObject.PLATE
 
         move_area = self._get_move_area(state)
@@ -902,12 +909,11 @@ class OvercookedV3Base(MultiAgentEnv):
                 empty_counter_features = jnp.array([0, 0])
 
             # pi_closest_soup_n_{onions|tomatoes}
-            # we assume that recipe is always 3 onions
             soup_on_grid_mask = state.grid[:, :, 1] == soup
             if ignore_counters:
                 soup_on_grid_mask &= state.grid[:, :, 0] != StaticObject.WALL
             soup_onions = jax.lax.select(
-                jnp.any(soup_on_grid_mask) | (inv == soup), 3, 0
+                jnp.any(soup_on_grid_mask) | (inv == soup), self.recipe_size, 0
             )
             soup_tomatoes = 0
             soup_ingredient_features = jnp.array([soup_onions, soup_tomatoes])
@@ -918,7 +924,9 @@ class OvercookedV3Base(MultiAgentEnv):
 
                 # pi_closest_pot_{j}_{is_empty|is_full|is_cooking|is_ready}
                 pot_empty = pot_ing == DynamicObject.EMPTY
-                pot_full = DynamicObject.ingredient_count(pot_ing) == 3
+                pot_full = (
+                    DynamicObject.ingredient_count(pot_ing) >= self.recipe_size
+                )
                 pot_cooking = pot_timer > 0
                 pot_ready = (pot_ing & DynamicObject.COOKED) == DynamicObject.COOKED
 
@@ -1309,7 +1317,8 @@ class OvercookedV3Base(MultiAgentEnv):
         # print("object_is_pile: ", object_is_pile)
         # print("inventory_is_empty: ", inventory_is_empty)
 
-        pot_full = DynamicObject.ingredient_count(interact_ingredients) == 3
+        recipe_size = DynamicObject.ingredient_count(recipe)
+        pot_full = DynamicObject.ingredient_count(interact_ingredients) >= recipe_size
         # print("pot_full: ", pot_full)
 
         successful_pot_placement = pot_is_idle * inventory_is_ingredient * ~pot_full
@@ -1344,7 +1353,9 @@ class OvercookedV3Base(MultiAgentEnv):
         new_ingredients = (
             successful_drop * merged_ingredients + no_effect * interact_ingredients
         )
-        pot_full_after_drop = DynamicObject.ingredient_count(new_ingredients) == 3
+        pot_full_after_drop = (
+            DynamicObject.ingredient_count(new_ingredients) >= recipe_size
+        )
 
         successful_pot_start_cooking = (
             pot_is_idle

@@ -9,11 +9,15 @@ from jaxmarl.environments.overcooked_v3 import dynamic_layout_data
 from jaxmarl.environments.overcooked_v3.common import StaticObject
 from jaxmarl.environments.overcooked_v3.layouts import Layout
 
-_ALLOWED_SYMBOLS = set(" WAXBP RLO0123456789")
+_ALLOWED_SYMBOLS = set(" WAXBP RLSO0123456789")
 _DEFAULT_RECIPES = [[0, 0, 0]]
+_OUTAGE_RECIPES = [[0, 0]]
 
 
-def _parse_grid(grid: str) -> tuple[Layout, Tuple[Tuple[int, int], ...]]:
+def _parse_grid(
+    grid: str,
+    possible_recipes: Sequence[Sequence[int]] = _DEFAULT_RECIPES,
+) -> tuple[Layout, Tuple[Tuple[int, int], ...]]:
     rows = grid.splitlines()
     while rows and not rows[0]:
         rows = rows[1:]
@@ -31,7 +35,10 @@ def _parse_grid(grid: str) -> tuple[Layout, Tuple[Tuple[int, int], ...]]:
         raise ValueError(f"Unsupported Overcooked V3 layout symbols: {unknown}")
 
     normalized = "\n".join(rows)
-    layout = Layout.from_string(normalized, possible_recipes=_DEFAULT_RECIPES)
+    layout = Layout.from_string(
+        normalized,
+        possible_recipes=[list(recipe) for recipe in possible_recipes],
+    )
     agent_positions = tuple((int(x), int(y)) for x, y in layout.agent_positions)
     return layout, agent_positions
 
@@ -50,8 +57,14 @@ class DynamicLayoutPhase:
             raise ValueError("steps must be greater than zero")
 
     @classmethod
-    def from_grid(cls, grid: str, steps: int, name: str = ""):
-        layout, agent_positions = _parse_grid(grid)
+    def from_grid(
+        cls,
+        grid: str,
+        steps: int,
+        name: str = "",
+        possible_recipes: Sequence[Sequence[int]] = _DEFAULT_RECIPES,
+    ):
+        layout, agent_positions = _parse_grid(grid, possible_recipes)
         return cls(layout, agent_positions, steps, name)
 
 
@@ -122,6 +135,7 @@ class DynamicLayout:
         cls,
         data: Sequence[Sequence[object]],
         names: Sequence[str] | None = None,
+        possible_recipes: Sequence[Sequence[int]] = _DEFAULT_RECIPES,
     ) -> "DynamicLayout":
         if names is None:
             names = ("",) * len(data)
@@ -139,7 +153,14 @@ class DynamicLayout:
             grid, steps = entry
             if not isinstance(grid, str):
                 raise TypeError(f"Dynamic layout entry {index} map must be a string")
-            phases.append(DynamicLayoutPhase.from_grid(grid, steps, name))
+            phases.append(
+                DynamicLayoutPhase.from_grid(
+                    grid,
+                    steps,
+                    name,
+                    possible_recipes=possible_recipes,
+                )
+            )
         return cls(tuple(phases))
 
     @property
@@ -180,7 +201,10 @@ WBWXW
 
 def _load_named_dynamic_layout(name, data):
     try:
-        return DynamicLayout.from_data(data)
+        possible_recipes = (
+            _OUTAGE_RECIPES if name.startswith("outage") else _DEFAULT_RECIPES
+        )
+        return DynamicLayout.from_data(data, possible_recipes=possible_recipes)
     except (TypeError, ValueError) as error:
         raise type(error)(f"Invalid dynamic layout {name!r}: {error}") from error
 
@@ -194,7 +218,7 @@ dynamic_layouts.update(
 )
 
 ROLE_SCENARIO_LAYOUTS = {
-    family: (f"{family}_0",)
+    family: tuple(f"{family}_{variant}" for variant in range(20))
     for family in ("splitnosig", "splitsig", "outagenosig", "outagesig")
 }
 ROLE_SCENARIO_LAYOUT_NAMES = tuple(

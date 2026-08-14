@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from jaxmarl.environments.overcooked_v3.common import StaticObject
+from jaxmarl.environments.overcooked_v3.common import MAX_INGREDIENTS, StaticObject
 
 # Layouts from Overcooked-AI
 cramped_room = """
@@ -249,6 +249,7 @@ class Layout:
         P: pot location
         R: recipe of the day indicator
         L: button recipe indicator
+        S: non-storage blank blocker used where NoSig has no button
         0-9: Ingredient x pile
         ' ' (space) : empty cell
 
@@ -260,7 +261,9 @@ class Layout:
         If `recipe` is not provided, the recipe will be randomized on reset.
         If the layout does not have a recipe indicator, a fixed `recipe` must be provided.
 
-        If `possible_recipes` is provided, it should be a list of lists of ingredient indices, 3 ingredients per recipe.
+        If `possible_recipes` is provided, it should be a list of lists of
+        ingredient indices, with 1 to 3 ingredients per recipe. All recipes in
+        one layout must have the same length.
 
         Swap agents will swap the positions of the agents in the layout. This is only used for compatibility with the old Overcooked-AI layouts.
         """
@@ -283,6 +286,7 @@ class Layout:
             "P": StaticObject.POT,
             "R": StaticObject.RECIPE_INDICATOR,
             "L": StaticObject.BUTTON_RECIPE_INDICATOR,
+            "S": StaticObject.INERT_SIGNAL_INDICATOR,
         }
 
         for r in range(10):
@@ -323,8 +327,13 @@ class Layout:
                 raise ValueError("possible_recipes must be a list")
             if not all(isinstance(recipe, list) for recipe in possible_recipes):
                 raise ValueError("possible_recipes must be a list of lists")
-            if not all(len(recipe) == 3 for recipe in possible_recipes):
-                raise ValueError("All recipes must be of length 3")
+            recipe_lengths = {len(recipe) for recipe in possible_recipes}
+            if not recipe_lengths or not all(
+                1 <= length <= MAX_INGREDIENTS for length in recipe_lengths
+            ):
+                raise ValueError("Recipes must contain between 1 and 3 ingredients")
+            if len(recipe_lengths) != 1:
+                raise ValueError("All recipes in a layout must have the same length")
         elif not includes_recipe_indicator:
             raise ValueError(
                 "Layout does not include a recipe indicator, a fixed recipe must be provided"

@@ -9,10 +9,10 @@ The following role-coordination experiments are currently available:
 
 | Hydra scenario | Environment | Signal counter | Research question |
 | --- | --- | --- | --- |
-| `splitnosig_0` | Kitchen Split | No | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
-| `splitsig_0` | Kitchen Split | Yes | Does signaling reduce same-side choices before the kitchen splits? |
-| `outagenosig_0` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
-| `outagesig_0` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
+| `splitnosig_{0..19}` | Kitchen Split | No | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
+| `splitsig_{0..19}` | Kitchen Split | Yes | Does signaling reduce same-side choices before the kitchen splits? |
+| `outagenosig_{0..19}` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
+| `outagesig_{0..19}` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
 
 Kitchen Split starts with one central doorway open for 40 steps. It then becomes
 a handoff counter for 160 steps, preventing agents from changing bays. The left
@@ -21,24 +21,33 @@ choose opposite sides before closure and sustain complementary cook–server
 roles through the counter. Resource Outage instead keeps two complete kitchens
 in disconnected bays; the right onion pile disappears during the outage, so
 the left cook must trade off local production against supplying the right bay.
-NoSig uses an inert, non-storage indicator where Sig provides the activatable
-public signal, keeping the remaining geometry equal.
+Both conditions keep a recipe indicator at a separate fixed tile. NoSig has a
+blank non-storage blocker where Sig provides the activatable public signal,
+keeping the remaining geometry equal without displaying a dummy button.
 
-Each category has one selected layout: Split uses the former index 2 design
-under the canonical `_0` name, while Outage uses a further-compressed version
-of the former index 0 design.
+Each category has 20 layouts named `_0` through `_19`. The existing `_0`
+layouts are preserved as the canonical designs. Variants `_1` through `_19`
+keep the same scenario dynamics while changing resource capacity, placement,
+travel distance, and agent starting positions. Matching Sig/NoSig indices have
+identical geometry and resources.
 Split uses a 7×9 map with two onions, two pots, one plate pile, and one serving
-station. Outage uses a shorter 5×7 map with one of each resource per bay. Its normal
-phase lasts 40 steps and their outage lasts 160, while onion–handoff–pot travel
-requires at most one movement step across both agents. The central wall always
+station at index `_0`; other indices vary those counts. Outage uses a shorter
+5×7 map with one of each resource per bay at index `_0` and varied complete
+kitchens at the other indices. Its normal phase lasts 40 steps and its outage
+lasts 160. Index `_0` requires at most one movement step across both agents;
+the other variants keep each onion-to-handoff and handoff-to-pot leg within one
+step. The central wall always
 separates agent movement, so cross-bay assistance is possible only by placing
 objects on shared handoff counters. This keeps the right cook productive without
 allowing it to walk to the surviving onion pile directly.
+Split keeps the standard three-onion recipe, while Outage completes and starts
+cooking a pot with two onions. Pot cooking time remains 20 steps in every
+scenario.
 Outage places two adjacent storage counters above the signal tile, allowing the
 left cook to preload two onions for the right cook.
-Select a layout through its Hydra scenario name, such as
-`scenario=outagesig_0`. Matching Sig/NoSig layouts differ only at the
-signal tile.
+Select any layout through its Hydra scenario name, such as
+`scenario=outagesig_12`. Matching Sig/NoSig layouts with the same index differ
+only at the signal tile.
 
 Overcooked V3 exposes public signals and upcoming layout transitions to every
 agent. The final three channels of the default 33-channel observation contain a

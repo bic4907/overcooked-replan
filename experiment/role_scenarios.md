@@ -15,22 +15,33 @@
 | Outage-NoSig | `outagenosig_0` | selected Outage design |
 | Outage-Sig | `outagesig_0` | selected Outage design with signal |
 
-각 category는 선택된 레이아웃 하나씩, 총 4개를 사용한다. 모든 layout 이름은
-`_0`으로 통일한다. Sig/NoSig pair는
-geometry와 resource count가 같고 signal indicator 한 타일만 다르다.
+기존 sweep에서 선택된 canonical layout은 category별 `_0` 네 개다. 추가 탐색용
+catalog에는 각 category마다 `_0`~`_19` 20개씩, 총 80개가 등록되어 있다. `_0`은
+기존 설계를 그대로 유지하고 `_1`~`_19`만 resource count, 외곽 배치, agent 시작
+위치를 달리한다. 같은 index의 Sig/NoSig pair는 geometry와 resource count가 같고
+signal indicator 한 타일만 다르다.
+recipe indicator는 두 조건 모두 위쪽 중앙의 별도 타일에 고정한다. signal
+위치는 NoSig에서 버튼 없는 non-storage blocker, Sig에서 activatable button으로
+구분한다.
 Split은 왼쪽에 onion 2개와 pot 2개, 오른쪽에 plate pile 1개와 serving
 1개를 두는 기존 index 2 설계를 사용하되, 양쪽 방 폭을 한 칸씩 줄여 7×9로
 압축한다.
+Split은 표준 양파 3개 레시피를 유지한다. Outage는 조리시간을 바꾸지 않고
+양파 2개가 pot에 들어오면 조리를 시작하는 레시피를 사용한다.
 
 Outage는 5×7로 줄이고 normal/outage phase를 40/160 step으로 설정했다.
-left onion 접근 타일에서는 이동 없이 handoff할 수 있고, handoff→right pot 접근
-타일은 최대 1 movement step이다. 중앙은 항상 wall/counter로 막혀 두 agent의
+Canonical `_0`은 left onion 접근 타일에서 이동 없이 handoff할 수 있고,
+handoff→right pot 접근 타일은 최대 1 movement step이다. `_1`~`_19`도 두 구간을
+각각 최대 1 movement step으로 제한한다. 중앙은 항상 wall/counter로 막혀 두 agent의
 movement region을
 완전히 분리한다. 따라서 right agent는 남아 있는 왼쪽 onion을 직접 가져올 수
 없고, left agent가 shared counter로 양파를 공급해야만 right cook이 160-step
 outage 동안 지속적으로 생산할 수 있다.
 signal tile은 중앙열 아래쪽으로 옮기고 그 위에 인접한 handoff counter 2칸을
 확보해, left agent가 onion 두 개를 미리 적재할 수 있게 한다.
+
+현재 `experiment/sweeps/train_ippo.yaml`은 선별된 `_0` 네 개만 실행한다. 전체
+catalog를 개별 실행할 때는 `scenario=<family>_<0-19>`를 사용한다.
 
 ## 2. Training sweep 생성
 

@@ -614,6 +614,7 @@ class OvercookedV3Visualizer:
             StaticObject.POT: _render_pot,
             StaticObject.RECIPE_INDICATOR: _render_recipe_indicator,
             StaticObject.BUTTON_RECIPE_INDICATOR: _render_button_recipe_indicator,
+            StaticObject.INERT_SIGNAL_INDICATOR: _render_wall,
             StaticObject.PLATE_PILE: _render_plate_pile,
         }
 

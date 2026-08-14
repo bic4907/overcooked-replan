@@ -2,22 +2,25 @@
 
 # Role-formation scenarios -------------------------------------------------
 #
-# The Sig/NoSig pairs differ only at one shared cell: ``L`` is V2's
-# interactable button indicator, while ``R`` is a non-interactable recipe
-# display. Both block movement and neither stores objects, so the comparison
-# changes signaling capability without adding a spare handoff counter.
+# The recipe display stays at a separate fixed cell in both conditions. The
+# Sig/NoSig pairs differ only at the signal cell: ``L`` is V2's interactable
+# button indicator, while ``S`` is a blank non-storage blocker with no button.
+# Both block movement and neither stores objects, so the comparison isolates
+# signaling capability.
 #
 # Kitchen Split starts with one open central doorway. After 40 steps, that
 # doorway becomes a handoff counter and traps agents in their chosen bays until
-# the next cycle. The left bay has onions and two pots, while the right bay has
+# the next cycle. The left bay has onions and pots, while the right bay has
 # plates and serving, so agents must occupy different sides and divide labor.
 #
 # Resource Outage permanently separates two otherwise complete kitchens. Each
-# bay owns a pot, plate pile, serving station, and onion pile in the normal
+# bay owns at least one pot, plate pile, serving station, and onion pile in the normal
 # phase. When the right onion pile disappears, the left agent must trade off
 # local cooking against supplying onions through the shared center counters.
 #
-# Each role category exposes one selected canonical layout with index ``0``.
+# Each role category exposes 20 layouts. Index ``0`` is the selected canonical
+# design; indices ``1`` through ``19`` vary resource capacity, placement,
+# travel distance, and starting position without changing the scenario rule.
 
 splitnosig_0 = [
     [
@@ -134,6 +137,7 @@ def _role_grid(
     signal_row,
     signal_enabled,
     door=None,
+    recipe_row=None,
     width=11,
     height=7,
 ):
@@ -145,7 +149,9 @@ def _role_grid(
             rows[y][x] = " "
         rows[y][center_x] = "W"
 
-    rows[signal_row][center_x] = "L" if signal_enabled else "R"
+    rows[signal_row][center_x] = "L" if signal_enabled else "S"
+    if recipe_row is not None:
+        rows[recipe_row][center_x] = "R"
     if door is not None:
         door_row, is_open = door
         rows[door_row][center_x] = " " if is_open else "W"
@@ -161,86 +167,6 @@ def _role_grid(
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-# door row, signal row, agents, left (onion/pot/pot), right (plate/goal)
-_SPLIT_VARIANT_SPECS = (
-    (3, 2, ((2, 3), (8, 3)), ((1, 0), (3, 0), (0, 4)), ((8, 0), (10, 4))),
-    (2, 4, ((3, 2), (7, 2)), ((0, 1), (0, 3), (2, 6)), ((9, 0), (10, 5))),
-    (4, 2, ((2, 4), (8, 4)), ((4, 0), (0, 2), (3, 6)), ((6, 0), (10, 3))),
-    (3, 5, ((3, 3), (7, 3)), ((1, 6), (0, 1), (4, 0)), ((9, 6), (10, 1))),
-    (2, 5, ((2, 2), (8, 2)), ((2, 0), (0, 4), (4, 6)), ((7, 0), (10, 4))),
-    (4, 1, ((3, 4), (7, 4)), ((0, 5), (1, 0), (3, 0)), ((10, 5), (8, 0))),
-    (3, 1, ((2, 3), (8, 3)), ((3, 6), (0, 2), (2, 0)), ((7, 6), (10, 2))),
-    (2, 4, ((3, 2), (7, 2)), ((4, 6), (0, 3), (1, 6)), ((6, 6), (10, 3))),
-    (4, 2, ((2, 4), (8, 4)), ((0, 1), (4, 0), (2, 6)), ((10, 1), (9, 6))),
-)
-
-
-# signal row, agents, left complete-kitchen positions in onion/pot/plate/goal order.
-# The right kitchen mirrors every resource so pre-outage capabilities match.
-_OUTAGE_VARIANT_SPECS = (
-    (4, ((2, 3), (8, 3)), ((1, 0), (0, 2), (3, 6), (0, 5))),
-    (2, ((3, 3), (7, 3)), ((0, 1), (2, 0), (0, 4), (4, 6))),
-    (4, ((2, 3), (8, 3)), ((4, 0), (0, 2), (1, 6), (0, 5))),
-    (2, ((3, 3), (7, 3)), ((0, 5), (3, 0), (0, 2), (2, 6))),
-    (5, ((2, 2), (8, 2)), ((1, 6), (0, 1), (4, 0), (0, 4))),
-    (1, ((3, 4), (7, 4)), ((0, 3), (2, 6), (0, 5), (4, 0))),
-    (4, ((2, 3), (8, 3)), ((3, 0), (0, 1), (4, 6), (0, 5))),
-    (2, ((3, 3), (7, 3)), ((0, 4), (1, 0), (0, 1), (3, 6))),
-    (5, ((2, 2), (8, 2)), ((2, 0), (0, 5), (4, 6), (0, 1))),
-)
-
-
-def _build_split_variant(spec, signal_enabled):
-    door_row, signal_row, agents, left_positions, right_positions = spec
-    resources = list(zip(("0", "P", "P"), left_positions))
-    resources.extend(zip(("B", "X"), right_positions))
-    open_grid = _role_grid(
-        resources,
-        agents,
-        signal_row,
-        signal_enabled,
-        door=(door_row, True),
-    )
-    closed_grid = _role_grid(
-        resources,
-        agents,
-        signal_row,
-        signal_enabled,
-        door=(door_row, False),
-    )
-    return [[open_grid, 40], [closed_grid, 160]]
-
-
-def _build_outage_variant(spec, signal_enabled):
-    signal_row, agents, left_positions = spec
-    right_positions = tuple((10 - x, y) for x, y in left_positions)
-    left_resources = list(zip(("0", "P", "B", "X"), left_positions))
-    right_resources = list(zip(("0", "P", "B", "X"), right_positions))
-    normal_grid = _role_grid(
-        left_resources + right_resources,
-        agents,
-        signal_row,
-        signal_enabled,
-    )
-    outage_right_resources = [("W", right_positions[0]), *right_resources[1:]]
-    outage_grid = _role_grid(
-        left_resources + outage_right_resources,
-        agents,
-        signal_row,
-        signal_enabled,
-    )
-    return [[normal_grid, 100], [outage_grid, 100]]
-
-
-def _register_role_variants():
-    for variant_index, spec in enumerate(_SPLIT_VARIANT_SPECS, start=1):
-        globals()[f"splitnosig_{variant_index}"] = _build_split_variant(spec, False)
-        globals()[f"splitsig_{variant_index}"] = _build_split_variant(spec, True)
-    for variant_index, spec in enumerate(_OUTAGE_VARIANT_SPECS, start=1):
-        globals()[f"outagenosig_{variant_index}"] = _build_outage_variant(spec, False)
-        globals()[f"outagesig_{variant_index}"] = _build_outage_variant(spec, True)
-
-
 # The selected Split map preserves the former index 2 workload while shrinking
 # each movement bay by one column (7x11 -> 7x9).
 _SELECTED_SPLIT_SPEC = (
@@ -252,7 +178,7 @@ _SELECTED_SPLIT_SPEC = (
 )
 
 
-def _build_split_workload(spec, signal_enabled, width=11):
+def _build_split_workload(spec, signal_enabled, width=11, recipe_row=0):
     door_row, signal_row, agents, left_resources, right_resources = spec
     resources = [*left_resources, *right_resources]
     open_grid = _role_grid(
@@ -261,6 +187,7 @@ def _build_split_workload(spec, signal_enabled, width=11):
         signal_row,
         signal_enabled,
         door=(door_row, True),
+        recipe_row=recipe_row,
         width=width,
     )
     closed_grid = _role_grid(
@@ -269,12 +196,13 @@ def _build_split_workload(spec, signal_enabled, width=11):
         signal_row,
         signal_enabled,
         door=(door_row, False),
+        recipe_row=recipe_row,
         width=width,
     )
     return [[open_grid, 40], [closed_grid, 160]]
 
 
-# Publish the compressed former index 2 design as the only Split layout.
+# Preserve the compressed former index 2 design as canonical Split index 0.
 splitnosig_0 = _build_split_workload(_SELECTED_SPLIT_SPEC, False, width=9)
 splitsig_0 = _build_split_workload(_SELECTED_SPLIT_SPEC, True, width=9)
 
@@ -294,7 +222,8 @@ def _compact_outage_grid(
             rows[y][x] = " "
         rows[y][center_x] = "W"
 
-    rows[signal_row][center_x] = "L" if signal_enabled else "R"
+    rows[0][center_x] = "R"
+    rows[signal_row][center_x] = "L" if signal_enabled else "S"
     for x, y in notches:
         rows[y][x] = "W"
         rows[y][width - 1 - x] = "W"
@@ -346,9 +275,218 @@ def _build_compact_outage_variant(spec, signal_enabled):
     return [[normal_grid, 40], [outage_grid, 160]]
 
 
-# Publish the selected compact design as the only Outage layout.
+# Preserve the selected compact design as canonical Outage index 0.
 outagenosig_0 = _build_compact_outage_variant(_COMPACT_OUTAGE_SPEC, False)
 outagesig_0 = _build_compact_outage_variant(_COMPACT_OUTAGE_SPEC, True)
+
+
+def _rotated_take(positions, count, offset):
+    """Take unique positions from a cyclically rotated placement palette."""
+    if count > len(positions):
+        raise ValueError(
+            f"Requested {count} resources for {len(positions)} placement slots"
+        )
+    split = offset % len(positions)
+    rotated = positions[split:] + positions[:split]
+    return rotated[:count]
+
+
+# Variants 1-19 retain the 7x9 split topology. The workload tuple is
+# (onion piles, pots, plate piles, serving stations). Resources remain assigned
+# to their role-specific bay, while placement and starting positions vary.
+_SPLIT_WORKLOADS = (
+    (1, 1, 1, 1),
+    (1, 2, 1, 1),
+    (2, 1, 1, 1),
+    (1, 1, 2, 1),
+    (1, 1, 1, 2),
+    (2, 2, 1, 1),
+    (1, 3, 1, 1),
+    (2, 1, 2, 1),
+    (1, 2, 2, 1),
+    (2, 2, 2, 1),
+    (2, 3, 1, 1),
+    (1, 3, 2, 1),
+    (2, 2, 1, 2),
+    (1, 2, 2, 2),
+    (2, 3, 2, 1),
+    (2, 2, 2, 2),
+    (2, 3, 1, 2),
+    (2, 3, 2, 2),
+    (3, 3, 2, 2),
+)
+_SPLIT_LEFT_BOUNDARY = (
+    (1, 0),
+    (2, 0),
+    (3, 0),
+    (0, 1),
+    (0, 2),
+    (0, 3),
+    (0, 4),
+    (0, 5),
+    (1, 6),
+    (2, 6),
+    (3, 6),
+)
+_SPLIT_RIGHT_BOUNDARY = tuple((8 - x, y) for x, y in _SPLIT_LEFT_BOUNDARY)
+_SPLIT_DOOR_SIGNAL_ROWS = (
+    (4, 2),
+    (3, 1),
+    (2, 4),
+    (5, 3),
+    (1, 4),
+    (4, 1),
+    (3, 5),
+    (2, 5),
+    (5, 2),
+    (1, 3),
+    (4, 2),
+    (3, 1),
+    (2, 4),
+    (5, 3),
+    (1, 4),
+    (4, 1),
+    (3, 5),
+    (2, 5),
+    (5, 2),
+)
+_SPLIT_AGENT_STARTS = (
+    ((2, 4), (6, 4)),
+    ((1, 2), (7, 2)),
+    ((3, 3), (5, 3)),
+    ((2, 1), (6, 5)),
+    ((1, 4), (7, 1)),
+    ((3, 5), (5, 2)),
+)
+
+
+def _build_split_catalog_variant(variant_index, signal_enabled):
+    onions, pots, plates, goals = _SPLIT_WORKLOADS[variant_index - 1]
+    door_row, signal_row = _SPLIT_DOOR_SIGNAL_ROWS[variant_index - 1]
+    agents = _SPLIT_AGENT_STARTS[(variant_index - 1) % len(_SPLIT_AGENT_STARTS)]
+    left_symbols = ("0",) * onions + ("P",) * pots
+    right_symbols = ("B",) * plates + ("X",) * goals
+    left_positions = _rotated_take(
+        _SPLIT_LEFT_BOUNDARY,
+        len(left_symbols),
+        2 * variant_index,
+    )
+    right_positions = _rotated_take(
+        _SPLIT_RIGHT_BOUNDARY,
+        len(right_symbols),
+        3 * variant_index + 1,
+    )
+    spec = (
+        door_row,
+        signal_row,
+        agents,
+        tuple(zip(left_symbols, left_positions)),
+        tuple(zip(right_symbols, right_positions)),
+    )
+    return _build_split_workload(spec, signal_enabled, width=9)
+
+
+# Outage variants keep the compact 5x7, permanently separated two-bay
+# topology. Each side starts with an identical complete kitchen. All right-side
+# onion piles disappear during outage, and the two center handoff counters stay
+# available. Anchors keep an onion-to-handoff and handoff-to-pot route short.
+_OUTAGE_WORKLOADS = (
+    (1, 1, 1, 1),
+    (1, 2, 1, 1),
+    (2, 1, 1, 1),
+    (1, 1, 2, 1),
+    (1, 1, 1, 2),
+    (2, 2, 1, 1),
+    (1, 2, 2, 1),
+    (2, 1, 2, 1),
+    (2, 2, 2, 1),
+    (1, 3, 1, 1),
+    (2, 3, 1, 1),
+    (1, 3, 2, 1),
+    (2, 2, 1, 2),
+    (1, 2, 2, 2),
+    (2, 2, 2, 1),
+    (1, 3, 1, 2),
+    (2, 1, 2, 2),
+    (2, 2, 1, 2),
+    (2, 2, 2, 1),
+)
+_OUTAGE_BOUNDARY = (
+    (1, 0),
+    (2, 0),
+    (0, 1),
+    (0, 2),
+    (0, 3),
+    (1, 4),
+    (2, 4),
+)
+_OUTAGE_ONION_POT_ANCHORS = (
+    ((2, 0), (1, 0)),
+    ((0, 1), (0, 2)),
+    ((0, 2), (0, 1)),
+    ((1, 0), (2, 0)),
+)
+_OUTAGE_AGENT_STARTS = (
+    ((2, 2), (4, 2)),
+    ((1, 1), (5, 3)),
+    ((2, 3), (4, 1)),
+    ((1, 2), (5, 2)),
+)
+
+
+def _build_outage_catalog_variant(variant_index, signal_enabled):
+    onions, pots, plates, goals = _OUTAGE_WORKLOADS[variant_index - 1]
+    onion_anchor, pot_anchor = _OUTAGE_ONION_POT_ANCHORS[
+        (variant_index - 1) % len(_OUTAGE_ONION_POT_ANCHORS)
+    ]
+    occupied = {onion_anchor, pot_anchor}
+    available = tuple(
+        position for position in _OUTAGE_BOUNDARY if position not in occupied
+    )
+    remaining_symbols = (
+        ("0",) * (onions - 1)
+        + ("P",) * (pots - 1)
+        + ("B",) * plates
+        + ("X",) * goals
+    )
+    remaining_positions = _rotated_take(
+        available,
+        len(remaining_symbols),
+        variant_index,
+    )
+    left_resources = (
+        ("0", onion_anchor),
+        ("P", pot_anchor),
+        *tuple(zip(remaining_symbols, remaining_positions)),
+    )
+    spec = (
+        3,
+        _OUTAGE_AGENT_STARTS[
+            (variant_index - 1) % len(_OUTAGE_AGENT_STARTS)
+        ],
+        left_resources,
+        (),
+    )
+    return _build_compact_outage_variant(spec, signal_enabled)
+
+
+def _register_role_catalog():
+    for variant_index in range(1, 20):
+        globals()[f"splitnosig_{variant_index}"] = _build_split_catalog_variant(
+            variant_index, False
+        )
+        globals()[f"splitsig_{variant_index}"] = _build_split_catalog_variant(
+            variant_index, True
+        )
+        globals()[f"outagenosig_{variant_index}"] = _build_outage_catalog_variant(
+            variant_index, False
+        )
+        globals()[f"outagesig_{variant_index}"] = _build_outage_catalog_variant(
+            variant_index, True
+        )
+
+
+_register_role_catalog()
 
 # Backward-compatible aliases for existing commands and checkpoints.
 split_no_sig = splitnosig_0
