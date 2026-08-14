@@ -24,15 +24,18 @@ the left cook must trade off local production against supplying the right bay.
 NoSig uses an inert, non-storage indicator where Sig provides the activatable
 public signal, keeping the remaining geometry equal.
 
-Each category has one selected layout: Split uses the former index 1 design
-under the canonical `_0` name, while Outage retains the former index 0 design.
-Split uses a 7×11 map with one onion, two pots, one plate pile, and one serving
-station. Outage uses a shorter 6×9 map with one of each resource per bay. Its normal
+Each category has one selected layout: Split uses the former index 2 design
+under the canonical `_0` name, while Outage uses a further-compressed version
+of the former index 0 design.
+Split uses a 7×9 map with two onions, two pots, one plate pile, and one serving
+station. Outage uses a shorter 5×7 map with one of each resource per bay. Its normal
 phase lasts 40 steps and their outage lasts 160, while onion–handoff–pot travel
-requires at most four movement steps across both agents. The central wall always
+requires at most one movement step across both agents. The central wall always
 separates agent movement, so cross-bay assistance is possible only by placing
 objects on shared handoff counters. This keeps the right cook productive without
 allowing it to walk to the surviving onion pile directly.
+Outage places two adjacent storage counters above the signal tile, allowing the
+left cook to preload two onions for the right cook.
 Select a layout through its Hydra scenario name, such as
 `scenario=outagesig_0`. Matching Sig/NoSig layouts differ only at the
 signal tile.

@@ -128,9 +128,17 @@ WWWWWWWWWWW
 ]
 
 
-def _role_grid(resources, agent_positions, signal_row, signal_enabled, door=None):
-    """Build one 7x11 role-scenario phase from explicit design constraints."""
-    width, height, center_x = 11, 7, 5
+def _role_grid(
+    resources,
+    agent_positions,
+    signal_row,
+    signal_enabled,
+    door=None,
+    width=11,
+    height=7,
+):
+    """Build one role-scenario phase from explicit design constraints."""
+    center_x = width // 2
     rows = [["W"] * width for _ in range(height)]
     for y in range(1, height - 1):
         for x in range(1, width - 1):
@@ -233,65 +241,18 @@ def _register_role_variants():
         globals()[f"outagesig_{variant_index}"] = _build_outage_variant(spec, True)
 
 
-# Workload-controlled Split maps. Counts increase across the five variants:
-# (onions, pots, plates, goals) =
-# (1,1,1,1), (1,2,1,1), (2,2,1,1), (1,3,2,1), (2,3,2,2).
-_SPLIT_WORKLOAD_SPECS = (
-    (
-        3,
-        2,
-        ((2, 3), (8, 3)),
-        (("0", (1, 0)), ("P", (3, 0))),
-        (("B", (7, 0)), ("X", (9, 0))),
-    ),
-    (
-        2,
-        4,
-        ((3, 2), (7, 2)),
-        (("0", (1, 0)), ("P", (3, 0)), ("P", (0, 4))),
-        (("B", (7, 0)), ("X", (10, 4))),
-    ),
-    (
-        4,
-        2,
-        ((2, 4), (8, 4)),
-        (("0", (1, 0)), ("0", (0, 2)), ("P", (3, 0)), ("P", (2, 6))),
-        (("B", (7, 0)), ("X", (10, 4))),
-    ),
-    (
-        3,
-        5,
-        ((3, 3), (7, 3)),
-        (
-            ("0", (1, 0)),
-            ("P", (3, 0)),
-            ("P", (0, 2)),
-            ("P", (2, 6)),
-        ),
-        (("B", (7, 0)), ("B", (10, 2)), ("X", (9, 6))),
-    ),
-    (
-        2,
-        5,
-        ((2, 2), (8, 2)),
-        (
-            ("0", (1, 0)),
-            ("0", (0, 4)),
-            ("P", (3, 0)),
-            ("P", (0, 2)),
-            ("P", (2, 6)),
-        ),
-        (
-            ("B", (7, 0)),
-            ("B", (10, 2)),
-            ("X", (9, 6)),
-            ("X", (10, 4)),
-        ),
-    ),
+# The selected Split map preserves the former index 2 workload while shrinking
+# each movement bay by one column (7x11 -> 7x9).
+_SELECTED_SPLIT_SPEC = (
+    4,
+    2,
+    ((2, 4), (6, 4)),
+    (("0", (1, 0)), ("0", (0, 2)), ("P", (3, 0)), ("P", (2, 6))),
+    (("B", (5, 0)), ("X", (8, 4))),
 )
 
 
-def _build_split_workload(spec, signal_enabled):
+def _build_split_workload(spec, signal_enabled, width=11):
     door_row, signal_row, agents, left_resources, right_resources = spec
     resources = [*left_resources, *right_resources]
     open_grid = _role_grid(
@@ -300,6 +261,7 @@ def _build_split_workload(spec, signal_enabled):
         signal_row,
         signal_enabled,
         door=(door_row, True),
+        width=width,
     )
     closed_grid = _role_grid(
         resources,
@@ -307,13 +269,14 @@ def _build_split_workload(spec, signal_enabled):
         signal_row,
         signal_enabled,
         door=(door_row, False),
+        width=width,
     )
     return [[open_grid, 40], [closed_grid, 160]]
 
 
-# Keep the former index 1 design and publish it as the only Split layout.
-splitnosig_0 = _build_split_workload(_SPLIT_WORKLOAD_SPECS[1], False)
-splitsig_0 = _build_split_workload(_SPLIT_WORKLOAD_SPECS[1], True)
+# Publish the compressed former index 2 design as the only Split layout.
+splitnosig_0 = _build_split_workload(_SELECTED_SPLIT_SPEC, False, width=9)
+splitsig_0 = _build_split_workload(_SELECTED_SPLIT_SPEC, True, width=9)
 
 
 def _compact_outage_grid(
@@ -323,8 +286,8 @@ def _compact_outage_grid(
     signal_enabled,
     notches=(),
 ):
-    """Build a compact 6x9 kitchen with permanently separated movement bays."""
-    width, height, center_x = 9, 6, 4
+    """Build a compact 5x7 kitchen with permanently separated movement bays."""
+    width, height, center_x = 7, 5, 3
     rows = [["W"] * width for _ in range(height)]
     for y in range(1, height - 1):
         for x in range(1, width - 1):
@@ -346,78 +309,22 @@ def _compact_outage_grid(
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-# The compact variants reduce an onion-to-handoff-to-pot transfer to only a few
-# movement steps. A 40-step normal phase permits at most a short warm-up, while
-# the 160-step outage makes sustained right-kitchen production depend on supply
-# from the left cook. Counts match the Split workload progression.
-_COMPACT_OUTAGE_SPECS = (
-    (
-        3,
-        ((2, 2), (6, 2)),
-        (("0", (3, 0)), ("P", (1, 0)), ("B", (1, 5)), ("X", (3, 5))),
-        (),
-    ),
-    (
-        4,
-        ((2, 3), (6, 3)),
-        (
-            ("0", (3, 0)),
-            ("P", (1, 0)),
-            ("P", (0, 3)),
-            ("B", (1, 5)),
-            ("X", (3, 5)),
-        ),
-        (),
-    ),
-    (
-        1,
-        ((2, 3), (6, 3)),
-        (
-            ("0", (3, 0)),
-            ("0", (0, 2)),
-            ("P", (2, 0)),
-            ("P", (0, 4)),
-            ("B", (1, 5)),
-            ("X", (3, 5)),
-        ),
-        (),
-    ),
-    (
-        4,
-        ((2, 3), (6, 3)),
-        (
-            ("0", (3, 0)),
-            ("P", (1, 0)),
-            ("P", (2, 0)),
-            ("P", (0, 3)),
-            ("B", (1, 5)),
-            ("B", (2, 5)),
-            ("X", (3, 5)),
-        ),
-        (),
-    ),
-    (
-        1,
-        ((2, 3), (6, 3)),
-        (
-            ("0", (3, 0)),
-            ("0", (0, 1)),
-            ("P", (1, 0)),
-            ("P", (2, 0)),
-            ("P", (0, 3)),
-            ("B", (1, 5)),
-            ("B", (2, 5)),
-            ("X", (3, 5)),
-            ("X", (0, 4)),
-        ),
-        (),
-    ),
+# The compact layout lets the left cook pick up an onion and place it on the
+# center counter without moving. The right cook reaches its pot one move after
+# collecting the handoff. A 40-step normal phase permits at most a short
+# warm-up, while the 160-step outage makes sustained right-kitchen production
+# depend on supply from the left cook.
+_COMPACT_OUTAGE_SPEC = (
+    3,
+    ((2, 2), (4, 2)),
+    (("0", (2, 0)), ("P", (1, 0)), ("B", (1, 4)), ("X", (2, 4))),
+    (),
 )
 
 
 def _build_compact_outage_variant(spec, signal_enabled):
     signal_row, agents, left_resources, notches = spec
-    right_resources = tuple((symbol, (8 - x, y)) for symbol, (x, y) in left_resources)
+    right_resources = tuple((symbol, (6 - x, y)) for symbol, (x, y) in left_resources)
     normal_grid = _compact_outage_grid(
         left_resources + right_resources,
         agents,
@@ -439,9 +346,9 @@ def _build_compact_outage_variant(spec, signal_enabled):
     return [[normal_grid, 40], [outage_grid, 160]]
 
 
-# Keep the former index 0 design as the only Outage layout.
-outagenosig_0 = _build_compact_outage_variant(_COMPACT_OUTAGE_SPECS[0], False)
-outagesig_0 = _build_compact_outage_variant(_COMPACT_OUTAGE_SPECS[0], True)
+# Publish the selected compact design as the only Outage layout.
+outagenosig_0 = _build_compact_outage_variant(_COMPACT_OUTAGE_SPEC, False)
+outagesig_0 = _build_compact_outage_variant(_COMPACT_OUTAGE_SPEC, True)
 
 # Backward-compatible aliases for existing commands and checkpoints.
 split_no_sig = splitnosig_0

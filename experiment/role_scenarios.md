@@ -10,21 +10,27 @@
 
 | Category | Selected layouts | Status |
 | --- | --- | --- |
-| Split-NoSig | `splitnosig_0` | selected Split design |
-| Split-Sig | `splitsig_0` | selected Split design with signal |
+| Split-NoSig | `splitnosig_0` | former index 2 Split design |
+| Split-Sig | `splitsig_0` | former index 2 Split design with signal |
 | Outage-NoSig | `outagenosig_0` | selected Outage design |
 | Outage-Sig | `outagesig_0` | selected Outage design with signal |
 
 각 category는 선택된 레이아웃 하나씩, 총 4개를 사용한다. 모든 layout 이름은
 `_0`으로 통일한다. Sig/NoSig pair는
 geometry와 resource count가 같고 signal indicator 한 타일만 다르다.
+Split은 왼쪽에 onion 2개와 pot 2개, 오른쪽에 plate pile 1개와 serving
+1개를 두는 기존 index 2 설계를 사용하되, 양쪽 방 폭을 한 칸씩 줄여 7×9로
+압축한다.
 
-Outage는 6×9로 줄이고 normal/outage phase를 40/160 step으로 설정했다.
-left onion 접근 타일→handoff와 handoff→right pot 접근 타일은 각각 최대
-2 movement step이다. 중앙은 항상 wall/counter로 막혀 두 agent의 movement region을
+Outage는 5×7로 줄이고 normal/outage phase를 40/160 step으로 설정했다.
+left onion 접근 타일에서는 이동 없이 handoff할 수 있고, handoff→right pot 접근
+타일은 최대 1 movement step이다. 중앙은 항상 wall/counter로 막혀 두 agent의
+movement region을
 완전히 분리한다. 따라서 right agent는 남아 있는 왼쪽 onion을 직접 가져올 수
 없고, left agent가 shared counter로 양파를 공급해야만 right cook이 160-step
 outage 동안 지속적으로 생산할 수 있다.
+signal tile은 중앙열 아래쪽으로 옮기고 그 위에 인접한 handoff counter 2칸을
+확보해, left agent가 onion 두 개를 미리 적재할 수 있게 한다.
 
 ## 2. Training sweep 생성
 

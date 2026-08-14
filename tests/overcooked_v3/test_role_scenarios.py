@@ -28,7 +28,7 @@ ROLE_SCENARIOS = (
 CANONICAL_ROLE_SCENARIOS = tuple(
     name for names in ROLE_SCENARIO_LAYOUTS.values() for name in names
 )
-SPLIT_RESOURCE_COUNTS = (1, 2, 1, 1)
+SPLIT_RESOURCE_COUNTS = (2, 2, 1, 1)
 OUTAGE_RESOURCE_COUNTS = (1, 1, 1, 1)
 
 
@@ -105,7 +105,7 @@ def test_all_role_scenario_variants_are_resettable(layout_name):
     env = OvercookedV3(layout=layout_name, max_steps=220)
     obs, state = env.reset(jax.random.PRNGKey(0))
 
-    expected_shape = (7, 11, 3) if layout_name.startswith("split") else (6, 9, 3)
+    expected_shape = (7, 9, 3) if layout_name.startswith("split") else (5, 7, 3)
     assert state.grid.shape == expected_shape
     assert obs["agent_0"].shape == (*expected_shape[:2], 33)
 
@@ -141,19 +141,19 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     left_start, right_start = layout.phases[0].agent_positions
     onion = StaticObject.ingredient_pile(0)
 
-    assert normal_phase.shape == (6, 9)
+    assert normal_phase.shape == (5, 7)
     assert right_start not in _reachable_floor(normal_phase, left_start)
     assert right_start not in _reachable_floor(outage_phase, left_start)
     assert _shortest_floor_distance(outage_phase, {left_start}, {right_start}) is None
-    assert np.sum(outage_phase[:, 4] == StaticObject.EMPTY) == 0
-    assert np.sum(outage_phase[:, 4] == StaticObject.RECIPE_INDICATOR) == 1
+    assert np.sum(outage_phase[:, 3] == StaticObject.EMPTY) == 0
+    assert np.sum(outage_phase[:, 3] == StaticObject.RECIPE_INDICATOR) == 1
     differences = np.argwhere(normal_phase != outage_phase)
     expected_onions, expected_pots, expected_plates, expected_goals = (
         OUTAGE_RESOURCE_COUNTS
     )
     assert differences.shape == (expected_onions, 2)
     for outage_y, outage_x in differences:
-        assert outage_x > 4
+        assert outage_x > 3
         assert normal_phase[outage_y, outage_x] == onion
         assert outage_phase[outage_y, outage_x] == StaticObject.WALL
 
@@ -164,10 +164,10 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
         StaticObject.GOAL: expected_goals,
     }
     for object_type, count in expected.items():
-        assert np.sum(normal_phase[:, :4] == object_type) == count
-        assert np.sum(normal_phase[:, 5:] == object_type) == count
-    assert np.sum(outage_phase[:, :4] == onion) == expected_onions
-    assert np.sum(outage_phase[:, 5:] == onion) == 0
+        assert np.sum(normal_phase[:, :3] == object_type) == count
+        assert np.sum(normal_phase[:, 4:] == object_type) == count
+    assert np.sum(outage_phase[:, :3] == onion) == expected_onions
+    assert np.sum(outage_phase[:, 4:] == onion) == 0
 
     left_reachable = _reachable_floor(outage_phase, left_start)
     right_reachable = _reachable_floor(outage_phase, right_start)
@@ -181,18 +181,18 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
             assert _can_interact_from(
                 outage_phase,
                 (x, y),
-                left_reachable if x < 4 else right_reachable,
+                left_reachable if x < 3 else right_reachable,
             )
     handoffs = [
-        ((3, y), (5, y))
+        ((2, y), (4, y))
         for y in range(1, outage_phase.shape[0] - 1)
-        if outage_phase[y, 4] == StaticObject.WALL
-        and (3, y) in left_reachable
-        and (5, y) in right_reachable
+        if outage_phase[y, 3] == StaticObject.WALL
+        and (2, y) in left_reachable
+        and (4, y) in right_reachable
     ]
     assert handoffs
 
-    left_onion_y, left_onion_x = np.argwhere(outage_phase[:, :4] == onion)[0]
+    left_onion_y, left_onion_x = np.argwhere(outage_phase[:, :3] == onion)[0]
     onion_interaction_floors = {
         position
         for position in (
@@ -203,10 +203,10 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
         )
         if position in left_reachable
     }
-    right_pot_y, relative_pot_x = np.argwhere(outage_phase[:, 5:] == StaticObject.POT)[
+    right_pot_y, relative_pot_x = np.argwhere(outage_phase[:, 4:] == StaticObject.POT)[
         0
     ]
-    right_pot_x = relative_pot_x + 5
+    right_pot_x = relative_pot_x + 4
     pot_interaction_floors = {
         position
         for position in (
@@ -223,13 +223,13 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
         _shortest_floor_distance(
             outage_phase, onion_interaction_floors, left_handoff_floors
         )
-        <= 2
+        == 0
     )
     assert (
         _shortest_floor_distance(
             outage_phase, right_handoff_floors, pot_interaction_floors
         )
-        <= 2
+        <= 1
     )
 
 
@@ -248,7 +248,7 @@ def test_split_variants_change_resource_capacity(variant):
     differences = np.argwhere(open_phase != closed_phase)
     assert differences.shape == (1, 2)
     door_y, door_x = differences[0]
-    assert door_x == 5
+    assert door_x == 4
     assert open_phase[door_y, door_x] == StaticObject.EMPTY
     assert closed_phase[door_y, door_x] == StaticObject.WALL
     assert right_start in _reachable_floor(open_phase, left_start)
@@ -261,11 +261,11 @@ def test_split_variants_change_resource_capacity(variant):
     }
     for phase in (open_phase, closed_phase):
         for object_type, count in expected_left.items():
-            assert np.sum(phase[:, :5] == object_type) == count
-            assert np.sum(phase[:, 6:] == object_type) == 0
+            assert np.sum(phase[:, :4] == object_type) == count
+            assert np.sum(phase[:, 5:] == object_type) == 0
         for object_type, count in expected_right.items():
-            assert np.sum(phase[:, :5] == object_type) == 0
-            assert np.sum(phase[:, 6:] == object_type) == count
+            assert np.sum(phase[:, :4] == object_type) == 0
+            assert np.sum(phase[:, 5:] == object_type) == count
 
     left_reachable = _reachable_floor(closed_phase, left_start)
     right_reachable = _reachable_floor(closed_phase, right_start)
@@ -280,10 +280,10 @@ def test_split_variants_change_resource_capacity(variant):
 @pytest.mark.parametrize(
     ("layout_name", "grid_shape"),
     (
-        ("split_no_sig", (7, 11, 3)),
-        ("split_sig", (7, 11, 3)),
-        ("outage_no_sig", (6, 9, 3)),
-        ("outage_sig", (6, 9, 3)),
+        ("split_no_sig", (7, 9, 3)),
+        ("split_sig", (7, 9, 3)),
+        ("outage_no_sig", (5, 7, 3)),
+        ("outage_sig", (5, 7, 3)),
     ),
 )
 def test_role_scenario_is_registered_and_resettable(layout_name, grid_shape):
@@ -298,8 +298,8 @@ def test_role_scenario_is_registered_and_resettable(layout_name, grid_shape):
 @pytest.mark.parametrize(
     ("no_sig_name", "sig_name", "signal_position"),
     (
-        ("split_no_sig", "split_sig", (5, 4)),
-        ("outage_no_sig", "outage_sig", (4, 3)),
+        ("split_no_sig", "split_sig", (4, 2)),
+        ("outage_no_sig", "outage_sig", (3, 3)),
     ),
 )
 def test_sig_pair_only_replaces_one_counter_with_button(
@@ -327,20 +327,20 @@ def test_kitchen_split_closes_doorway_between_complementary_bays():
 
     onion_pile = StaticObject.ingredient_pile(0)
     for static_objects in (open_phase, split_phase):
-        assert static_objects[0, 1] == onion_pile
-        assert jnp.sum(static_objects[:, :5] == StaticObject.POT) == 2
-        assert jnp.sum(static_objects[:, 6:] == StaticObject.POT) == 0
-        assert jnp.sum(static_objects[:, :5] == StaticObject.PLATE_PILE) == 0
-        assert jnp.sum(static_objects[:, 6:] == StaticObject.PLATE_PILE) == 1
-        assert jnp.sum(static_objects[:, :5] == StaticObject.GOAL) == 0
-        assert jnp.sum(static_objects[:, 6:] == StaticObject.GOAL) == 1
+        assert jnp.sum(static_objects[:, :4] == onion_pile) == 2
+        assert jnp.sum(static_objects[:, :4] == StaticObject.POT) == 2
+        assert jnp.sum(static_objects[:, 5:] == StaticObject.POT) == 0
+        assert jnp.sum(static_objects[:, :4] == StaticObject.PLATE_PILE) == 0
+        assert jnp.sum(static_objects[:, 5:] == StaticObject.PLATE_PILE) == 1
+        assert jnp.sum(static_objects[:, :4] == StaticObject.GOAL) == 0
+        assert jnp.sum(static_objects[:, 5:] == StaticObject.GOAL) == 1
 
-    assert open_phase[2, 5] == StaticObject.EMPTY
+    assert open_phase[4, 4] == StaticObject.EMPTY
     assert right_start in _reachable_floor(open_phase, left_start)
-    assert split_phase[2, 5] == StaticObject.WALL
+    assert split_phase[4, 4] == StaticObject.WALL
     assert right_start not in _reachable_floor(split_phase, left_start)
-    assert split_phase[2, 4] == StaticObject.EMPTY
-    assert split_phase[2, 6] == StaticObject.EMPTY
+    assert split_phase[4, 3] == StaticObject.EMPTY
+    assert split_phase[4, 5] == StaticObject.EMPTY
     assert np.sum(open_phase != split_phase) == 1
 
 
@@ -353,31 +353,32 @@ def test_resource_outage_separates_agents_but_keeps_a_shared_handoff(layout_name
         static_objects = phase.layout.static_objects
         left_start, right_start = phase.agent_positions
         assert right_start not in _reachable_floor(static_objects, left_start)
-        assert static_objects[2, 4] == StaticObject.WALL
-        assert static_objects[2, 3] == StaticObject.EMPTY
-        assert static_objects[2, 5] == StaticObject.EMPTY
+        assert static_objects[1, 3] == StaticObject.WALL
+        assert static_objects[2, 3] == StaticObject.WALL
+        assert static_objects[1, 2] == StaticObject.EMPTY
+        assert static_objects[1, 4] == StaticObject.EMPTY
 
     normal_phase = layout.phases[0].layout.static_objects
     outage_phase = layout.phases[1].layout.static_objects
-    assert normal_phase[0, 3] == onion_pile
-    assert normal_phase[0, 5] == onion_pile
-    assert outage_phase[0, 3] == onion_pile
-    assert outage_phase[0, 5] == StaticObject.WALL
+    assert normal_phase[0, 2] == onion_pile
+    assert normal_phase[0, 4] == onion_pile
+    assert outage_phase[0, 2] == onion_pile
+    assert outage_phase[0, 4] == StaticObject.WALL
 
     for object_type in (StaticObject.POT, StaticObject.PLATE_PILE, StaticObject.GOAL):
         positions = np.argwhere(outage_phase == object_type)
         assert positions.shape == (2, 2)
-        assert jnp.sum(positions[:, 1] < 4) == 1
-        assert jnp.sum(positions[:, 1] > 4) == 1
+        assert jnp.sum(positions[:, 1] < 3) == 1
+        assert jnp.sum(positions[:, 1] > 3) == 1
 
 
 @pytest.mark.parametrize(
     ("layout_name", "change_position", "change_count"),
     (
-        ("split_no_sig", (5, 2), 1),
-        ("split_sig", (5, 2), 1),
-        ("outage_no_sig", (5, 0), 1),
-        ("outage_sig", (5, 0), 1),
+        ("split_no_sig", (4, 4), 1),
+        ("split_sig", (4, 4), 1),
+        ("outage_no_sig", (4, 0), 1),
+        ("outage_sig", (4, 0), 1),
     ),
 )
 def test_change_mask_marks_only_the_next_static_tile_change(
@@ -466,15 +467,15 @@ def test_visualizer_saves_low_resolution_mp4(tmp_path):
     assert video_path.read_bytes()[4:8] == b"ftyp"
 
 
-def test_outage_agents_can_pass_an_onion_across_the_shared_counter():
+def test_outage_left_cook_can_preload_two_onions_and_pass_one():
     env = OvercookedV3(layout="outage_no_sig", max_steps=20)
     _, state = env.reset(jax.random.PRNGKey(0))
     onion = DynamicObject.ingredient(0)
     state = state.replace(
         agents=state.agents.replace(
             pos=Position(
-                x=state.agents.pos.x.at[0].set(3),
-                y=state.agents.pos.y.at[0].set(2),
+                x=state.agents.pos.x.at[0].set(2),
+                y=state.agents.pos.y.at[0].set(1),
             ),
             dir=state.agents.dir.at[0].set(Direction.RIGHT),
             inventory=state.agents.inventory.at[0].set(onion),
@@ -487,13 +488,29 @@ def test_outage_agents_can_pass_an_onion_across_the_shared_counter():
     _, state, _, _, _ = env.step_env(jax.random.PRNGKey(1), state, actions)
 
     assert state.agents.inventory[0] == DynamicObject.EMPTY
-    assert state.grid[2, 4, 1] == onion
+    assert state.grid[1, 3, 1] == onion
 
     state = state.replace(
         agents=state.agents.replace(
             pos=Position(
-                x=state.agents.pos.x.at[1].set(5),
-                y=state.agents.pos.y.at[1].set(2),
+                x=state.agents.pos.x.at[0].set(2),
+                y=state.agents.pos.y.at[0].set(2),
+            ),
+            dir=state.agents.dir.at[0].set(Direction.RIGHT),
+            inventory=state.agents.inventory.at[0].set(onion),
+        )
+    )
+    _, state, _, _, _ = env.step_env(jax.random.PRNGKey(2), state, actions)
+
+    assert state.agents.inventory[0] == DynamicObject.EMPTY
+    assert state.grid[1, 3, 1] == onion
+    assert state.grid[2, 3, 1] == onion
+
+    state = state.replace(
+        agents=state.agents.replace(
+            pos=Position(
+                x=state.agents.pos.x.at[1].set(4),
+                y=state.agents.pos.y.at[1].set(1),
             ),
             dir=state.agents.dir.at[1].set(Direction.LEFT),
         )
@@ -502,9 +519,10 @@ def test_outage_agents_can_pass_an_onion_across_the_shared_counter():
         env.agents[0]: jnp.array(OvercookedActionsEnum.stay),
         env.agents[1]: jnp.array(OvercookedActionsEnum.interact),
     }
-    _, state, _, _, _ = env.step_env(jax.random.PRNGKey(2), state, actions)
+    _, state, _, _, _ = env.step_env(jax.random.PRNGKey(3), state, actions)
 
-    assert state.grid[2, 4, 1] == DynamicObject.EMPTY
+    assert state.grid[1, 3, 1] == DynamicObject.EMPTY
+    assert state.grid[2, 3, 1] == onion
     assert state.agents.inventory[1] == onion
 
 
@@ -518,10 +536,10 @@ def test_split_runtime_closes_handoff_wall_at_step_40():
 
     assert state.step.item() == 40
     assert state.layout_index.item() == 1
-    assert state.grid[2, 5, 0].item() == StaticObject.WALL
+    assert state.grid[4, 4, 0].item() == StaticObject.WALL
     assert jnp.all(infos["left_workload_tile_count"] == 2)
     assert jnp.all(infos["right_workload_tile_count"] == 2)
-    assert jnp.all(infos["left_ingredient_pile_count"] == 1)
+    assert jnp.all(infos["left_ingredient_pile_count"] == 2)
     assert jnp.all(infos["right_ingredient_pile_count"] == 0)
     assert jnp.all(infos["layout_changed"])
 
@@ -536,8 +554,8 @@ def test_outage_runtime_removes_only_the_right_kitchen_onion_at_step_40():
 
     assert state.step.item() == 40
     assert state.layout_index.item() == 1
-    assert state.grid[0, 3, 0].item() == StaticObject.ingredient_pile(0)
-    assert state.grid[0, 5, 0].item() == StaticObject.WALL
+    assert state.grid[0, 2, 0].item() == StaticObject.ingredient_pile(0)
+    assert state.grid[0, 4, 0].item() == StaticObject.WALL
     assert jnp.all(infos["left_workload_tile_count"] == 3)
     assert jnp.all(infos["right_workload_tile_count"] == 3)
     assert jnp.all(infos["left_ingredient_pile_count"] == 1)
@@ -548,8 +566,8 @@ def test_outage_runtime_removes_only_the_right_kitchen_onion_at_step_40():
 @pytest.mark.parametrize(
     ("layout_name", "signal_position", "standing_position"),
     (
-        ("split_sig", (5, 4), (4, 4)),
-        ("outage_sig", (4, 3), (3, 3)),
+        ("split_sig", (4, 2), (3, 2)),
+        ("outage_sig", (3, 3), (2, 3)),
     ),
 )
 def test_sig_button_produces_public_timed_signal(
@@ -606,7 +624,7 @@ def test_sig_button_produces_public_timed_signal(
 def test_active_signal_is_labeled_in_rendered_button_tile():
     env = OvercookedV3(layout="split_sig", max_steps=20)
     _, state = env.reset(jax.random.PRNGKey(0))
-    signal_x, signal_y = 5, 4
+    signal_x, signal_y = 4, 2
     state = state.replace(
         grid=state.grid.at[signal_y, signal_x, 2].set(env.signal_activation_time)
     )
@@ -632,8 +650,8 @@ def test_no_sig_placeholder_does_not_activate_or_store_objects():
     state = state.replace(
         agents=state.agents.replace(
             pos=Position(
-                x=state.agents.pos.x.at[0].set(4),
-                y=state.agents.pos.y.at[0].set(4),
+                x=state.agents.pos.x.at[0].set(3),
+                y=state.agents.pos.y.at[0].set(2),
             ),
             dir=state.agents.dir.at[0].set(Direction.RIGHT),
             inventory=state.agents.inventory.at[0].set(DynamicObject.ingredient(0)),
@@ -648,8 +666,8 @@ def test_no_sig_placeholder_does_not_activate_or_store_objects():
         jax.random.PRNGKey(1), state, actions
     )
 
-    assert state.grid[4, 5, 0].item() == StaticObject.RECIPE_INDICATOR
-    assert state.grid[4, 5, 1].item() == DynamicObject.EMPTY
-    assert state.grid[4, 5, 2].item() == 0
+    assert state.grid[2, 4, 0].item() == StaticObject.RECIPE_INDICATOR
+    assert state.grid[2, 4, 1].item() == DynamicObject.EMPTY
+    assert state.grid[2, 4, 2].item() == 0
     assert state.agents.inventory[0] == DynamicObject.ingredient(0)
     assert rewards[env.agents[0]].item() == 0

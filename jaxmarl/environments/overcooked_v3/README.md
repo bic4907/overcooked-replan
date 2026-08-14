@@ -27,26 +27,29 @@ features when loading a legacy 30-channel policy.
 
 ## Role-coordination scenarios
 
-`splitnosig_0` and `splitsig_0` open one central
-doorway for 40 steps, then turn it into a handoff counter for 160 steps. The
+`splitnosig_0` and `splitsig_0` use 7×9 layouts. They open one central doorway
+for 40 steps, then turn it into a handoff counter for 160 steps. The
 left bay contains onions and pots, while the right bay contains plates and
 serving. Agents must choose opposite sides before the wall closes, then
 coordinate cook–server work through the counter.
 
 `outagenosig_0` and `outagesig_0` have compact
-6×9 layouts with
+5×7 layouts with
 disconnected movement regions and shared center counters. Both bays are
 complete kitchens with pots, plates, serving, and onions. After a 40-step
 normal phase, every right onion pile becomes a wall for 160 steps, so the left cook must trade off local
 production against supplying the right cook through a handoff counter. Sig
 layouts replace one inert recipe display with the activatable public signal;
 it cannot be used as extra object storage in either condition. The
-onion-to-handoff and handoff-to-right-pot routes each require at most two moves,
+onion-to-handoff route requires no movement and the handoff-to-right-pot route
+requires at most one move,
 making cross-kitchen supply competitive with continuing local production. The
 center column remains blocked in every phase: agents cannot cross bays and can
 exchange onions only through shared handoff counters.
+The signal occupies the bottom center tile, leaving two adjacent counters above
+it where the left cook can preload onions.
 
-The selected Split layout assigns one onion and two pots to the left and one
+The selected Split layout assigns two onions and two pots to the left and one
 plate pile and one goal to the right. The selected Outage layout mirrors one of
 each resource in both bays during its normal phase and removes the right onion
 during outage.

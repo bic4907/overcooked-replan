@@ -60,13 +60,15 @@ NoSig의 signal 위치는 물건을 보관할 수 없는 비활성 indicator이�
 위치가 activatable public signal이 된다.
 
 각 category에는 실험 결과로 선택한 레이아웃 하나만 등록되어 있어 총 4개다.
-Split은 기존 index 1을 `_0`으로 이름을 바꾼 7×11 맵이고, Resource Outage는
-기존 index 0을 유지한 6×9 맵이다. Outage는 normal 40 step, outage 160 step이고,
+Split은 기존 index 2의 양쪽 방 폭을 한 칸씩 줄인 7×9 맵이고, Resource Outage는
+기존 index 0을 더 압축한 5×7 맵이다. Outage는 normal 40 step, outage 160 step이고,
 left onion에서 handoff를 거쳐 right pot까지의
-이동 거리를 두 agent 합계 최대 4 step으로 줄였다. 중앙은 항상 wall/counter로
+이동 거리를 두 agent 합계 최대 1 step으로 줄였다. 중앙은 항상 wall/counter로
 막혀 두 agent의 이동 영역이 완전히 분리된다. 오른쪽 agent는 왼쪽 onion pile에
 직접 갈 수 없고, left agent가 shared handoff counter에 올려놓은 onion만 받을 수 있다.
-Sig/NoSig pair는 signal indicator 한 타일만 다르다. Split은 왼쪽에 onion 1개와
+signal tile은 중앙열 아래쪽에 두고, 그 위의 인접한 counter 2칸에 onion을 미리
+적재할 수 있다.
+Sig/NoSig pair는 signal indicator 한 타일만 다르다. Split은 왼쪽에 onion 2개와
 pot 2개, 오른쪽에 plate pile 1개와 serving 1개를 둔다. Outage는 normal phase에서
 각 bay에 onion/pot/plate/serving을 하나씩 주고 outage phase에서 오른쪽 onion을
 제거한다.
