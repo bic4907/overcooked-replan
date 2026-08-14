@@ -15,8 +15,8 @@
 | Outage-NoSig | `outagenosig_0` | selected Outage design |
 | Outage-Sig | `outagesig_0` | selected Outage design with signal |
 
-기존 sweep에서 선택된 canonical layout은 category별 `_0` 네 개다. 추가 탐색용
-catalog에는 각 category마다 `_0`~`_19` 20개씩, 총 80개가 등록되어 있다. `_0`은
+Category별 canonical layout은 `_0` 네 개다. 전체 catalog에는 각 category마다
+`_0`~`_19` 20개씩, 총 80개가 등록되어 있다. `_0`은
 기존 설계를 그대로 유지하고 `_1`~`_19`만 resource count, 외곽 배치, agent 시작
 위치를 달리한다. 같은 index의 Sig/NoSig pair는 geometry와 resource count가 같고
 signal indicator 한 타일만 다르다.
@@ -40,8 +40,8 @@ outage 동안 지속적으로 생산할 수 있다.
 signal tile은 중앙열 아래쪽으로 옮기고 그 위에 인접한 handoff counter 2칸을
 확보해, left agent가 onion 두 개를 미리 적재할 수 있게 한다.
 
-현재 `experiment/sweeps/train_ippo.yaml`은 선별된 `_0` 네 개만 실행한다. 전체
-catalog를 개별 실행할 때는 `scenario=<family>_<0-19>`를 사용한다.
+현재 `experiment/sweeps/train_ippo.yaml`은 80개 전체 catalog와 seed 6개를
+조합한다. 개별 실행할 때는 `scenario=<family>_<0-19>`를 사용한다.
 
 ## 2. Training sweep 생성
 

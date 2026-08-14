@@ -81,8 +81,8 @@ onion/pot/plate/serving을 하나씩 주며, 모든 Outage variant는 outage pha
 오른쪽 onion을 전부 제거한다.
 
 예를 들어 variant 12는 `scenario=splitnosig_12` 또는
-`scenario=outagesig_12`처럼 바로 선택할 수 있다. 기본 sweep은 기존 선별 결과를
-재현하기 위해 canonical `_0` 네 개만 유지한다.
+`scenario=outagesig_12`처럼 바로 선택할 수 있다. 기본 sweep에도 80개 layout이
+모두 등록되어 있다.
 
 기존 dynamic map 기본값은 `scenario=dynamic_00`이다.
 
@@ -191,8 +191,8 @@ python baselines/IPPO/ippo_overcooked_v3.py \
 
 ## W&B sweep
 
-`experiment/sweeps/train_ippo.yaml`은 네 category의 선택 layout 하나씩과
-seed 6개를 조합한 24-run grid다. Mac에서 W&B 로그인을 마친 뒤
+`experiment/sweeps/train_ippo.yaml`은 네 category의 layout 20개씩과
+seed 6개를 조합한 480-run grid다. Mac에서 W&B 로그인을 마친 뒤
 다음 명령으로 sweep을 생성한다.
 
 ```bash

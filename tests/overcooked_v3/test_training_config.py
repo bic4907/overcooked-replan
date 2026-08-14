@@ -24,7 +24,7 @@ SCENARIOS = {
     for family, metadata in SCENARIO_FAMILIES.items()
     for variant in range(20)
 }
-SELECTED_SWEEP_SCENARIOS = [f"{family}_0" for family in SCENARIO_FAMILIES]
+SWEEP_SCENARIOS = list(SCENARIOS)
 
 
 def test_default_training_config_preserves_dynamic_00():
@@ -147,7 +147,7 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
         "goal": "maximize",
         "name": "train/episode_return",
     }
-    assert sweep["parameters"]["scenario"]["values"] == SELECTED_SWEEP_SCENARIOS
+    assert sweep["parameters"]["scenario"]["values"] == SWEEP_SCENARIOS
     assert "LAYOUT_VARIANT" not in sweep["parameters"]
     assert sweep["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
     assert sweep["parameters"]["recording"]["value"] == "enabled"

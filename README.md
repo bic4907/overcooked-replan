@@ -247,8 +247,8 @@ Auxiliary outputs use separate default directories:
 
 ## W&B sweep
 
-`experiment/sweeps/train_ippo.yaml` defines a 24-run grid
-over four selected layouts and six seeds. Create it on a Mac
+`experiment/sweeps/train_ippo.yaml` defines a 480-run grid over all 80 layouts
+and six seeds. Create it on a Mac
 with the W&B CLI:
 
 ```bash
