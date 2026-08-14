@@ -12,17 +12,17 @@ def load_yaml(path):
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def test_crossplay_sweep_contains_exactly_the_twenty_selected_training_maps():
+def test_crossplay_sweep_contains_exactly_the_four_selected_training_maps():
     training = load_yaml(TRAIN_SWEEP)
     crossplay = load_yaml(CROSSPLAY_SWEEP)
 
     training_maps = training["parameters"]["scenario"]["values"]
     crossplay_maps = crossplay["parameters"]["layout"]["values"]
 
-    assert len(training_maps) == 20
-    assert len(crossplay_maps) == 20
+    assert len(training_maps) == 4
+    assert len(crossplay_maps) == 4
     assert crossplay_maps == training_maps
-    assert len(set(crossplay_maps)) == 20
+    assert len(set(crossplay_maps)) == 4
 
 
 def test_crossplay_sweep_renders_argparse_compatible_flags():

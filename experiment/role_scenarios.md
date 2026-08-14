@@ -10,18 +10,14 @@
 
 | Category | Selected layouts | Status |
 | --- | --- | --- |
-| Split-NoSig | `splitnosig_0` ... `_4` | evaluation pending |
-| Split-Sig | `splitsig_0` ... `_4` | evaluation pending |
-| Outage-NoSig | `outagenosig_0` ... `_4` | evaluation pending |
-| Outage-Sig | `outagesig_0` ... `_4` | evaluation pending |
+| Split-NoSig | `splitnosig_0` | selected Split design |
+| Split-Sig | `splitsig_0` | selected Split design with signal |
+| Outage-NoSig | `outagenosig_0` | selected Outage design |
+| Outage-Sig | `outagesig_0` | selected Outage design with signal |
 
-각 category는 맵 크기와 작업부하가 다른 레이아웃 5개씩, 총 20개를 사용한다.
-Sig/NoSig pair는 동일 번호를 사용해 geometry와 resource count를 통제한다.
-
-Workload index 0→4의 한 bay 기준 `(onion, pot, plate, serving)`은
-`(1,1,1,1)`, `(1,2,1,1)`, `(2,2,1,1)`, `(1,3,2,1)`, `(2,3,2,2)`다.
-Split은 resource type을 양쪽 역할에 나누고, Outage는 normal phase에 양쪽을
-대칭으로 주되 outage phase에서 오른쪽 onion을 모두 제거한다.
+각 category는 선택된 레이아웃 하나씩, 총 4개를 사용한다. 모든 layout 이름은
+`_0`으로 통일한다. Sig/NoSig pair는
+geometry와 resource count가 같고 signal indicator 한 타일만 다르다.
 
 Outage는 6×9로 줄이고 normal/outage phase를 40/160 step으로 설정했다.
 left onion 접근 타일→handoff와 handoff→right pot 접근 타일은 각각 최대
@@ -56,7 +52,7 @@ GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
 
 ## 4. Cross-play eval sweep 생성
 
-학습이 완료된 뒤 다음 명령으로 20개 role-scenario map의 cross-play
+학습이 완료된 뒤 다음 명령으로 4개 role-scenario map의 cross-play
 평가 sweep을 생성한다.
 
 ```bash
@@ -82,10 +78,10 @@ bash scripts/overcooked_v3/run_wandb_agents.sh \
 
 각 W&B agent에는 `CUDA_VISIBLE_DEVICES`로 GPU 하나가 할당된다. 따라서 eval
 sweep YAML 안에는 `--gpus`를 추가하지 않는다. 각 sweep run이 맵 하나의 전체
-SP/XP matrix를 평가하며, 20개 맵이 끝나면 결과는
+SP/XP matrix를 평가하며, 4개 맵이 끝나면 결과는
 `inchangbaek4907/overcooked-v3-crossplay` project에 기록된다.
 
-현재 `eval_ippo_seedwise_crossplay.yaml`의 `workers-per-gpu: 8` 설정으로 한 GPU에
+현재 `eval_ippo_seedwise.yaml`의 `workers-per-gpu: 8` 설정으로 한 GPU에
 eval worker 여덟 개가 실행된다. GPU 메모리와 utilization에 맞춰 이 값을 조절한다.
 
 맵 여러 개를 병렬 평가하려면 `GPUS="0 1 2 3"`처럼 GPU 목록을 늘린다.

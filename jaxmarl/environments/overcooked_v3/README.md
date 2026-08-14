@@ -27,13 +27,13 @@ features when loading a legacy 30-channel policy.
 
 ## Role-coordination scenarios
 
-`splitnosig_0` ... `splitnosig_4` and their `splitsig_*` pairs open one central
+`splitnosig_0` and `splitsig_0` open one central
 doorway for 40 steps, then turn it into a handoff counter for 160 steps. The
 left bay contains onions and pots, while the right bay contains plates and
 serving. Agents must choose opposite sides before the wall closes, then
 coordinate cook–server work through the counter.
 
-`outagenosig_0` ... `outagenosig_4` and their `outagesig_*` pairs have compact
+`outagenosig_0` and `outagesig_0` have compact
 6×9 layouts with
 disconnected movement regions and shared center counters. Both bays are
 complete kitchens with pots, plates, serving, and onions. After a 40-step
@@ -46,7 +46,7 @@ making cross-kitchen supply competitive with continuing local production. The
 center column remains blocked in every phase: agents cannot cross bays and can
 exchange onions only through shared handoff counters.
 
-Across indices 0 through 4, per-bay onion/pot/plate/goal counts are
-`1/1/1/1`, `1/2/1/1`, `2/2/1/1`, `1/3/2/1`, and `2/3/2/2`. Split assigns
-onions/pots to the left and plates/goals to the right. Outage mirrors all
-resources during its normal phase and removes every right onion during outage.
+The selected Split layout assigns one onion and two pots to the left and one
+plate pile and one goal to the right. The selected Outage layout mirrors one of
+each resource in both bays during its normal phase and removes the right onion
+during outage.

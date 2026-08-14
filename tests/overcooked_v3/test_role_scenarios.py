@@ -28,13 +28,8 @@ ROLE_SCENARIOS = (
 CANONICAL_ROLE_SCENARIOS = tuple(
     name for names in ROLE_SCENARIO_LAYOUTS.values() for name in names
 )
-WORKLOAD_COUNTS = (
-    (1, 1, 1, 1),
-    (1, 2, 1, 1),
-    (2, 2, 1, 1),
-    (1, 3, 2, 1),
-    (2, 3, 2, 2),
-)
+SPLIT_RESOURCE_COUNTS = (1, 2, 1, 1)
+OUTAGE_RESOURCE_COUNTS = (1, 1, 1, 1)
 
 
 def _reachable_floor(static_objects, start):
@@ -86,7 +81,7 @@ def _shortest_floor_distance(static_objects, starts, goals):
     return None
 
 
-def test_each_role_scenario_family_has_five_unique_layouts():
+def test_each_role_scenario_family_has_one_selected_layout():
     assert set(ROLE_SCENARIO_LAYOUTS) == {
         "splitnosig",
         "splitsig",
@@ -94,7 +89,7 @@ def test_each_role_scenario_family_has_five_unique_layouts():
         "outagesig",
     }
     for family, names in ROLE_SCENARIO_LAYOUTS.items():
-        assert names == tuple(f"{family}_{variant}" for variant in range(5))
+        assert names == (f"{family}_0",)
         signatures = {
             tuple(
                 phase.layout.static_objects.tobytes()
@@ -102,7 +97,7 @@ def test_each_role_scenario_family_has_five_unique_layouts():
             )
             for name in names
         }
-        assert len(signatures) == 5
+        assert len(signatures) == 1
 
 
 @pytest.mark.parametrize("layout_name", CANONICAL_ROLE_SCENARIOS)
@@ -115,7 +110,7 @@ def test_all_role_scenario_variants_are_resettable(layout_name):
     assert obs["agent_0"].shape == (*expected_shape[:2], 33)
 
 
-@pytest.mark.parametrize("variant", range(5))
+@pytest.mark.parametrize("variant", range(1))
 @pytest.mark.parametrize(
     ("no_sig_family", "sig_family"),
     (("splitnosig", "splitsig"), ("outagenosig", "outagesig")),
@@ -137,7 +132,7 @@ def test_each_sig_variant_only_replaces_one_indicator(
         assert sig_static[signal_y, signal_x] == StaticObject.BUTTON_RECIPE_INDICATOR
 
 
-@pytest.mark.parametrize("variant", range(5))
+@pytest.mark.parametrize("variant", range(1))
 def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     layout = dynamic_layouts[f"outagenosig_{variant}"]
     assert tuple(phase.steps for phase in layout.phases) == (40, 160)
@@ -153,9 +148,9 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     assert np.sum(outage_phase[:, 4] == StaticObject.EMPTY) == 0
     assert np.sum(outage_phase[:, 4] == StaticObject.RECIPE_INDICATOR) == 1
     differences = np.argwhere(normal_phase != outage_phase)
-    expected_onions, expected_pots, expected_plates, expected_goals = WORKLOAD_COUNTS[
-        variant
-    ]
+    expected_onions, expected_pots, expected_plates, expected_goals = (
+        OUTAGE_RESOURCE_COUNTS
+    )
     assert differences.shape == (expected_onions, 2)
     for outage_y, outage_x in differences:
         assert outage_x > 4
@@ -238,16 +233,16 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     )
 
 
-@pytest.mark.parametrize("variant", range(5))
+@pytest.mark.parametrize("variant", range(1))
 def test_split_variants_change_resource_capacity(variant):
     layout = dynamic_layouts[f"splitnosig_{variant}"]
     assert tuple(phase.steps for phase in layout.phases) == (40, 160)
     open_phase = layout.phases[0].layout.static_objects
     closed_phase = layout.phases[1].layout.static_objects
     left_start, right_start = layout.phases[0].agent_positions
-    expected_onions, expected_pots, expected_plates, expected_goals = WORKLOAD_COUNTS[
-        variant
-    ]
+    expected_onions, expected_pots, expected_plates, expected_goals = (
+        SPLIT_RESOURCE_COUNTS
+    )
     onion = StaticObject.ingredient_pile(0)
 
     differences = np.argwhere(open_phase != closed_phase)
@@ -303,7 +298,7 @@ def test_role_scenario_is_registered_and_resettable(layout_name, grid_shape):
 @pytest.mark.parametrize(
     ("no_sig_name", "sig_name", "signal_position"),
     (
-        ("split_no_sig", "split_sig", (5, 2)),
+        ("split_no_sig", "split_sig", (5, 4)),
         ("outage_no_sig", "outage_sig", (4, 3)),
     ),
 )
@@ -333,19 +328,19 @@ def test_kitchen_split_closes_doorway_between_complementary_bays():
     onion_pile = StaticObject.ingredient_pile(0)
     for static_objects in (open_phase, split_phase):
         assert static_objects[0, 1] == onion_pile
-        assert jnp.sum(static_objects[:, :5] == StaticObject.POT) == 1
+        assert jnp.sum(static_objects[:, :5] == StaticObject.POT) == 2
         assert jnp.sum(static_objects[:, 6:] == StaticObject.POT) == 0
         assert jnp.sum(static_objects[:, :5] == StaticObject.PLATE_PILE) == 0
         assert jnp.sum(static_objects[:, 6:] == StaticObject.PLATE_PILE) == 1
         assert jnp.sum(static_objects[:, :5] == StaticObject.GOAL) == 0
         assert jnp.sum(static_objects[:, 6:] == StaticObject.GOAL) == 1
 
-    assert open_phase[3, 5] == StaticObject.EMPTY
+    assert open_phase[2, 5] == StaticObject.EMPTY
     assert right_start in _reachable_floor(open_phase, left_start)
-    assert split_phase[3, 5] == StaticObject.WALL
+    assert split_phase[2, 5] == StaticObject.WALL
     assert right_start not in _reachable_floor(split_phase, left_start)
-    assert split_phase[3, 4] == StaticObject.EMPTY
-    assert split_phase[3, 6] == StaticObject.EMPTY
+    assert split_phase[2, 4] == StaticObject.EMPTY
+    assert split_phase[2, 6] == StaticObject.EMPTY
     assert np.sum(open_phase != split_phase) == 1
 
 
@@ -379,8 +374,8 @@ def test_resource_outage_separates_agents_but_keeps_a_shared_handoff(layout_name
 @pytest.mark.parametrize(
     ("layout_name", "change_position", "change_count"),
     (
-        ("split_no_sig", (5, 3), 1),
-        ("split_sig", (5, 3), 1),
+        ("split_no_sig", (5, 2), 1),
+        ("split_sig", (5, 2), 1),
         ("outage_no_sig", (5, 0), 1),
         ("outage_sig", (5, 0), 1),
     ),
@@ -523,8 +518,8 @@ def test_split_runtime_closes_handoff_wall_at_step_40():
 
     assert state.step.item() == 40
     assert state.layout_index.item() == 1
-    assert state.grid[3, 5, 0].item() == StaticObject.WALL
-    assert jnp.all(infos["left_workload_tile_count"] == 1)
+    assert state.grid[2, 5, 0].item() == StaticObject.WALL
+    assert jnp.all(infos["left_workload_tile_count"] == 2)
     assert jnp.all(infos["right_workload_tile_count"] == 2)
     assert jnp.all(infos["left_ingredient_pile_count"] == 1)
     assert jnp.all(infos["right_ingredient_pile_count"] == 0)
@@ -553,7 +548,7 @@ def test_outage_runtime_removes_only_the_right_kitchen_onion_at_step_40():
 @pytest.mark.parametrize(
     ("layout_name", "signal_position", "standing_position"),
     (
-        ("split_sig", (5, 2), (4, 2)),
+        ("split_sig", (5, 4), (4, 4)),
         ("outage_sig", (4, 3), (3, 3)),
     ),
 )
@@ -611,7 +606,7 @@ def test_sig_button_produces_public_timed_signal(
 def test_active_signal_is_labeled_in_rendered_button_tile():
     env = OvercookedV3(layout="split_sig", max_steps=20)
     _, state = env.reset(jax.random.PRNGKey(0))
-    signal_x, signal_y = 5, 2
+    signal_x, signal_y = 5, 4
     state = state.replace(
         grid=state.grid.at[signal_y, signal_x, 2].set(env.signal_activation_time)
     )
@@ -638,7 +633,7 @@ def test_no_sig_placeholder_does_not_activate_or_store_objects():
         agents=state.agents.replace(
             pos=Position(
                 x=state.agents.pos.x.at[0].set(4),
-                y=state.agents.pos.y.at[0].set(2),
+                y=state.agents.pos.y.at[0].set(4),
             ),
             dir=state.agents.dir.at[0].set(Direction.RIGHT),
             inventory=state.agents.inventory.at[0].set(DynamicObject.ingredient(0)),
@@ -653,8 +648,8 @@ def test_no_sig_placeholder_does_not_activate_or_store_objects():
         jax.random.PRNGKey(1), state, actions
     )
 
-    assert state.grid[2, 5, 0].item() == StaticObject.RECIPE_INDICATOR
-    assert state.grid[2, 5, 1].item() == DynamicObject.EMPTY
-    assert state.grid[2, 5, 2].item() == 0
+    assert state.grid[4, 5, 0].item() == StaticObject.RECIPE_INDICATOR
+    assert state.grid[4, 5, 1].item() == DynamicObject.EMPTY
+    assert state.grid[4, 5, 2].item() == 0
     assert state.agents.inventory[0] == DynamicObject.ingredient(0)
     assert rewards[env.agents[0]].item() == 0

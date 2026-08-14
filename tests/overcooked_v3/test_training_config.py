@@ -20,9 +20,8 @@ SCENARIO_FAMILIES = {
     "outagesig": ("resource_outage", True),
 }
 SCENARIOS = {
-    f"{family}_{variant}": metadata
+    f"{family}_0": metadata
     for family, metadata in SCENARIO_FAMILIES.items()
-    for variant in range(5)
 }
 SELECTED_SWEEP_SCENARIOS = list(SCENARIOS)
 
@@ -207,8 +206,8 @@ def test_experiment_folder_uses_only_key_experiment_parameters(tmp_path):
     assert experiment_folder(architecture_change) == "splitsig_0_rnn_seed0"
 
     layout_change = deepcopy(config)
-    layout_change["ENV_KWARGS"]["layout"] = "outagesig_4"
-    assert experiment_folder(layout_change) == "outagesig_4_cnn_seed0"
+    layout_change["ENV_KWARGS"]["layout"] = "outagesig_0"
+    assert experiment_folder(layout_change) == "outagesig_0_cnn_seed0"
 
 
 def test_custom_experiment_name_is_safe_and_precedes_seed():

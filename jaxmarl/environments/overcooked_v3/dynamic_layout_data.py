@@ -17,9 +17,7 @@
 # phase. When the right onion pile disappears, the left agent must trade off
 # local cooking against supplying onions through the shared center counters.
 #
-# Canonical role-layout names have no suffix beyond their workload index:
-# ``splitnosig_0`` ... ``splitnosig_4`` and likewise for ``splitsig``,
-# ``outagenosig``, and ``outagesig``.
+# Each role category exposes one selected canonical layout with index ``0``.
 
 splitnosig_0 = [
     [
@@ -235,9 +233,6 @@ def _register_role_variants():
         globals()[f"outagesig_{variant_index}"] = _build_outage_variant(spec, True)
 
 
-_register_role_variants()
-
-
 # Workload-controlled Split maps. Counts increase across the five variants:
 # (onions, pots, plates, goals) =
 # (1,1,1,1), (1,2,1,1), (2,2,1,1), (1,3,2,1), (2,3,2,2).
@@ -316,13 +311,9 @@ def _build_split_workload(spec, signal_enabled):
     return [[open_grid, 40], [closed_grid, 160]]
 
 
-for _workload_index, _workload_spec in enumerate(_SPLIT_WORKLOAD_SPECS):
-    globals()[f"splitnosig_{_workload_index}"] = _build_split_workload(
-        _workload_spec, False
-    )
-    globals()[f"splitsig_{_workload_index}"] = _build_split_workload(
-        _workload_spec, True
-    )
+# Keep the former index 1 design and publish it as the only Split layout.
+splitnosig_0 = _build_split_workload(_SPLIT_WORKLOAD_SPECS[1], False)
+splitsig_0 = _build_split_workload(_SPLIT_WORKLOAD_SPECS[1], True)
 
 
 def _compact_outage_grid(
@@ -448,23 +439,9 @@ def _build_compact_outage_variant(spec, signal_enabled):
     return [[normal_grid, 40], [outage_grid, 160]]
 
 
-for _compact_index, _compact_spec in enumerate(_COMPACT_OUTAGE_SPECS):
-    globals()[f"outagenosig_{_compact_index}"] = _build_compact_outage_variant(
-        _compact_spec, False
-    )
-    globals()[f"outagesig_{_compact_index}"] = _build_compact_outage_variant(
-        _compact_spec, True
-    )
-
-# Retire the superseded 7x11 variants so only five maps per family are public.
-for _retired_index in range(5, 10):
-    for _retired_family in (
-        "splitnosig",
-        "splitsig",
-        "outagenosig",
-        "outagesig",
-    ):
-        globals().pop(f"{_retired_family}_{_retired_index}", None)
+# Keep the former index 0 design as the only Outage layout.
+outagenosig_0 = _build_compact_outage_variant(_COMPACT_OUTAGE_SPECS[0], False)
+outagesig_0 = _build_compact_outage_variant(_COMPACT_OUTAGE_SPECS[0], True)
 
 # Backward-compatible aliases for existing commands and checkpoints.
 split_no_sig = splitnosig_0

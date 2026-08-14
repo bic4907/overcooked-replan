@@ -26,14 +26,14 @@ export MPLCONFIGDIR=/tmp
 
 ## 2. 가장 작은 smoke test
 
-아래 명령은 `outagesig_4`의 IPPO seed 4·5 checkpoint를 받아 4개 ordered pair를
+아래 명령은 `outagesig_0`의 IPPO seed 4·5 checkpoint를 받아 4개 ordered pair를
 각각 1 episode, 2 step만 평가한다. W&B evaluation run은 만들지 않는다.
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   inchangbaek4907/overcooked-v3-role-coordination \
   --algorithms IPPO \
-  --layout outagesig_4 \
+  --layout outagesig_0 \
   --seeds 4 5 \
   --episodes 1 \
   --max-steps 2 \
@@ -60,7 +60,7 @@ python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   --output-project inchangbaek4907/overcooked-v3-crossplay
 ```
 
-한 evaluation run은 `--layout`으로 지정한 맵 하나만 평가한다. 여러 맵은 20-map
+한 evaluation run은 `--layout`으로 지정한 맵 하나만 평가한다. 여러 맵은 4-map
 sweep처럼 맵마다 별도의 W&B run으로 실행한다.
 
 ## 4. 여러 GPU로 병렬 평가
@@ -120,9 +120,9 @@ artifact 검색·다운로드, 각 GPU의 첫 JIT compile, 마지막 W&B 업로�
 들어 `CUDA_VISIBLE_DEVICES=3,5`라면 GPU 3만 사용한다. 여러 GPU를 한 eval run에
 할당하려는 경우에만 `--gpus 0 1 2 3`처럼 명시한다.
 
-### 4.1 20개 맵 W&B sweep
+### 4.1 4개 맵 W&B sweep
 
-학습 sweep과 동일한 20개 맵을 한 번씩 평가하는 grid sweep이 준비되어 있다.
+학습 sweep과 동일한 4개 맵을 한 번씩 평가하는 grid sweep이 준비되어 있다.
 
 ```text
 experiment/sweeps/eval_ippo_seedwise.yaml
@@ -150,7 +150,7 @@ bash scripts/overcooked_v3/run_wandb_agents.sh \
 이 방식에서는 W&B agent 하나가 한 GPU에 고정되고 서로 다른 맵을 가져간다. 따라서
 sweep YAML에는 `--gpus`를 넣지 않는다. 더 많은 GPU로 확장하려면 위 명령의 값을
 `GPUS="0 1 2 3"`처럼 바꾼다. 4 GPU라면 최대 네 맵이 동시에 평가되며,
-각 맵 run 안에서는 해당 GPU의 여러 worker가 matrix pair를 분산 처리한다. 20개 맵 전체에서
+각 맵 run 안에서는 해당 GPU의 여러 worker가 matrix pair를 분산 처리한다. 4개 맵 전체에서
 GPU 활용률을 유지하기에는 이 방식이 한 run이 모든 GPU를 점유하는 것보다 적합하다.
 
 `eval_ippo_seedwise.yaml`은 현재 `workers-per-gpu: 8`로 설정되어 있어 각

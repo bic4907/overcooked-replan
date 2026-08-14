@@ -29,9 +29,7 @@ def test_selected_layouts_come_from_training_sweep():
         Path("experiment/sweeps/train_ippo.yaml")
     )
 
-    assert len(layouts) == 20
-    assert layouts[:5] == [f"splitnosig_{index}" for index in range(5)]
-    assert layouts[-5:] == [f"outagesig_{index}" for index in range(5)]
+    assert layouts == ["splitnosig_0", "splitsig_0", "outagenosig_0", "outagesig_0"]
 
 
 def test_training_video_prefers_requested_seed_and_skips_missing_media():

@@ -158,7 +158,7 @@ def test_eval_cli_accepts_exactly_one_map_with_singular_or_legacy_flag():
     assert parse_args([*common, "--layouts", "splitsig_0"]).layout == "splitsig_0"
 
     with pytest.raises(SystemExit):
-        parse_args([*common, "--layouts", "splitsig_0", "splitsig_1"])
+        parse_args([*common, "--layouts", "splitsig_0", "outagesig_0"])
 
 
 def test_pair_results_csv_records_the_map_in_the_first_column(tmp_path):
@@ -323,7 +323,7 @@ def test_discovery_keeps_latest_run_per_algorithm_layout_and_seed():
     old = fake_run("old", algorithm="IPPO", created_at="2026-01-01T00:00:00Z")
     new = fake_run("new", algorithm="IPPO", created_at="2026-02-01T00:00:00Z")
     other_seed = fake_run("seed1", algorithm="IPPO", seed=1)
-    wrong_layout = fake_run("wrong", algorithm="IPPO", layout="splitsig_1")
+    wrong_layout = fake_run("wrong", algorithm="IPPO", layout="outagesig_0")
 
     candidates = discover_run_candidates(
         [old, new, other_seed, wrong_layout],

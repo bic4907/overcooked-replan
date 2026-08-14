@@ -7,7 +7,7 @@ Overcooked V2에서 분리한 V3 동적 환경과 역할 형성 실험 문서다
 - [W&B artifact 기반 cross-play 평가](workflow.md#73-wb-run-artifact-기반-cross-play)
 - [W&B project 기반 전체 cross-play matrix](workflow.md#74-wb-project-기반-전체-cross-play-matrix)
 - [Cross-play 명령어 runbook](crossplay.md)
-- [20-map cross-play sweep 실행](crossplay.md#41-20개-맵-wb-sweep)
+- [4-map cross-play sweep 실행](crossplay.md#41-4개-맵-wb-sweep)
 - [Role-scenario W&B sweep 실행 runbook](../../experiment/role_scenarios.md)
 
 관련 실행기는 `scripts/overcooked_v3/`, Hydra 설정은 `conf/`, W&B sweep은

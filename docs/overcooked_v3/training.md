@@ -41,10 +41,10 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 
 | Hydra option | Scenario | Signal |
 | --- | --- | --- |
-| `scenario=splitnosig_0` ... `_4` | Kitchen Split | No |
-| `scenario=splitsig_0` ... `_4` | Kitchen Split | Yes |
-| `scenario=outagenosig_0` ... `_4` | Resource Outage | No |
-| `scenario=outagesig_0` ... `_4` | Resource Outage | Yes |
+| `scenario=splitnosig_0` | Kitchen Split | No |
+| `scenario=splitsig_0` | Kitchen Split | Yes |
+| `scenario=outagenosig_0` | Resource Outage | No |
+| `scenario=outagesig_0` | Resource Outage | Yes |
 
 Kitchen Split은 처음 40 step 동안 중앙 통로 하나가 열려 있고, 이후 160 step 동안
 그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
@@ -59,29 +59,17 @@ shared counter로 양파를 넘겨야 오른쪽 주방이 조리를 계속할 �
 NoSig의 signal 위치는 물건을 보관할 수 없는 비활성 indicator이고, Sig에서만 같은
 위치가 activatable public signal이 된다.
 
-각 category에는 같은 동작 원리를 유지하면서 resource 위치와 작업부하가 다른
-레이아웃 5개가 등록되어 있어 총 20개다. Split은 7×11, Resource Outage는 이동
-비용을 줄인 6×9 맵을 사용한다. Outage는 normal 40 step, outage 160 step이고,
+각 category에는 실험 결과로 선택한 레이아웃 하나만 등록되어 있어 총 4개다.
+Split은 기존 index 1을 `_0`으로 이름을 바꾼 7×11 맵이고, Resource Outage는
+기존 index 0을 유지한 6×9 맵이다. Outage는 normal 40 step, outage 160 step이고,
 left onion에서 handoff를 거쳐 right pot까지의
 이동 거리를 두 agent 합계 최대 4 step으로 줄였다. 중앙은 항상 wall/counter로
 막혀 두 agent의 이동 영역이 완전히 분리된다. 오른쪽 agent는 왼쪽 onion pile에
 직접 갈 수 없고, left agent가 shared handoff counter에 올려놓은 onion만 받을 수 있다.
-같은 번호의
-Sig/NoSig pair는 signal indicator 한 타일만 다르다.
-
-Workload index별 한 bay의 `(onion, pot, plate, serving)` 개수는 다음과 같다.
-
-| Index | Onion | Pot | Plate | Serving |
-| ---: | ---: | ---: | ---: | ---: |
-| 0 | 1 | 1 | 1 | 1 |
-| 1 | 1 | 2 | 1 | 1 |
-| 2 | 2 | 2 | 1 | 1 |
-| 3 | 1 | 3 | 2 | 1 |
-| 4 | 2 | 3 | 2 | 2 |
-
-Split은 onion/pot을 왼쪽, plate/serving을 오른쪽에 배치한다. Outage는
-normal phase에서 양쪽에 같은 개수를 주고, outage phase에서 오른쪽 onion pile을
-모두 제거한다.
+Sig/NoSig pair는 signal indicator 한 타일만 다르다. Split은 왼쪽에 onion 1개와
+pot 2개, 오른쪽에 plate pile 1개와 serving 1개를 둔다. Outage는 normal phase에서
+각 bay에 onion/pot/plate/serving을 하나씩 주고 outage phase에서 오른쪽 onion을
+제거한다.
 
 기존 dynamic map 기본값은 `scenario=dynamic_00`이다.
 
@@ -102,7 +90,7 @@ checkpoint는 첫 CNN layer shape이 달라 서로 호환되지 않는다.
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitnosig_3 \
+  scenario=splitnosig_0 \
   SEED=0 \
   NUM_SEEDS=1
 ```
@@ -128,14 +116,14 @@ splitsig_0_cnn_seed0
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitsig_4 \
+  scenario=splitsig_0 \
   EXPERIMENT_FOLDER=lr-1e-4 \
   LR=0.0001 \
   SEED=0
 ```
 
-결과 폴더는 `saves/splitsig_4_cnn_lr-1e-4_seed0`이다. W&B 기본 run 이름은
-`ippo_cnn_splitsig_4_seed0`이다. 동일 layout, architecture, seed를 다시 실행하면
+결과 폴더는 `saves/splitsig_0_cnn_lr-1e-4_seed0`이다. W&B 기본 run 이름은
+`ippo_cnn_splitsig_0_seed0`이다. 동일 layout, architecture, seed를 다시 실행하면
 기존 결과를 덮어쓸 수 있으므로 별도 실행은 `SEED` 또는 `EXPERIMENT_FOLDER`로
 구분한다.
 
@@ -190,8 +178,8 @@ python baselines/IPPO/ippo_overcooked_v3.py \
 
 ## W&B sweep
 
-`experiment/sweeps/train_ippo.yaml`은 네 category의
-layout 5개씩과 seed 6개를 조합한 120-run grid다. Mac에서 W&B 로그인을 마친 뒤
+`experiment/sweeps/train_ippo.yaml`은 네 category의 선택 layout 하나씩과
+seed 6개를 조합한 24-run grid다. Mac에서 W&B 로그인을 마친 뒤
 다음 명령으로 sweep을 생성한다.
 
 ```bash

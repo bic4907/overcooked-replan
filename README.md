@@ -9,10 +9,10 @@ The following role-coordination experiments are currently available:
 
 | Hydra scenario | Environment | Signal counter | Research question |
 | --- | --- | --- | --- |
-| `splitnosig_0` ... `_4` | Kitchen Split | No | Can agents choose opposite bays before the doorway closes and sustain complementary roles under different workloads? |
-| `splitsig_0` ... `_4` | Kitchen Split | Yes | Does signaling reduce same-side choices before the kitchen splits? |
-| `outagenosig_0` ... `_4` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
-| `outagesig_0` ... `_4` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
+| `splitnosig_0` | Kitchen Split | No | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
+| `splitsig_0` | Kitchen Split | Yes | Does signaling reduce same-side choices before the kitchen splits? |
+| `outagenosig_0` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
+| `outagesig_0` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
 
 Kitchen Split starts with one central doorway open for 40 steps. It then becomes
 a handoff counter for 160 steps, preventing agents from changing bays. The left
@@ -24,16 +24,17 @@ the left cook must trade off local production against supplying the right bay.
 NoSig uses an inert, non-storage indicator where Sig provides the activatable
 public signal, keeping the remaining geometry equal.
 
-Each category has exactly five layouts: Split uses 7×11 maps and Outage uses
-shorter 6×9 maps. Their resource counts progress from one to three
-pots, one to two onion/plate piles, and one to two serving stations. Outage's normal
+Each category has one selected layout: Split uses the former index 1 design
+under the canonical `_0` name, while Outage retains the former index 0 design.
+Split uses a 7×11 map with one onion, two pots, one plate pile, and one serving
+station. Outage uses a shorter 6×9 map with one of each resource per bay. Its normal
 phase lasts 40 steps and their outage lasts 160, while onion–handoff–pot travel
 requires at most four movement steps across both agents. The central wall always
 separates agent movement, so cross-bay assistance is possible only by placing
 objects on shared handoff counters. This keeps the right cook productive without
 allowing it to walk to the surviving onion pile directly.
 Select a layout through its Hydra scenario name, such as
-`scenario=outagesig_1`. Matching Sig/NoSig indices differ only at the
+`scenario=outagesig_0`. Matching Sig/NoSig layouts differ only at the
 signal tile.
 
 Overcooked V3 exposes public signals and upcoming layout transitions to every
@@ -191,17 +192,17 @@ saves/
 For example, this configuration:
 
 ```text
-scenario=splitsig_3 ARCHITECTURE=cnn EXPERIMENT_FOLDER=baseline SEED=2
+scenario=splitsig_0 ARCHITECTURE=cnn EXPERIMENT_FOLDER=baseline SEED=2
 ```
 
 creates the following directory:
 
 ```text
-saves/splitsig_3_cnn_baseline_seed2/
+saves/splitsig_0_cnn_baseline_seed2/
 ```
 
 If `EXPERIMENT_FOLDER` is omitted, the directory is
-`saves/splitsig_3_cnn_seed2/`. Include only meaningful experimental axes in the
+`saves/splitsig_0_cnn_seed2/`. Include only meaningful experimental axes in the
 name. For example, when a normally fixed learning rate becomes an ablation
 variable, use a name such as `EXPERIMENT_FOLDER=lr-1e-4`.
 
@@ -215,7 +216,7 @@ not hardcoded anywhere in the training code.
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitsig_3 \
+  scenario=splitsig_0 \
   SAVES_DIR=/mnt/nas/overcooked-replan \
   EXPERIMENT_FOLDER=baseline \
   SEED=0
@@ -234,8 +235,8 @@ Auxiliary outputs use separate default directories:
 
 ## W&B sweep
 
-`experiment/sweeps/train_ippo.yaml` defines a 120-run grid
-over four categories, five workload layouts, and six seeds. Create it on a Mac
+`experiment/sweeps/train_ippo.yaml` defines a 24-run grid
+over four selected layouts and six seeds. Create it on a Mac
 with the W&B CLI:
 
 ```bash
@@ -264,7 +265,7 @@ GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
 ```
 
 For example, a sweep run is saved under a directory such as
-`saves/splitsig_3_cnn_seed0/`; the resolved layout name keeps variants separate.
+`saves/splitsig_0_cnn_seed0/`.
 
 W&B metrics are grouped by slash-delimited namespaces:
 
