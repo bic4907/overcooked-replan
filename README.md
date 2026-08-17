@@ -94,6 +94,7 @@ Add your W&B credentials and settings to `.env`:
 WANDB_API_KEY=your-api-key
 WANDB_ENTITY=inchangbaek4907
 WANDB_PROJECT=overcooked-v3-role-coordination
+WANDB_SOURCE_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
 ```
 
@@ -242,9 +243,9 @@ Auxiliary outputs use separate default directories:
 
 Fictitious Co-Play uses a two-stage self-play-population and best-response
 workflow. See [the FCP guide](experiment/fcp/README.md) for the training,
-sweep, storage, and IPPO/FCP cross-play commands.
+sweep, storage, and separate IPPO/FCP seed-wise XP commands.
 
-`experiment/sweeps/train_ippo.yaml` defines a 72-run grid over all 12 layouts
+`experiment/self_play/train.yaml` defines a 72-run grid over all 12 layouts
 and six seeds. Create it on a Mac
 with the W&B CLI:
 
@@ -252,7 +253,7 @@ with the W&B CLI:
 wandb sweep \
   --entity inchangbaek4907 \
   --project overcooked-v3-role-coordination \
-  experiment/sweeps/train_ippo.yaml
+  experiment/self_play/train.yaml
 ```
 
 W&B prints `inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID`. Copy that

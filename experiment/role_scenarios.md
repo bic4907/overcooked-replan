@@ -35,13 +35,13 @@ outage 동안 지속적으로 생산할 수 있다.
 signal tile은 중앙열 아래쪽으로 옮기고 그 위에 인접한 handoff counter 2칸을
 확보해, left agent가 onion 두 개를 미리 적재할 수 있게 한다.
 
-현재 `experiment/sweeps/train_ippo.yaml`은 12개 전체 catalog와 seed 6개를
+현재 `experiment/self_play/train.yaml`은 12개 전체 catalog와 seed 6개를
 조합한다. 개별 실행할 때는 `scenario=<family>_<0-2>`를 사용한다.
 
 ## 2. Training sweep 생성
 
 ```bash
-wandb sweep --entity inchangbaek4907 --project overcooked-v3-role-coordination sweeps/train_ippo.yaml
+wandb sweep --entity inchangbaek4907 --project overcooked-v3-role-coordination experiment/self_play/train.yaml
 ```
 
 W&B prints an agent command containing the full sweep path:

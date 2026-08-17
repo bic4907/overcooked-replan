@@ -72,15 +72,13 @@ def test_fcp_hydra_config_uses_rnn_and_public_v3_observation():
     assert config.FCP.snapshots_per_policy == 3
 
 
-def test_fcp_eval_sweep_compares_ippo_and_fcp():
+def test_fcp_eval_sweep_runs_seedwise_fcp_only():
     sweep = yaml.safe_load(
         (ROOT / "experiment/fcp/eval.yaml").read_text(
             encoding="utf-8"
         )
     )
 
-    algorithm_index = sweep["command"].index("--algorithms")
-    assert sweep["command"][algorithm_index + 1 : algorithm_index + 3] == [
-        "IPPO",
-        "FCP",
-    ]
+    assert sweep["parameters"]["algorithms"]["value"] == "FCP"
+    assert "--algorithms" not in sweep["command"]
+    assert sweep["command"][-1] == "${args_no_equals}"

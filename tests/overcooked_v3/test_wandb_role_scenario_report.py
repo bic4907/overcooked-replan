@@ -26,7 +26,7 @@ def fake_run(run_id, seed, files, summary=None):
 
 def test_selected_layouts_come_from_training_sweep():
     layouts = selected_layouts(
-        Path("experiment/sweeps/train_ippo.yaml")
+        Path("experiment/self_play/train.yaml")
     )
 
     assert layouts == [

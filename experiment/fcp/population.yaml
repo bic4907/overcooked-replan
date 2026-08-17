@@ -1,10 +1,12 @@
 program: baselines/IPPO/ippo_overcooked_v3.py
-name: fcp-population
+name: fcp-self-play
 method: grid
 metric:
   goal: maximize
   name: train/episode_return
 
+# Based on experiment/self_play/train.yaml with additional RNN snapshot
+# settings for the frozen FCP partner population.
 parameters:
   scenario:
     values:
@@ -24,8 +26,6 @@ parameters:
     values: [0, 1, 2, 3, 4, 5]
   ARCHITECTURE:
     value: rnn
-  EXPERIMENT_FOLDER:
-    value: fcp-population
   SAVES_DIR:
     value: saves/fcp_population
   CHECKPOINT_INTERVAL:
@@ -39,5 +39,4 @@ command:
   - ${env}
   - ${interpreter}
   - ${program}
-  - PROJECT=overcooked-v3-fcp-population
   - ${args_no_hyphens}

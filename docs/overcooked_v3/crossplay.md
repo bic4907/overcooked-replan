@@ -125,7 +125,7 @@ artifact 검색·다운로드, 각 GPU의 첫 JIT compile, 마지막 W&B 업로�
 학습 sweep과 동일한 4개 맵을 한 번씩 평가하는 grid sweep이 준비되어 있다.
 
 ```text
-experiment/sweeps/eval_ippo_seedwise.yaml
+experiment/self_play/eval.yaml
 ```
 
 평가 결과를 저장할 별도 project에 sweep을 만든다.
@@ -134,7 +134,7 @@ experiment/sweeps/eval_ippo_seedwise.yaml
 wandb sweep \
   --entity inchangbaek4907 \
   --project overcooked-v3-crossplay \
-  experiment/sweeps/eval_ippo_seedwise.yaml
+  experiment/self_play/eval.yaml
 ```
 
 출력된 `ENTITY/PROJECT/SWEEP_ID`를 GPU 서버에서 실행한다.

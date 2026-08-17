@@ -15,7 +15,7 @@ from jaxmarl._env import load_project_env
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SWEEP = ROOT / "experiment/sweeps/train_ippo.yaml"
+DEFAULT_SWEEP = ROOT / "experiment/self_play/train.yaml"
 
 
 def parse_args(argv=None):

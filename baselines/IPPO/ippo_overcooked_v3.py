@@ -93,6 +93,18 @@ def _resolve_wandb_mode(config, environ=None):
     return mode
 
 
+def _wandb_target(config, environ=None):
+    """Let a sweep agent own its entity/project instead of overriding it."""
+    if environ is None:
+        environ = os.environ
+    if environ.get("WANDB_SWEEP_ID"):
+        return {}
+    return {
+        "entity": config.get("ENTITY") or None,
+        "project": config.get("PROJECT") or None,
+    }
+
+
 def _architecture(config):
     architecture = config.get("ARCHITECTURE", "rnn").lower()
     if architecture not in {"cnn", "rnn"}:
@@ -132,10 +144,11 @@ def _wandb_metadata(config):
     group = str(config.get("WANDB_GROUP") or experiment)
     default_name = f"{_checkpoint_prefix(config)}_{condition}_seed{config['SEED']}"
     name = str(config.get("RUN_NAME") or default_name)
-    if str(config.get("EXPERIMENT_FOLDER", "")).casefold() == "fcp-population":
-        tags = list(dict.fromkeys([*tags, "FCP-Population"]))
-        group = f"fcp-population-{group}"
-        name = f"fcp-population-{name}"
+    saves_dir = Path(str(config.get("SAVES_DIR") or ""))
+    if saves_dir.name.casefold().replace("-", "_") == "fcp_population":
+        tags = list(dict.fromkeys([*tags, "FCP-Self-Play"]))
+        group = f"fcp-self-play-{group}"
+        name = f"fcp-self-play-{name}"
     return name, group, tags
 
 
@@ -1055,8 +1068,7 @@ def run(config):
 
     wandb_name, wandb_group, wandb_tags = _wandb_metadata(config)
     wandb.init(
-        entity=config.get("ENTITY") or None,
-        project=config["PROJECT"],
+        **_wandb_target(config),
         tags=wandb_tags,
         config=config,
         mode=config["wandb_mode"],

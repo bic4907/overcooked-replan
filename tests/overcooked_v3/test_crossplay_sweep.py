@@ -4,8 +4,8 @@ import yaml
 from wandb.sdk.launch.sweeps.utils import create_sweep_command_args
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-TRAIN_SWEEP = PROJECT_ROOT / "experiment/sweeps/train_ippo.yaml"
-CROSSPLAY_SWEEP = PROJECT_ROOT / "experiment/sweeps/eval_ippo_seedwise.yaml"
+TRAIN_SWEEP = PROJECT_ROOT / "experiment/self_play/train.yaml"
+CROSSPLAY_SWEEP = PROJECT_ROOT / "experiment/self_play/eval.yaml"
 
 
 def load_yaml(path):

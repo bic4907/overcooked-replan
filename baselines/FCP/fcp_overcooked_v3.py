@@ -106,6 +106,18 @@ def _resolve_wandb_mode(config, environ=None):
     return mode
 
 
+def _wandb_target(config, environ=None):
+    """Let a sweep agent own its entity/project instead of overriding it."""
+    if environ is None:
+        environ = os.environ
+    if environ.get("WANDB_SWEEP_ID"):
+        return {}
+    return {
+        "entity": config.get("ENTITY") or None,
+        "project": config.get("PROJECT") or None,
+    }
+
+
 def _architecture(config):
     architecture = config.get("ARCHITECTURE", "rnn").lower()
     if architecture not in {"cnn", "rnn"}:
@@ -1301,8 +1313,7 @@ def run(config):
 
     wandb_name, wandb_group, wandb_tags = _wandb_metadata(config)
     wandb.init(
-        entity=config.get("ENTITY") or None,
-        project=config["PROJECT"],
+        **_wandb_target(config),
         tags=wandb_tags,
         config=config,
         mode=config["wandb_mode"],

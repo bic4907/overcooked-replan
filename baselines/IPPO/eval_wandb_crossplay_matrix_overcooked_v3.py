@@ -96,7 +96,12 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "source_project",
-        help="Training project as PROJECT or ENTITY/PROJECT.",
+        nargs="?",
+        default=os.getenv("WANDB_SOURCE_PROJECT") or os.getenv("WANDB_PROJECT"),
+        help=(
+            "Training project as PROJECT or ENTITY/PROJECT. Defaults to "
+            "WANDB_SOURCE_PROJECT, then WANDB_PROJECT."
+        ),
     )
     parser.add_argument(
         "--algorithms",
@@ -542,7 +547,7 @@ def write_reproducibility_bundle(output_dir, args, run_name, artifact_dir):
 
     sweep_path = (
         script_dir.parents[1]
-        / "experiment/sweeps/eval_ippo_seedwise.yaml"
+        / "experiment/self_play/eval.yaml"
     )
     if sweep_path.is_file():
         shutil.copy2(sweep_path, source_dir / sweep_path.name)
@@ -613,6 +618,10 @@ def _write_records_csv(path, records):
 
 
 def _validate_args(args):
+    if not args.source_project:
+        raise ValueError(
+            "Set WANDB_SOURCE_PROJECT or pass the training project explicitly"
+        )
     if args.episodes < 1:
         raise ValueError("--episodes must be at least 1")
     if args.max_steps < 1:
@@ -825,11 +834,14 @@ def main():
     )
 
     source_entity, source_project = split_project_path(args.source_project, args.entity)
-    output_project_value = args.output_project or f"{source_project}-crossplay"
-    output_entity, output_project = split_project_path(
-        output_project_value,
-        args.output_entity or source_entity,
-    )
+    wandb_target = {}
+    if not os.environ.get("WANDB_SWEEP_ID"):
+        output_project_value = args.output_project or f"{source_project}-crossplay"
+        output_entity, output_project = split_project_path(
+            output_project_value,
+            args.output_entity or source_entity,
+        )
+        wandb_target = {"entity": output_entity, "project": output_project}
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     run_name = evaluation_run_name(args)
     output_dir, artifact_root = resolve_run_paths(args, timestamp, os.getpid())
@@ -867,8 +879,7 @@ def main():
         )
 
     with wandb.init(
-        entity=output_entity,
-        project=output_project,
+        **wandb_target,
         mode=args.wandb_mode,
         name=run_name,
         dir=str(output_dir),

@@ -183,7 +183,7 @@ python baselines/IPPO/ippo_overcooked_v3.py \
 
 ## W&B sweep
 
-`experiment/sweeps/train_ippo.yaml`은 네 category의 layout 3개씩과
+`experiment/self_play/train.yaml`은 네 category의 layout 3개씩과
 seed 6개를 조합한 72-run grid다. Mac에서 W&B 로그인을 마친 뒤
 다음 명령으로 sweep을 생성한다.
 
@@ -191,7 +191,7 @@ seed 6개를 조합한 72-run grid다. Mac에서 W&B 로그인을 마친 뒤
 wandb sweep \
   --entity inchangbaek4907 \
   --project overcooked-v3-role-coordination \
-  experiment/sweeps/train_ippo.yaml
+  experiment/self_play/train.yaml
 ```
 
 출력된 전체 경로 `inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID`를 GPU

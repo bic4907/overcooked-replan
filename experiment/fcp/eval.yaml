@@ -1,11 +1,13 @@
 program: baselines/IPPO/eval_crossplay_overcooked_v3.py
-name: fcp-crossplay
+name: fcp-seedwise-xp
 method: grid
 metric:
   goal: maximize
   name: XP
 
 parameters:
+  algorithms:
+    value: FCP
   layout:
     values:
       - splitnosig_0
@@ -31,10 +33,4 @@ command:
   - ${env}
   - ${interpreter}
   - ${program}
-  - inchangbaek4907/overcooked-v3-role-coordination
-  - --algorithms
-  - IPPO
-  - FCP
-  - --output-project
-  - inchangbaek4907/overcooked-v3-crossplay
   - ${args_no_equals}

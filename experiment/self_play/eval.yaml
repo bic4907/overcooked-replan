@@ -1,4 +1,5 @@
 program: baselines/IPPO/eval_crossplay_overcooked_v3.py
+name: self-play-seedwise-xp
 method: grid
 metric:
   goal: maximize
@@ -27,12 +28,9 @@ parameters:
     value: 400
   workers-per-gpu:
     value: 8
-  output-project:
-    value: inchangbaek4907/overcooked-v3-crossplay
 
 command:
   - ${env}
   - ${interpreter}
   - ${program}
-  - inchangbaek4907/overcooked-v3-role-coordination
   - ${args_no_equals}
