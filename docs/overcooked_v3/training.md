@@ -41,10 +41,10 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 
 | Hydra option | Scenario | Signal |
 | --- | --- | --- |
-| `scenario=splitnosig_<0-19>` | Kitchen Split | No |
-| `scenario=splitsig_<0-19>` | Kitchen Split | Yes |
-| `scenario=outagenosig_<0-19>` | Resource Outage | No |
-| `scenario=outagesig_<0-19>` | Resource Outage | Yes |
+| `scenario=splitnosig_<0-2>` | Kitchen Split | No |
+| `scenario=splitsig_<0-2>` | Kitchen Split | Yes |
+| `scenario=outagenosig_<0-2>` | Resource Outage | No |
+| `scenario=outagesig_<0-2>` | Resource Outage | Yes |
 
 Kitchen Split은 처음 40 step 동안 중앙 통로 하나가 열려 있고, 이후 160 step 동안
 그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
@@ -60,13 +60,10 @@ recipe indicator는 두 조건 모두 맵 위쪽 중앙의 별도 타일에 유�
 signal 위치에는 버튼 없이 물건도 보관할 수 없는 blank blocker를 두고, Sig에서만
 같은 위치가 activatable public signal이 된다.
 
-각 category에는 `_0`부터 `_19`까지 20개, 총 80개 레이아웃이 등록되어 있다.
-기존 `_0` 맵은 수정하지 않은 canonical layout이다. `_1`~`_19`는 같은 category의
-동작 원리와 맵 크기를 유지하면서 onion·pot·plate·serving 수, 외곽 배치,
-agent 시작 위치를 바꾼다. 같은 번호의 Sig/NoSig pair는 signal tile만 다르다.
+각 category에는 cross-play 결과로 선별한 `_0`부터 `_2`까지 3개, 총 12개
+레이아웃이 등록되어 있다. 같은 번호의 Sig/NoSig pair는 signal tile만 다르다.
 Split은 7×9, Resource Outage는 5×7이다. Outage는 normal 40 step, outage 160 step이다.
-`_0`은 left onion에서 handoff를 거쳐 right pot까지 두 agent 합계 최대 1 step이고,
-나머지 variant도 onion→handoff와 handoff→pot 각각을 최대 1 step으로 제한한다.
+모든 Outage variant는 onion→handoff와 handoff→pot 각각을 최대 1 step으로 제한한다.
 중앙은 항상 wall/counter로
 막혀 두 agent의 이동 영역이 완전히 분리된다. 오른쪽 agent는 왼쪽 onion pile에
 직접 갈 수 없고, left agent가 shared handoff counter에 올려놓은 onion만 받을 수 있다.
@@ -74,22 +71,17 @@ signal tile은 중앙열 아래쪽에 두고, 그 위의 인접한 counter 2칸�
 적재할 수 있다.
 Split은 기존의 양파 3개 레시피를 유지하고, Outage는 양파 2개를 pot에 넣으면
 바로 조리를 시작한다. 모든 scenario의 pot 조리시간은 기존과 동일한 20 step이다.
-Sig/NoSig pair는 signal indicator 한 타일만 다르다. Canonical `_0` Split은
-왼쪽에 onion 2개와 pot 2개, 오른쪽에 plate pile 1개와 serving 1개를 둔다.
-Canonical `_0` Outage는 normal phase에서 각 bay에
-onion/pot/plate/serving을 하나씩 주며, 모든 Outage variant는 outage phase에서
-오른쪽 onion을 전부 제거한다.
-
-예를 들어 variant 12는 `scenario=splitnosig_12` 또는
-`scenario=outagesig_12`처럼 바로 선택할 수 있다. 기본 sweep에도 80개 layout이
-모두 등록되어 있다.
+Sig/NoSig pair는 signal indicator 한 타일만 다르며, 모든 Outage variant는 outage
+phase에서 오른쪽 onion을 전부 제거한다. 예를 들어 `_2`는
+`scenario=splitnosig_2` 또는 `scenario=outagesig_2`처럼 바로 선택할 수 있다.
+기본 sweep에도 12개 layout이 모두 등록되어 있다.
 
 기존 dynamic map 기본값은 `scenario=dynamic_00`이다.
 
 V3 기본 관측은 V2의 30채널에 public signal status, phase 전환 countdown,
 change mask를 추가한 33채널이다. 뒤에서 세 번째 채널은 signal button 위치에서
-활성 직후 `1.0`이고 10 observed step 동안 `0.1`까지 감소한다. 버튼을 누를 때마다
-기본 `0.1`의 team sparse reward cost가 발생한다. 마지막 두 채널은 전환 20 step
+활성 직후 두 agent 모두에게 `1.0`이고 10 observed step 동안 `0.1`까지 감소한다.
+버튼을 눌러도 reward cost는 발생하지 않는다. 마지막 두 채널은 전환 20 step
 전까지 0이다. 경고 구간에서 countdown은 `1.0`부터 `0.05`로 감소하고, 마지막
 binary 채널은 다음 phase에서 static object가 달라질 위치를 표시한다. 경고 구간은
 `ENV_KWARGS.transition_warning_steps`로 조정할 수 있다.
@@ -191,8 +183,8 @@ python baselines/IPPO/ippo_overcooked_v3.py \
 
 ## W&B sweep
 
-`experiment/sweeps/train_ippo.yaml`은 네 category의 layout 20개씩과
-seed 6개를 조합한 480-run grid다. Mac에서 W&B 로그인을 마친 뒤
+`experiment/sweeps/train_ippo.yaml`은 네 category의 layout 3개씩과
+seed 6개를 조합한 72-run grid다. Mac에서 W&B 로그인을 마친 뒤
 다음 명령으로 sweep을 생성한다.
 
 ```bash

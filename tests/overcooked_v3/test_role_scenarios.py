@@ -77,7 +77,7 @@ def _shortest_floor_distance(static_objects, starts, goals):
     return None
 
 
-def test_each_role_scenario_family_has_twenty_unique_layouts():
+def test_each_role_scenario_family_has_three_unique_layouts():
     assert set(ROLE_SCENARIO_LAYOUTS) == {
         "splitnosig",
         "splitsig",
@@ -85,7 +85,7 @@ def test_each_role_scenario_family_has_twenty_unique_layouts():
         "outagesig",
     }
     for family, names in ROLE_SCENARIO_LAYOUTS.items():
-        assert names == tuple(f"{family}_{variant}" for variant in range(20))
+        assert names == tuple(f"{family}_{variant}" for variant in range(3))
         signatures = {
             tuple(
                 phase.layout.static_objects.tobytes()
@@ -93,7 +93,7 @@ def test_each_role_scenario_family_has_twenty_unique_layouts():
             )
             for name in names
         }
-        assert len(signatures) == 20
+        assert len(signatures) == 3
 
 
 @pytest.mark.parametrize("layout_name", CANONICAL_ROLE_SCENARIOS)
@@ -133,10 +133,10 @@ def test_outage_pot_starts_cooking_after_second_onion():
     _, state = env.reset(jax.random.PRNGKey(0))
     onion = DynamicObject.ingredient(0)
     state = state.replace(
-        grid=state.grid.at[0, 1, 1].set(onion),
+        grid=state.grid.at[0, 2, 1].set(onion),
         agents=state.agents.replace(
             pos=Position(
-                x=state.agents.pos.x.at[0].set(1),
+                x=state.agents.pos.x.at[0].set(2),
                 y=state.agents.pos.y.at[0].set(1),
             ),
             dir=state.agents.dir.at[0].set(Direction.UP),
@@ -150,11 +150,11 @@ def test_outage_pot_starts_cooking_after_second_onion():
 
     _, state, _, _, _ = env.step_env(jax.random.PRNGKey(1), state, actions)
 
-    assert DynamicObject.ingredient_count(state.grid[0, 1, 1]) == 2
-    assert state.grid[0, 1, 2] == 19
+    assert DynamicObject.ingredient_count(state.grid[0, 2, 1]) == 2
+    assert state.grid[0, 2, 2] == 19
 
 
-@pytest.mark.parametrize("variant", range(20))
+@pytest.mark.parametrize("variant", range(3))
 @pytest.mark.parametrize(
     ("no_sig_family", "sig_family"),
     (("splitnosig", "splitsig"), ("outagenosig", "outagesig")),
@@ -179,7 +179,7 @@ def test_each_sig_variant_only_replaces_one_indicator(
         assert sig_static[signal_y, signal_x] == StaticObject.BUTTON_RECIPE_INDICATOR
 
 
-@pytest.mark.parametrize("variant", range(20))
+@pytest.mark.parametrize("variant", range(3))
 def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     layout = dynamic_layouts[f"outagenosig_{variant}"]
     assert tuple(phase.steps for phase in layout.phases) == (40, 160)
@@ -284,7 +284,7 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     )
 
 
-@pytest.mark.parametrize("variant", range(20))
+@pytest.mark.parametrize("variant", range(3))
 def test_split_variants_keep_complementary_resources_in_separate_bays(variant):
     layout = dynamic_layouts[f"splitnosig_{variant}"]
     assert tuple(phase.steps for phase in layout.phases) == (40, 160)
@@ -402,20 +402,20 @@ def test_kitchen_split_closes_doorway_between_complementary_bays():
 
     onion_pile = StaticObject.ingredient_pile(0)
     for static_objects in (open_phase, split_phase):
-        assert jnp.sum(static_objects[:, :4] == onion_pile) == 2
+        assert jnp.sum(static_objects[:, :4] == onion_pile) == 1
         assert jnp.sum(static_objects[:, :4] == StaticObject.POT) == 2
         assert jnp.sum(static_objects[:, 5:] == StaticObject.POT) == 0
         assert jnp.sum(static_objects[:, :4] == StaticObject.PLATE_PILE) == 0
-        assert jnp.sum(static_objects[:, 5:] == StaticObject.PLATE_PILE) == 1
+        assert jnp.sum(static_objects[:, 5:] == StaticObject.PLATE_PILE) == 2
         assert jnp.sum(static_objects[:, :4] == StaticObject.GOAL) == 0
         assert jnp.sum(static_objects[:, 5:] == StaticObject.GOAL) == 1
 
-    assert open_phase[4, 4] == StaticObject.EMPTY
+    assert open_phase[5, 4] == StaticObject.EMPTY
     assert right_start in _reachable_floor(open_phase, left_start)
-    assert split_phase[4, 4] == StaticObject.WALL
+    assert split_phase[5, 4] == StaticObject.WALL
     assert right_start not in _reachable_floor(split_phase, left_start)
-    assert split_phase[4, 3] == StaticObject.EMPTY
-    assert split_phase[4, 5] == StaticObject.EMPTY
+    assert split_phase[5, 3] == StaticObject.EMPTY
+    assert split_phase[5, 5] == StaticObject.EMPTY
     assert np.sum(open_phase != split_phase) == 1
 
 
@@ -435,25 +435,30 @@ def test_resource_outage_separates_agents_but_keeps_a_shared_handoff(layout_name
 
     normal_phase = layout.phases[0].layout.static_objects
     outage_phase = layout.phases[1].layout.static_objects
-    assert normal_phase[0, 2] == onion_pile
-    assert normal_phase[0, 4] == onion_pile
-    assert outage_phase[0, 2] == onion_pile
-    assert outage_phase[0, 4] == StaticObject.WALL
+    assert normal_phase[0, 1] == onion_pile
+    assert normal_phase[0, 5] == onion_pile
+    assert outage_phase[0, 1] == onion_pile
+    assert outage_phase[0, 5] == StaticObject.WALL
 
-    for object_type in (StaticObject.POT, StaticObject.PLATE_PILE, StaticObject.GOAL):
+    expected_per_bay = {
+        StaticObject.POT: 1,
+        StaticObject.PLATE_PILE: 2,
+        StaticObject.GOAL: 1,
+    }
+    for object_type, count in expected_per_bay.items():
         positions = np.argwhere(outage_phase == object_type)
-        assert positions.shape == (2, 2)
-        assert jnp.sum(positions[:, 1] < 3) == 1
-        assert jnp.sum(positions[:, 1] > 3) == 1
+        assert positions.shape == (2 * count, 2)
+        assert jnp.sum(positions[:, 1] < 3) == count
+        assert jnp.sum(positions[:, 1] > 3) == count
 
 
 @pytest.mark.parametrize(
     ("layout_name", "change_position", "change_count"),
     (
-        ("split_no_sig", (4, 4), 1),
-        ("split_sig", (4, 4), 1),
-        ("outage_no_sig", (4, 0), 1),
-        ("outage_sig", (4, 0), 1),
+        ("split_no_sig", (4, 5), 1),
+        ("split_sig", (4, 5), 1),
+        ("outage_no_sig", (5, 0), 1),
+        ("outage_sig", (5, 0), 1),
     ),
 )
 def test_change_mask_marks_only_the_next_static_tile_change(
@@ -611,10 +616,10 @@ def test_split_runtime_closes_handoff_wall_at_step_40():
 
     assert state.step.item() == 40
     assert state.layout_index.item() == 1
-    assert state.grid[4, 4, 0].item() == StaticObject.WALL
+    assert state.grid[5, 4, 0].item() == StaticObject.WALL
     assert jnp.all(infos["left_workload_tile_count"] == 2)
-    assert jnp.all(infos["right_workload_tile_count"] == 2)
-    assert jnp.all(infos["left_ingredient_pile_count"] == 2)
+    assert jnp.all(infos["right_workload_tile_count"] == 3)
+    assert jnp.all(infos["left_ingredient_pile_count"] == 1)
     assert jnp.all(infos["right_ingredient_pile_count"] == 0)
     assert jnp.all(infos["layout_changed"])
 
@@ -629,10 +634,10 @@ def test_outage_runtime_removes_only_the_right_kitchen_onion_at_step_40():
 
     assert state.step.item() == 40
     assert state.layout_index.item() == 1
-    assert state.grid[0, 2, 0].item() == StaticObject.ingredient_pile(0)
-    assert state.grid[0, 4, 0].item() == StaticObject.WALL
-    assert jnp.all(infos["left_workload_tile_count"] == 3)
-    assert jnp.all(infos["right_workload_tile_count"] == 3)
+    assert state.grid[0, 1, 0].item() == StaticObject.ingredient_pile(0)
+    assert state.grid[0, 5, 0].item() == StaticObject.WALL
+    assert jnp.all(infos["left_workload_tile_count"] == 4)
+    assert jnp.all(infos["right_workload_tile_count"] == 4)
     assert jnp.all(infos["left_ingredient_pile_count"] == 1)
     assert jnp.all(infos["right_ingredient_pile_count"] == 0)
     assert jnp.all(infos["layout_changed"])
@@ -673,8 +678,9 @@ def test_sig_button_produces_public_timed_signal(
     assert state.grid[signal_y, signal_x, 2].item() == env.signal_activation_time
     assert obs[env.agents[0]][signal_y, signal_x, -3].item() == 1.0
     assert obs[env.agents[1]][signal_y, signal_x, -3].item() == 1.0
-    assert rewards[env.agents[0]].item() == pytest.approx(-INDICATOR_ACTIVATION_COST)
-    assert rewards[env.agents[1]].item() == pytest.approx(-INDICATOR_ACTIVATION_COST)
+    assert INDICATOR_ACTIVATION_COST == 0.0
+    assert rewards[env.agents[0]].item() == 0.0
+    assert rewards[env.agents[1]].item() == 0.0
 
     stay_actions = {
         env.agents[0]: jnp.array(OvercookedActionsEnum.stay),

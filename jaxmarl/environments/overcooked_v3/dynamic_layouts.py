@@ -218,7 +218,7 @@ dynamic_layouts.update(
 )
 
 ROLE_SCENARIO_LAYOUTS = {
-    family: tuple(f"{family}_{variant}" for variant in range(20))
+    family: tuple(f"{family}_{variant}" for variant in range(3))
     for family in ("splitnosig", "splitsig", "outagenosig", "outagesig")
 }
 ROLE_SCENARIO_LAYOUT_NAMES = tuple(

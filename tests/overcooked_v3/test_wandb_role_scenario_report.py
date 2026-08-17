@@ -32,7 +32,7 @@ def test_selected_layouts_come_from_training_sweep():
     assert layouts == [
         f"{family}_{variant}"
         for family in ("splitnosig", "splitsig", "outagenosig", "outagesig")
-        for variant in range(20)
+        for variant in range(3)
     ]
 
 

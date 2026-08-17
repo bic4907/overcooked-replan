@@ -22,7 +22,7 @@ SCENARIO_FAMILIES = {
 SCENARIOS = {
     f"{family}_{variant}": metadata
     for family, metadata in SCENARIO_FAMILIES.items()
-    for variant in range(20)
+    for variant in range(3)
 }
 SWEEP_SCENARIOS = list(SCENARIOS)
 
@@ -40,7 +40,7 @@ def test_default_training_config_preserves_dynamic_00():
     assert config.ENV_KWARGS.include_signal_status is True
     assert config.ENV_KWARGS.transition_warning_steps == 20
     assert config.ENV_KWARGS.signal_activation_time == 10
-    assert config.ENV_KWARGS.signal_activation_cost == 0.1
+    assert config.ENV_KWARGS.signal_activation_cost == 0.0
     assert config.get("WANDB_DIR") is None
     assert config.RECORD_FINAL_EPISODE is True
     assert config.RECORD_MAX_STEPS == 400

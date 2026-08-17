@@ -18,118 +18,8 @@
 # phase. When the right onion pile disappears, the left agent must trade off
 # local cooking against supplying onions through the shared center counters.
 #
-# Each role category exposes 20 layouts. Index ``0`` is the selected canonical
-# design; indices ``1`` through ``19`` vary resource capacity, placement,
-# travel distance, and starting position without changing the scenario rule.
-
-splitnosig_0 = [
-    [
-        """
-WWWWWWWWWWW
-W0   W  B W
-W    R    W
-W A     A W
-WP   W    W
-WP   W  X W
-WWWWWWWWWWW
-""",
-        40,
-    ],
-    [
-        """
-WWWWWWWWWWW
-W0   W  B W
-W    R    W
-W A  W  A W
-WP   W    W
-WP   W  X W
-WWWWWWWWWWW
-""",
-        160,
-    ],
-]
-
-splitsig_0 = [
-    [
-        """
-WWWWWWWWWWW
-W0   W  B W
-W    L    W
-W A     A W
-WP   W    W
-WP   W  X W
-WWWWWWWWWWW
-""",
-        40,
-    ],
-    [
-        """
-WWWWWWWWWWW
-W0   W  B W
-W    L    W
-W A  W  A W
-WP   W    W
-WP   W  X W
-WWWWWWWWWWW
-""",
-        160,
-    ],
-]
-
-outagenosig_0 = [
-    [
-        """
-WWWWWWWWWWW
-W0   W   0W
-WP   W   PW
-W  A W A  W
-WB   R   BW
-WX   W   XW
-WWWWWWWWWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWWWWWWWW
-W0   W   WW
-WP   W   PW
-W  A W A  W
-WB   R   BW
-WX   W   XW
-WWWWWWWWWWW
-""",
-        100,
-    ],
-]
-
-outagesig_0 = [
-    [
-        """
-WWWWWWWWWWW
-W0   W   0W
-WP   W   PW
-W  A W A  W
-WB   L   BW
-WX   W   XW
-WWWWWWWWWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWWWWWWWW
-W0   W   WW
-WP   W   PW
-W  A W A  W
-WB   L   BW
-WX   W   XW
-WWWWWWWWWWW
-""",
-        100,
-    ],
-]
-
+# Each role category exposes the three layouts selected from the cross-play
+# report. Sig/NoSig use matched geometry at each index.
 
 def _role_grid(
     resources,
@@ -167,17 +57,6 @@ def _role_grid(
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-# The selected Split map preserves the former index 2 workload while shrinking
-# each movement bay by one column (7x11 -> 7x9).
-_SELECTED_SPLIT_SPEC = (
-    4,
-    2,
-    ((2, 4), (6, 4)),
-    (("0", (1, 0)), ("0", (0, 2)), ("P", (3, 0)), ("P", (2, 6))),
-    (("B", (5, 0)), ("X", (8, 4))),
-)
-
-
 def _build_split_workload(spec, signal_enabled, width=11, recipe_row=0):
     door_row, signal_row, agents, left_resources, right_resources = spec
     resources = [*left_resources, *right_resources]
@@ -200,11 +79,6 @@ def _build_split_workload(spec, signal_enabled, width=11, recipe_row=0):
         width=width,
     )
     return [[open_grid, 40], [closed_grid, 160]]
-
-
-# Preserve the compressed former index 2 design as canonical Split index 0.
-splitnosig_0 = _build_split_workload(_SELECTED_SPLIT_SPEC, False, width=9)
-splitsig_0 = _build_split_workload(_SELECTED_SPLIT_SPEC, True, width=9)
 
 
 def _compact_outage_grid(
@@ -238,19 +112,6 @@ def _compact_outage_grid(
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-# The compact layout lets the left cook pick up an onion and place it on the
-# center counter without moving. The right cook reaches its pot one move after
-# collecting the handoff. A 40-step normal phase permits at most a short
-# warm-up, while the 160-step outage makes sustained right-kitchen production
-# depend on supply from the left cook.
-_COMPACT_OUTAGE_SPEC = (
-    3,
-    ((2, 2), (4, 2)),
-    (("0", (2, 0)), ("P", (1, 0)), ("B", (1, 4)), ("X", (2, 4))),
-    (),
-)
-
-
 def _build_compact_outage_variant(spec, signal_enabled):
     signal_row, agents, left_resources, notches = spec
     right_resources = tuple((symbol, (6 - x, y)) for symbol, (x, y) in left_resources)
@@ -275,11 +136,6 @@ def _build_compact_outage_variant(spec, signal_enabled):
     return [[normal_grid, 40], [outage_grid, 160]]
 
 
-# Preserve the selected compact design as canonical Outage index 0.
-outagenosig_0 = _build_compact_outage_variant(_COMPACT_OUTAGE_SPEC, False)
-outagesig_0 = _build_compact_outage_variant(_COMPACT_OUTAGE_SPEC, True)
-
-
 def _rotated_take(positions, count, offset):
     """Take unique positions from a cyclically rotated placement palette."""
     if count > len(positions):
@@ -291,7 +147,8 @@ def _rotated_take(positions, count, offset):
     return rotated[:count]
 
 
-# Variants 1-19 retain the 7x9 split topology. The workload tuple is
+# Candidate source layouts retain the 7x9 split topology. Only the three
+# cross-play-selected candidates are registered below. The workload tuple is
 # (onion piles, pots, plate piles, serving stations). Resources remain assigned
 # to their role-specific bay, while placement and starting positions vary.
 _SPLIT_WORKLOADS = (
@@ -386,8 +243,9 @@ def _build_split_catalog_variant(variant_index, signal_enabled):
     return _build_split_workload(spec, signal_enabled, width=9)
 
 
-# Outage variants keep the compact 5x7, permanently separated two-bay
-# topology. Each side starts with an identical complete kitchen. All right-side
+# Outage candidate sources keep the compact 5x7, permanently separated two-bay
+# topology. Only the three selected candidates are registered. Each side starts
+# with an identical complete kitchen. All right-side
 # onion piles disappear during outage, and the two center handoff counters stay
 # available. Anchors keep an onion-to-handoff and handoff-to-pot route short.
 _OUTAGE_WORKLOADS = (
@@ -471,18 +329,24 @@ def _build_outage_catalog_variant(variant_index, signal_enabled):
 
 
 def _register_role_catalog():
-    for variant_index in range(1, 20):
-        globals()[f"splitnosig_{variant_index}"] = _build_split_catalog_variant(
-            variant_index, False
+    # Ranked candidates from the 2026-08-17 cross-play report. Reindexing the
+    # selected source layouts keeps the public scenario names compact.
+    split_sources = (9, 19, 14)
+    outage_sources = (4, 12, 8)
+    for new_index, (split_source, outage_source) in enumerate(
+        zip(split_sources, outage_sources)
+    ):
+        globals()[f"splitnosig_{new_index}"] = _build_split_catalog_variant(
+            split_source, False
         )
-        globals()[f"splitsig_{variant_index}"] = _build_split_catalog_variant(
-            variant_index, True
+        globals()[f"splitsig_{new_index}"] = _build_split_catalog_variant(
+            split_source, True
         )
-        globals()[f"outagenosig_{variant_index}"] = _build_outage_catalog_variant(
-            variant_index, False
+        globals()[f"outagenosig_{new_index}"] = _build_outage_catalog_variant(
+            outage_source, False
         )
-        globals()[f"outagesig_{variant_index}"] = _build_outage_catalog_variant(
-            variant_index, True
+        globals()[f"outagesig_{new_index}"] = _build_outage_catalog_variant(
+            outage_source, True
         )
 
 
