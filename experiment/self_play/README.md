@@ -1,10 +1,4 @@
-# Fictitious Co-Play
-
-## Population
-
-```bash
-wandb sweep --entity inchangbaek4907 --project overcooked-v3-fcp-population population.yaml
-```
+# Self-Play IPPO
 
 ## Train
 

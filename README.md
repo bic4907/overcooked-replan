@@ -241,9 +241,12 @@ Auxiliary outputs use separate default directories:
 
 ## W&B sweep
 
+See [the self-play guide](experiment/self_play/README.md) for its W&B sweep
+commands.
+
 Fictitious Co-Play uses a two-stage self-play-population and best-response
-workflow. See [the FCP guide](experiment/fcp/README.md) for the training,
-sweep, storage, and separate IPPO/FCP seed-wise XP commands.
+workflow. See [the FCP guide](experiment/fcp/README.md) for its W&B sweep
+commands.
 
 `experiment/self_play/train.yaml` defines a 72-run grid over all 12 layouts
 and six seeds. Create it on a Mac
