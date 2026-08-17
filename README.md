@@ -240,6 +240,10 @@ Auxiliary outputs use separate default directories:
 
 ## W&B sweep
 
+Fictitious Co-Play uses a two-stage self-play-population and best-response
+workflow. See [the FCP guide](experiment/fcp/README.md) for the training,
+sweep, storage, and IPPO/FCP cross-play commands.
+
 `experiment/sweeps/train_ippo.yaml` defines a 72-run grid over all 12 layouts
 and six seeds. Create it on a Mac
 with the W&B CLI:

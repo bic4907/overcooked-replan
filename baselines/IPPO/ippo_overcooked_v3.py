@@ -129,10 +129,13 @@ def _wandb_metadata(config):
     )
     tags = list(dict.fromkeys(tags))
 
-    group = config.get("WANDB_GROUP") or experiment
-    name = config.get("RUN_NAME") or (
-        f"{_checkpoint_prefix(config)}_{condition}_seed{config['SEED']}"
-    )
+    group = str(config.get("WANDB_GROUP") or experiment)
+    default_name = f"{_checkpoint_prefix(config)}_{condition}_seed{config['SEED']}"
+    name = str(config.get("RUN_NAME") or default_name)
+    if str(config.get("EXPERIMENT_FOLDER", "")).casefold() == "fcp-population":
+        tags = list(dict.fromkeys([*tags, "FCP-Population"]))
+        group = f"fcp-population-{group}"
+        name = f"fcp-population-{name}"
     return name, group, tags
 
 

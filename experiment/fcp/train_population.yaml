@@ -1,0 +1,43 @@
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: fcp-population
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+parameters:
+  scenario:
+    values:
+      - splitnosig_0
+      - splitnosig_1
+      - splitnosig_2
+      - splitsig_0
+      - splitsig_1
+      - splitsig_2
+      - outagenosig_0
+      - outagenosig_1
+      - outagenosig_2
+      - outagesig_0
+      - outagesig_1
+      - outagesig_2
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  ARCHITECTURE:
+    value: rnn
+  EXPERIMENT_FOLDER:
+    value: fcp-population
+  SAVES_DIR:
+    value: saves/fcp_population
+  CHECKPOINT_INTERVAL:
+    value: 152
+  upload_final_checkpoint:
+    value: false
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - PROJECT=overcooked-v3-fcp-population
+  - ${args_no_hyphens}
