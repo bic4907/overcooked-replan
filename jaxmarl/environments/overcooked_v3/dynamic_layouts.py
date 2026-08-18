@@ -1,7 +1,7 @@
 """Validated cyclic layouts for the Overcooked V3 environment."""
 
 from dataclasses import dataclass
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -12,6 +12,7 @@ from jaxmarl.environments.overcooked_v3.layouts import Layout
 _ALLOWED_SYMBOLS = set(" WAXBP RLSO0123456789")
 _DEFAULT_RECIPES = [[0, 0, 0]]
 _OUTAGE_RECIPES = [[0, 0]]
+_RECIPE_SWITCH_RECIPES = [[0, 0, 1], [0, 1, 1]]
 
 
 def _parse_grid(
@@ -49,12 +50,20 @@ class DynamicLayoutPhase:
     agent_positions: Tuple[Tuple[int, int], ...]
     steps: int
     name: str = ""
+    recipe: Optional[Tuple[int, ...]] = None
 
     def __post_init__(self):
         if isinstance(self.steps, bool) or not isinstance(self.steps, int):
             raise TypeError("steps must be an integer")
         if self.steps <= 0:
             raise ValueError("steps must be greater than zero")
+        if self.recipe is not None:
+            recipe = tuple(self.recipe)
+            object.__setattr__(self, "recipe", recipe)
+            if list(recipe) not in self.layout.possible_recipes:
+                raise ValueError(
+                    f"Phase recipe {list(recipe)} is not in possible_recipes"
+                )
 
     @classmethod
     def from_grid(
@@ -63,9 +72,16 @@ class DynamicLayoutPhase:
         steps: int,
         name: str = "",
         possible_recipes: Sequence[Sequence[int]] = _DEFAULT_RECIPES,
+        recipe: Optional[Sequence[int]] = None,
     ):
         layout, agent_positions = _parse_grid(grid, possible_recipes)
-        return cls(layout, agent_positions, steps, name)
+        return cls(
+            layout,
+            agent_positions,
+            steps,
+            name,
+            None if recipe is None else tuple(recipe),
+        )
 
 
 @dataclass(frozen=True)
@@ -146,11 +162,14 @@ class DynamicLayout:
 
         phases = []
         for index, (entry, name) in enumerate(zip(data, names)):
-            if not isinstance(entry, (list, tuple)) or len(entry) != 2:
+            if not isinstance(entry, (list, tuple)) or len(entry) not in (2, 3):
                 raise ValueError(
-                    f"Dynamic layout entry {index} must be [map_string, steps]"
+                    "Dynamic layout entry "
+                    f"{index} must be [map_string, steps] or "
+                    "[map_string, steps, recipe]"
                 )
-            grid, steps = entry
+            grid, steps = entry[:2]
+            recipe = entry[2] if len(entry) == 3 else None
             if not isinstance(grid, str):
                 raise TypeError(f"Dynamic layout entry {index} map must be a string")
             phases.append(
@@ -159,6 +178,7 @@ class DynamicLayout:
                     steps,
                     name,
                     possible_recipes=possible_recipes,
+                    recipe=recipe,
                 )
             )
         return cls(tuple(phases))
@@ -201,9 +221,12 @@ WBWXW
 
 def _load_named_dynamic_layout(name, data):
     try:
-        possible_recipes = (
-            _OUTAGE_RECIPES if name.startswith("outage") else _DEFAULT_RECIPES
-        )
+        if name.startswith("outage"):
+            possible_recipes = _OUTAGE_RECIPES
+        elif name.startswith("recipe_switch"):
+            possible_recipes = _RECIPE_SWITCH_RECIPES
+        else:
+            possible_recipes = _DEFAULT_RECIPES
         return DynamicLayout.from_data(data, possible_recipes=possible_recipes)
     except (TypeError, ValueError) as error:
         raise type(error)(f"Invalid dynamic layout {name!r}: {error}") from error
@@ -218,8 +241,11 @@ dynamic_layouts.update(
 )
 
 ROLE_SCENARIO_LAYOUTS = {
-    family: tuple(f"{family}_{variant}" for variant in range(3))
-    for family in ("splitnosig", "splitsig", "outagenosig", "outagesig")
+    **{
+        family: tuple(f"{family}_{variant}" for variant in range(3))
+        for family in ("splitnosig", "splitsig", "outagenosig", "outagesig")
+    },
+    "recipe_switch": tuple(f"recipe_switch_{variant}" for variant in range(10)),
 }
 ROLE_SCENARIO_LAYOUT_NAMES = tuple(
     name for names in ROLE_SCENARIO_LAYOUTS.values() for name in names

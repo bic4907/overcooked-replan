@@ -352,6 +352,238 @@ def _register_role_catalog():
 
 _register_role_catalog()
 
+
+# Mixed Recipe Relay ------------------------------------------------------
+#
+# Both agents stay in permanently separated bays. The left bay owns onion
+# piles and serving stations, while the right bay owns tomato and plate piles.
+# Both sides have a pot, and exactly two shared counter cells are embedded in
+# the otherwise non-storage center divider. The map never changes; only the
+# active recipe follows a deterministic A -> B -> A schedule.
+
+
+def _recipe_switch_grid(spec):
+    """Build one separated mixed-recipe kitchen from an explicit layout spec."""
+    width = spec["width"]
+    height = spec["height"]
+    center_x = width // 2
+    if width % 2 != 1:
+        raise ValueError("Recipe-switch layouts must have an odd width")
+
+    rows = [["W"] * width for _ in range(height)]
+    for y in range(1, height - 1):
+        for x in range(1, width - 1):
+            rows[y][x] = " "
+        rows[y][center_x] = "S"
+
+    rows[0][center_x] = "R"
+    rows[height - 1][center_x] = "S"
+    if len(set(spec["handoff_rows"])) != 2:
+        raise ValueError("Recipe-switch layouts require exactly two handoffs")
+    for y in spec["handoff_rows"]:
+        if not 0 < y < height - 1:
+            raise ValueError("Recipe-switch handoffs must be inside the map")
+        rows[y][center_x] = "W"
+
+    for x, y in spec.get("notches", ()):
+        if x == center_x:
+            raise ValueError("Recipe-switch notches cannot alter the divider")
+        rows[y][x] = "W"
+
+    resources = (*spec["left_resources"], *spec["right_resources"])
+    for symbol, (x, y) in resources:
+        if rows[y][x] not in {"W", " "}:
+            raise ValueError(f"Recipe-switch resource collision at {(x, y)}")
+        if symbol == "0" and x >= center_x:
+            raise ValueError("Onion piles must stay in the left bay")
+        if symbol == "1" and x <= center_x:
+            raise ValueError("Tomato piles must stay in the right bay")
+        rows[y][x] = symbol
+
+    for x, y in spec["agent_positions"]:
+        if rows[y][x] != " ":
+            raise ValueError(f"Recipe-switch agent collision at {(x, y)}")
+        rows[y][x] = "A"
+
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+_RECIPE_SWITCH_SPECS = (
+    {
+        "width": 7,
+        "height": 5,
+        "handoff_rows": (2, 3),
+        "agent_positions": ((2, 2), (4, 2)),
+        "left_resources": (("0", (1, 0)), ("P", (0, 2)), ("X", (1, 4))),
+        "right_resources": (("1", (5, 0)), ("P", (6, 2)), ("B", (5, 4))),
+    },
+    {
+        "width": 7,
+        "height": 5,
+        "handoff_rows": (1, 2),
+        "agent_positions": ((1, 2), (5, 2)),
+        "left_resources": (
+            ("0", (0, 1)),
+            ("P", (2, 0)),
+            ("P", (0, 3)),
+            ("X", (2, 4)),
+        ),
+        "right_resources": (("1", (6, 1)), ("P", (4, 0)), ("B", (4, 4))),
+    },
+    {
+        "width": 7,
+        "height": 6,
+        "handoff_rows": (2, 3),
+        "agent_positions": ((2, 3), (4, 3)),
+        "left_resources": (("0", (1, 0)), ("P", (0, 2)), ("X", (2, 5))),
+        "right_resources": (("1", (5, 0)), ("P", (6, 3)), ("B", (4, 5))),
+        "notches": ((1, 4), (5, 4)),
+    },
+    {
+        "width": 7,
+        "height": 6,
+        "handoff_rows": (1, 4),
+        "agent_positions": ((1, 3), (5, 2)),
+        "left_resources": (
+            ("0", (0, 2)),
+            ("P", (1, 0)),
+            ("P", (0, 4)),
+            ("X", (2, 5)),
+        ),
+        "right_resources": (("1", (6, 2)), ("P", (5, 0)), ("B", (4, 5))),
+    },
+    {
+        "width": 9,
+        "height": 5,
+        "handoff_rows": (2, 3),
+        "agent_positions": ((3, 2), (5, 2)),
+        "left_resources": (("0", (0, 1)), ("P", (2, 0)), ("X", (3, 4))),
+        "right_resources": (
+            ("1", (8, 1)),
+            ("P", (6, 0)),
+            ("P", (8, 3)),
+            ("B", (5, 4)),
+        ),
+        "notches": ((1, 2), (7, 2)),
+    },
+    {
+        "width": 7,
+        "height": 5,
+        "handoff_rows": (1, 3),
+        "agent_positions": ((2, 2), (4, 2)),
+        "left_resources": (("0", (0, 2)), ("P", (2, 0)), ("X", (1, 4))),
+        "right_resources": (("1", (6, 2)), ("P", (4, 0)), ("B", (5, 4))),
+    },
+    {
+        "width": 7,
+        "height": 6,
+        "handoff_rows": (2, 4),
+        "agent_positions": ((1, 3), (5, 3)),
+        "left_resources": (
+            ("0", (2, 0)),
+            ("P", (0, 3)),
+            ("P", (1, 5)),
+            ("X", (0, 1)),
+        ),
+        "right_resources": (
+            ("1", (4, 0)),
+            ("P", (6, 3)),
+            ("P", (5, 5)),
+            ("B", (6, 1)),
+        ),
+    },
+    {
+        "width": 7,
+        "height": 5,
+        "handoff_rows": (1, 3),
+        "agent_positions": ((1, 2), (5, 2)),
+        "left_resources": (
+            ("0", (1, 0)),
+            ("P", (0, 1)),
+            ("P", (0, 3)),
+            ("X", (2, 4)),
+        ),
+        "right_resources": (
+            ("1", (5, 0)),
+            ("P", (6, 1)),
+            ("P", (6, 3)),
+            ("B", (4, 4)),
+        ),
+    },
+    {
+        "width": 9,
+        "height": 5,
+        "handoff_rows": (1, 3),
+        "agent_positions": ((3, 2), (5, 2)),
+        "left_resources": (
+            ("0", (1, 0)),
+            ("P", (0, 2)),
+            ("X", (3, 4)),
+        ),
+        "right_resources": (
+            ("1", (7, 0)),
+            ("P", (8, 2)),
+            ("B", (5, 4)),
+        ),
+        "notches": ((2, 1), (6, 3)),
+    },
+    {
+        "width": 7,
+        "height": 6,
+        "handoff_rows": (1, 4),
+        "agent_positions": ((2, 2), (4, 3)),
+        "left_resources": (
+            ("0", (0, 2)),
+            ("P", (1, 0)),
+            ("X", (2, 5)),
+        ),
+        "right_resources": (
+            ("1", (6, 3)),
+            ("P", (5, 0)),
+            ("B", (4, 5)),
+        ),
+        "notches": ((1, 3), (5, 2)),
+    },
+)
+
+_RECIPE_ONION_MAJOR = [0, 0, 1]
+_RECIPE_TOMATO_MAJOR = [0, 1, 1]
+_RECIPE_SWITCH_TIMINGS = (
+    (150, 150),
+    (120, 180),
+    (180, 120),
+    (135, 165),
+    (165, 135),
+    (150, 150),
+    (120, 180),
+    (180, 120),
+    (135, 165),
+    (165, 135),
+)
+
+
+def _register_recipe_switch_catalog():
+    for variant_index, (spec, timings) in enumerate(
+        zip(_RECIPE_SWITCH_SPECS, _RECIPE_SWITCH_TIMINGS)
+    ):
+        grid = _recipe_switch_grid(spec)
+        recipe_a, recipe_b = (
+            (_RECIPE_ONION_MAJOR, _RECIPE_TOMATO_MAJOR)
+            if variant_index < 5
+            else (_RECIPE_TOMATO_MAJOR, _RECIPE_ONION_MAJOR)
+        )
+        first_phase_steps, second_phase_steps = timings
+        globals()[f"recipe_switch_{variant_index}"] = [
+            [grid, first_phase_steps, recipe_a],
+            [grid, second_phase_steps, recipe_b],
+            # Training episodes stop at step 450. A long final duration avoids
+            # displaying a countdown for an unused wraparound transition.
+            [grid, 1000, recipe_a],
+        ]
+
+
+_register_recipe_switch_catalog()
+
 # Backward-compatible aliases for existing commands and checkpoints.
 split_no_sig = splitnosig_0
 split_sig = splitsig_0

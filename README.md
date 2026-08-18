@@ -13,6 +13,7 @@ The following role-coordination experiments are currently available:
 | `splitsig_{0..2}` | Kitchen Split | Yes | Does signaling reduce same-side choices before the kitchen splits? |
 | `outagenosig_{0..2}` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
 | `outagesig_{0..2}` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
+| `recipe_switch_{0..9}` | Mixed Recipe Relay | No | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
 
 Kitchen Split starts with one central doorway open for 40 steps. It then becomes
 a handoff counter for 160 steps, preventing agents from changing bays. The left
@@ -38,6 +39,13 @@ cooking a pot with two onions. Pot cooking time remains 20 steps in every
 scenario.
 Outage places two adjacent storage counters above the signal tile, allowing the
 left cook to preload two onions for the right cook.
+Mixed Recipe Relay permanently separates an onion/serving bay from a
+tomato/plate bay and exposes exactly two shared handoff counters. Both bays have
+pots. Eight layouts use compact 7×5 or 7×6 maps, while two 9×5 layouts retain a
+small amount of routing variation. Variants `_0`–`_4` use
+`2 onion + 1 tomato` → `1 onion + 2 tomato` → the
+first recipe; variants `_5`–`_9` reverse that order. The map stays fixed while
+the recipe changes at deterministic phase boundaries within a 450-step episode.
 Select any layout through its Hydra scenario name, such as
 `scenario=outagesig_2`. Matching Sig/NoSig layouts with the same index differ
 only at the signal tile.
@@ -51,6 +59,8 @@ transition channels stay at zero until 20 steps before a layout
 change. Rendered GIFs label active buttons as `SIG 10...1`, blink an orange
 border on changing tiles, and draw the remaining transition step count on each
 affected tile.
+Recipe Relay adds two more preview channels at the recipe indicator, one per
+ingredient, so both agents observe the next recipe as well as the current one.
 
 ## Quick start
 
