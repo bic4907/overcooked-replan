@@ -31,7 +31,7 @@ export MPLCONFIGDIR=/tmp
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  inchangbaek4907/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO \
   --layout outagesig_0 \
   --seeds 4 5 \
@@ -50,14 +50,14 @@ python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  inchangbaek4907/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO \
   --layout splitsig_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400 \
   --gpus 0 1 2 3 \
-  --output-project inchangbaek4907/overcooked-v3-crossplay
+  --output-project cilab-overcooked/overcooked-v3-crossplay
 ```
 
 한 evaluation run은 `--layout`으로 지정한 맵 하나만 평가한다. 여러 맵은 4-map
@@ -69,14 +69,14 @@ sweep처럼 맵마다 별도의 W&B run으로 실행한다.
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  inchangbaek4907/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO \
   --layout splitsig_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400 \
   --gpus 0 1 2 3 \
-  --output-project inchangbaek4907/overcooked-v3-crossplay \
+  --output-project cilab-overcooked/overcooked-v3-crossplay \
   --output-dir saves/crossplay/splitsig_0-ippo
 ```
 
@@ -89,7 +89,7 @@ runtime을 재사용한다. 부모
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  inchangbaek4907/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO \
   --layout splitsig_0 \
   --gpus 0 \
@@ -132,7 +132,7 @@ experiment/self_play/eval.yaml
 
 ```bash
 wandb sweep \
-  --entity inchangbaek4907 \
+  --entity cilab-overcooked \
   --project overcooked-v3-crossplay \
   experiment/self_play/eval.yaml
 ```
@@ -144,7 +144,7 @@ wandb sweep \
 ```bash
 GPUS="0" \
 bash scripts/overcooked_v3/run_wandb_agents.sh \
-  inchangbaek4907/overcooked-v3-crossplay/SWEEP_ID
+  cilab-overcooked/overcooked-v3-crossplay/SWEEP_ID
 ```
 
 이 방식에서는 W&B agent 하나가 한 GPU에 고정되고 서로 다른 맵을 가져간다. 따라서
@@ -160,7 +160,7 @@ W&B agent가 자신에게 할당된 GPU에 eval worker 여덟 개를 실행한�
 각 맵 run은 source project에서 해당 맵의 모든 training seed 최신 checkpoint를 찾아
 artifact 안의 모든 최종 vmap policy를 20 episodes, 400 max steps로 평가한다. 현재
 학습 설정은 `NUM_SEEDS=1`이므로 artifact마다 `vmap0` 하나만 존재한다. 기본 output project는
-`inchangbaek4907/overcooked-v3-crossplay`다. 이 값을 바꾸려면 sweep YAML의
+`cilab-overcooked/overcooked-v3-crossplay`다. 이 값을 바꾸려면 sweep YAML의
 `output-project`와 `wandb sweep --project`를 함께 변경한다.
 
 ## 5. 여러 알고리즘 비교
@@ -169,13 +169,13 @@ artifact 안의 모든 최종 vmap policy를 20 episodes, 400 max steps로 평�
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  inchangbaek4907/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO FCP OTHER_PLAY \
   --layout splitsig_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400 \
-  --output-project inchangbaek4907/overcooked-v3-crossplay
+  --output-project cilab-overcooked/overcooked-v3-crossplay
 ```
 
 각 알고리즘의 실제 학습 구현이 `ALGORITHM` config와 checkpoint artifact를
@@ -207,13 +207,13 @@ SP-XP_gap   = SP - XP
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  inchangbaek4907/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO \
   --layout splitsig_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400 \
-  --output-project inchangbaek4907/overcooked-v3-crossplay \
+  --output-project cilab-overcooked/overcooked-v3-crossplay \
   --output-dir saves/crossplay/splitsig_0-ippo
 ```
 
@@ -313,7 +313,7 @@ project의 최신 matrix를 가져와 옆으로 배치한다. 기본은 training
 
 ```bash
 python -u baselines/IPPO/build_wandb_role_scenario_report.py \
-  --entity inchangbaek4907 \
+  --entity cilab-overcooked \
   --training-project overcooked-v3-role-coordination \
   --crossplay-project overcooked-v3-crossplay \
   --output-project overcooked-v3-crossplay

@@ -418,7 +418,7 @@ run으로 기록된다.
 
 ```bash
 python -u baselines/IPPO/eval_wandb_crossplay_overcooked_v3.py \
-  --entity inchangbaek4907 \
+  --entity cilab-overcooked \
   --source-project overcooked-v3-role-coordination \
   --project overcooked-v3-crossplay \
   --run-ids AGENT_0_RUN_ID AGENT_1_RUN_ID \
@@ -475,10 +475,10 @@ ordered matrix를 만들 수 있다. 알고리즘은 run config의 `ALGORITHM`�
 JAX_PLATFORMS=cuda \
 XLA_PYTHON_CLIENT_PREALLOCATE=false \
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  inchangbaek4907/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO \
   --layout splitsig_0 \
-  --output-project inchangbaek4907/overcooked-v3-crossplay-matrix \
+  --output-project cilab-overcooked/overcooked-v3-crossplay-matrix \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400

@@ -92,7 +92,7 @@ Add your W&B credentials and settings to `.env`:
 
 ```dotenv
 WANDB_API_KEY=your-api-key
-WANDB_ENTITY=inchangbaek4907
+WANDB_ENTITY=cilab-overcooked
 WANDB_PROJECT=overcooked-v3-role-coordination
 WANDB_SOURCE_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
@@ -254,17 +254,17 @@ with the W&B CLI:
 
 ```bash
 wandb sweep \
-  --entity inchangbaek4907 \
+  --entity cilab-overcooked \
   --project overcooked-v3-role-coordination \
   experiment/self_play/train.yaml
 ```
 
-W&B prints `inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID`. Copy that
+W&B prints `cilab-overcooked/overcooked-v3-role-coordination/SWEEP_ID`. Copy that
 full path to the GPU server and launch one agent on each GPU:
 
 ```bash
 GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
-  inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID
+  cilab-overcooked/overcooked-v3-role-coordination/SWEEP_ID
 ```
 
 Each GPU processes one run at a time until W&B reports that the sweep is
@@ -273,8 +273,8 @@ sweep before the next one starts:
 
 ```bash
 GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
-  inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID_A \
-  inchangbaek4907/overcooked-v3-role-coordination/SWEEP_ID_B
+  cilab-overcooked/overcooked-v3-role-coordination/SWEEP_ID_A \
+  cilab-overcooked/overcooked-v3-role-coordination/SWEEP_ID_B
 ```
 
 For example, a sweep run is saved under a directory such as

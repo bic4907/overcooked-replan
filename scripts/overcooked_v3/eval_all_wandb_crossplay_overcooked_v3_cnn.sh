@@ -5,7 +5,7 @@ set -Eeuo pipefail
 PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${PROJECT_DIR}"
 
-WANDB_ENTITY="${WANDB_ENTITY:-inchangbaek4907}"
+WANDB_ENTITY="${WANDB_ENTITY:-cilab-overcooked}"
 SOURCE_PROJECT="${SOURCE_PROJECT:-overcooked-v3-role-coordination}"
 EVAL_PROJECT="${EVAL_PROJECT:-overcooked-v3-crossplay}"
 LAYOUT="${LAYOUT:-}"

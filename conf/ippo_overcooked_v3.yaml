@@ -48,7 +48,7 @@ upload_final_checkpoint: true
 SAVES_DIR: saves
 EXPERIMENT_FOLDER: null
 
-ENTITY: ${oc.env:WANDB_ENTITY,''}
+ENTITY: ${oc.env:WANDB_ENTITY,cilab-overcooked}
 PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-role-coordination}
 wandb_mode: ${oc.env:WANDB_MODE,online}
 WANDB_GROUP: null

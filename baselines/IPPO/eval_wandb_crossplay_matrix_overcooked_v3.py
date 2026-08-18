@@ -125,7 +125,7 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--entity",
-        default=os.getenv("WANDB_ENTITY"),
+        default=os.getenv("WANDB_ENTITY", "cilab-overcooked"),
         help="Entity for a bare source project name.",
     )
     parser.add_argument(

@@ -26,7 +26,7 @@ def parse_args(argv=None):
         )
     )
     parser.add_argument(
-        "--entity", default=os.getenv("WANDB_ENTITY", "inchangbaek4907")
+        "--entity", default=os.getenv("WANDB_ENTITY", "cilab-overcooked")
     )
     parser.add_argument("--training-project", default="overcooked-v3-role-coordination")
     parser.add_argument("--crossplay-project", default="overcooked-v3-crossplay")

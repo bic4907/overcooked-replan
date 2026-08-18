@@ -48,7 +48,7 @@ def parse_args():
     )
     parser.add_argument(
         "--entity",
-        default=os.getenv("WANDB_ENTITY"),
+        default=os.getenv("WANDB_ENTITY", "cilab-overcooked"),
         help="Source and evaluation W&B entity for bare run IDs.",
     )
     parser.add_argument(

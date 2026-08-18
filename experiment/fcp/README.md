@@ -3,17 +3,17 @@
 ## Population
 
 ```bash
-wandb sweep --entity inchangbaek4907 --project overcooked-v3-fcp-population population.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-fcp-population population.yaml
 ```
 
 ## Train
 
 ```bash
-wandb sweep --entity inchangbaek4907 --project overcooked-v3-role-coordination train.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-role-coordination train.yaml
 ```
 
 ## Evaluate
 
 ```bash
-wandb sweep --entity inchangbaek4907 --project overcooked-v3-crossplay eval.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-crossplay eval.yaml
 ```
