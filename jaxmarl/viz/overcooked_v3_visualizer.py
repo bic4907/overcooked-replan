@@ -107,12 +107,32 @@ class OvercookedV3Visualizer:
             return caption
         seconds_remaining = steps_remaining * self.seconds_per_step
         countdown = (
-            f"layout change in {steps_remaining} steps ({seconds_remaining:.1f}s)"
+            f"phase change in {steps_remaining} steps ({seconds_remaining:.1f}s)"
         )
         return f"{caption} | {countdown}" if caption else countdown
 
+    @staticmethod
+    def _recipe_label(recipe):
+        encoded = int(np.asarray(recipe))
+        labels = []
+        ingredient_names = ("O", "T")
+        for ingredient_index, name in enumerate(ingredient_names):
+            count = (encoded >> (2 + 2 * ingredient_index)) & 0x3
+            if count:
+                labels.append(f"{name}{count}")
+        return "+".join(labels) if labels else "-"
+
+    def _caption_with_recipe_preview(self, state, caption=""):
+        current = self._recipe_label(state.recipe)
+        upcoming = self._recipe_label(state.next_recipe)
+        if current == upcoming:
+            return caption
+        recipe_caption = f"recipe {current} -> {upcoming}"
+        return f"{caption} | {recipe_caption}" if caption else recipe_caption
+
     def caption_with_countdown(self, state, caption=""):
         steps_remaining = int(np.asarray(state.steps_until_layout_change))
+        caption = self._caption_with_recipe_preview(state, caption)
         return self._caption_with_countdown_steps(steps_remaining, caption)
 
     def render(self, state, agent_view_size=None, caption=""):
@@ -183,8 +203,11 @@ class OvercookedV3Visualizer:
             elif len(captions) != len(frame_seq):
                 raise ValueError("captions and state_seq must have the same length")
             captions = [
-                self._caption_with_countdown_steps(steps, caption)
-                for steps, caption in zip(countdown_steps, captions)
+                self._caption_with_countdown_steps(
+                    steps,
+                    self._caption_with_recipe_preview(state, caption),
+                )
+                for state, steps, caption in zip(states, countdown_steps, captions)
             ]
 
             font = ImageFont.load_default()

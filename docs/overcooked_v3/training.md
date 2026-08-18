@@ -45,6 +45,7 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 | `scenario=splitsig_<0-2>` | Kitchen Split | Yes |
 | `scenario=outagenosig_<0-2>` | Resource Outage | No |
 | `scenario=outagesig_<0-2>` | Resource Outage | Yes |
+| `scenario=recipe_switch_<0-9>` | Mixed Recipe Relay | No |
 
 Kitchen Split은 처음 40 step 동안 중앙 통로 하나가 열려 있고, 이후 160 step 동안
 그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
@@ -77,6 +78,14 @@ phase에서 오른쪽 onion을 전부 제거한다. 예를 들어 `_2`는
 기본 sweep에도 12개 layout이 모두 등록되어 있다.
 
 기존 dynamic map 기본값은 `scenario=dynamic_00`이다.
+
+Mixed Recipe Relay는 onion·serving이 있는 왼쪽 bay와 tomato·plate가 있는 오른쪽
+bay를 영구적으로 분리하고, 중앙 handoff counter 두 칸으로만 물건을 교환한다.
+8개 layout은 7×5 또는 7×6, 나머지 2개는 9×5로 제한해 탐색 동선을 짧게 유지한다.
+양쪽 모두 pot이 있어 `2 onion + 1 tomato`에서는 왼쪽, `1 onion + 2 tomato`에서는
+오른쪽 조리가 짧은 동선을 갖는다. 각 episode는 seed와 무관하게 A → B → A로
+전환하며 `recipe_switch_0`–`_4`와 `_5`–`_9`는 두 레시피의 시작 순서가 반대다.
+각 scenario config는 `max_steps: 450`을 사용한다.
 
 V3 기본 관측은 V2의 30채널에 public signal status, phase 전환 countdown,
 change mask를 추가한 33채널이다. 뒤에서 세 번째 채널은 signal button 위치에서

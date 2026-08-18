@@ -50,6 +50,11 @@ DEBUG_METRIC_NAMES = {
     "layout_index": "layout_index",
     "layout_changed": "layout_changed_fraction",
     "layout_change_events": "layout_change_events",
+    "recipe_changed": "recipe_changed_fraction",
+    "recipe_change_events": "recipe_change_events",
+    "recipe_onion_count": "recipe_onion_count",
+    "recipe_tomato_count": "recipe_tomato_count",
+    "legacy_recipe_deliveries_remaining": "legacy_recipe_deliveries_remaining",
     "steps_until_layout_change": "steps_until_layout_change",
     "transition_countdown": "transition_countdown",
     "layout_change_tile_count": "layout_change_tile_count",
@@ -1143,6 +1148,12 @@ def make_train(config):
             metric = {
                 **traj_batch.info,
                 "layout_index": traj_batch.info["layout_index"][-1],
+                "recipe_changed": traj_batch.info["recipe_changed"][-1],
+                "recipe_onion_count": traj_batch.info["recipe_onion_count"][-1],
+                "recipe_tomato_count": traj_batch.info["recipe_tomato_count"][-1],
+                "legacy_recipe_deliveries_remaining": traj_batch.info[
+                    "legacy_recipe_deliveries_remaining"
+                ][-1],
                 "steps_until_layout_change": traj_batch.info[
                     "steps_until_layout_change"
                 ][-1],
@@ -1176,6 +1187,9 @@ def make_train(config):
                 ),
                 "layout_change_events": (
                     traj_batch.info["layout_changed"].sum() / env.num_agents
+                ),
+                "recipe_change_events": (
+                    traj_batch.info["recipe_changed"].sum() / env.num_agents
                 ),
                 "signal_activation_events": (
                     traj_batch.info["signal_activated"].sum() / env.num_agents

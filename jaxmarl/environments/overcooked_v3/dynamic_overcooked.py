@@ -72,6 +72,9 @@ class OvercookedV3(OvercookedV3Base):
             )
 
         self.dynamic_layout = dynamic_layout
+        self.has_scheduled_recipes = any(
+            phase.recipe is not None for phase in dynamic_layout.phases
+        )
         super().__init__(layout=dynamic_layout.initial_layout, **kwargs)
 
         self.phase_static_objects = jnp.asarray(
@@ -99,6 +102,19 @@ class OvercookedV3(OvercookedV3Base):
         self.phase_durations = jnp.asarray(
             [phase.steps for phase in dynamic_layout.phases], dtype=jnp.int32
         )
+        self.phase_has_recipe = jnp.asarray(
+            [phase.recipe is not None for phase in dynamic_layout.phases],
+            dtype=jnp.bool_,
+        )
+        self.phase_recipes = jnp.asarray(
+            [
+                0
+                if phase.recipe is None
+                else sum(1 << (2 + 2 * ingredient) for ingredient in phase.recipe)
+                for phase in dynamic_layout.phases
+            ],
+            dtype=jnp.int32,
+        )
         self.phase_ends = jnp.cumsum(self.phase_durations)
         self.cycle_steps = int(dynamic_layout.cycle_steps)
 
@@ -109,6 +125,8 @@ class OvercookedV3(OvercookedV3Base):
             extra_features = int(self.include_signal_status) + int(
                 self.include_transition_countdown
             )
+            if self.has_scheduled_recipes:
+                extra_features += self.layout.num_ingredients
             if self.include_layout_change_mask:
                 extra_features += (
                     1
@@ -150,19 +168,65 @@ class OvercookedV3(OvercookedV3Base):
     def get_layout_change_mask(self, step: jax.Array) -> jax.Array:
         layout_index = self.get_layout_index(step)
         next_layout_index = (layout_index + 1) % self.phase_static_objects.shape[0]
-        return (
+        static_change_mask = (
             self.phase_static_objects[layout_index]
             != self.phase_static_objects[next_layout_index]
         )
+        recipe_changes = (
+            self.phase_has_recipe[layout_index]
+            & self.phase_has_recipe[next_layout_index]
+            & (self.phase_recipes[layout_index] != self.phase_recipes[next_layout_index])
+        )
+        recipe_indicator_mask = (
+            self.phase_static_objects[layout_index] == StaticObject.RECIPE_INDICATOR
+        ) | (
+            self.phase_static_objects[next_layout_index]
+            == StaticObject.RECIPE_INDICATOR
+        )
+        return static_change_mask | (recipe_changes & recipe_indicator_mask)
 
     def get_observation_layout_change_mask(self, step: jax.Array) -> jax.Array:
         return self.get_layout_change_mask(step) & self.get_transition_warning_active(step)
 
     def _set_transition_awareness(self, state: State) -> State:
+        layout_index = self.get_layout_index(state.step)
+        next_layout_index = (layout_index + 1) % self.phase_recipes.shape[0]
+        next_recipe = jnp.where(
+            self.phase_has_recipe[next_layout_index],
+            self.phase_recipes[next_layout_index],
+            state.recipe,
+        )
         return state.replace(
             steps_until_layout_change=self.get_steps_until_layout_change(state.step),
             layout_change_mask=self.get_layout_change_mask(state.step),
+            next_recipe=next_recipe,
         )
+
+    def _append_default_next_recipe(self, obs, state):
+        if not self.has_scheduled_recipes:
+            return obs
+        ingredient_indices = jnp.arange(self.layout.num_ingredients)
+        ingredient_counts = (state.next_recipe >> (2 + 2 * ingredient_indices)) & 0x3
+        recipe_indicator_mask = (
+            state.grid[:, :, 0] == StaticObject.RECIPE_INDICATOR
+        )
+        preview = (
+            recipe_indicator_mask[..., None] * ingredient_counts[None, None, :]
+        ).astype(jnp.float32)
+        preview = jnp.broadcast_to(preview, (*obs.shape[:-3], *preview.shape))
+        return jnp.concatenate([obs.astype(jnp.float32), preview], axis=-1)
+
+    def _append_featurized_next_recipe(self, obs, state):
+        if not self.has_scheduled_recipes:
+            return obs
+        ingredient_indices = jnp.arange(self.layout.num_ingredients)
+        ingredient_counts = (
+            (state.next_recipe >> (2 + 2 * ingredient_indices)) & 0x3
+        ).astype(jnp.float32)
+        preview = jnp.broadcast_to(
+            ingredient_counts, (*obs.shape[:-1], ingredient_counts.size)
+        )
+        return jnp.concatenate([obs.astype(jnp.float32), preview], axis=-1)
 
     def _append_default_transition_features(self, obs, step):
         transition_layers = []
@@ -246,15 +310,25 @@ class OvercookedV3(OvercookedV3Base):
     def get_obs_default(self, state: State):
         obs = super().get_obs_default(state)
         obs = self._append_default_signal_status(obs, state)
-        return self._append_default_transition_features(obs, state.step)
+        obs = self._append_default_transition_features(obs, state.step)
+        return self._append_default_next_recipe(obs, state)
 
     def get_obs_featurized(self, state: State):
         obs = super().get_obs_featurized(state)
         obs = self._append_featurized_signal_status(obs, state)
-        return self._append_featurized_transition_features(obs, state.step)
+        obs = self._append_featurized_transition_features(obs, state.step)
+        return self._append_featurized_next_recipe(obs, state)
 
     def reset(self, key: PRNGKeyArray):
         _, state = super().reset(key)
+        initial_recipe = jnp.where(
+            self.phase_has_recipe[0], self.phase_recipes[0], state.recipe
+        )
+        state = state.replace(
+            recipe=initial_recipe,
+            previous_recipe=initial_recipe,
+            legacy_recipe_deliveries_remaining=0,
+        )
         state = self._set_transition_awareness(state)
         obs = self.get_obs(state)
         return lax.stop_gradient(obs), lax.stop_gradient(state)
@@ -278,6 +352,7 @@ class OvercookedV3(OvercookedV3Base):
         )
 
     def step_env(self, key: PRNGKeyArray, state: State, actions: Actions):
+        recipe_before_step = state.recipe
         obs, state, rewards, dones, infos = super().step_env(key, state, actions)
 
         layout_index = self.get_layout_index(state.step)
@@ -289,6 +364,7 @@ class OvercookedV3(OvercookedV3Base):
             state,
             layout_index,
         )
+        recipe_changed = state.recipe != recipe_before_step
         state = self._set_transition_awareness(state)
         obs = self.get_obs(state)
         steps_until_layout_change = state.steps_until_layout_change
@@ -329,6 +405,16 @@ class OvercookedV3(OvercookedV3Base):
             **infos,
             "layout_index": jnp.full((self.num_agents,), layout_index),
             "layout_changed": jnp.full((self.num_agents,), layout_changed),
+            "recipe_changed": jnp.full((self.num_agents,), recipe_changed),
+            "recipe_onion_count": jnp.full(
+                (self.num_agents,), (state.recipe >> 2) & 0x3
+            ),
+            "recipe_tomato_count": jnp.full(
+                (self.num_agents,), (state.recipe >> 4) & 0x3
+            ),
+            "legacy_recipe_deliveries_remaining": jnp.full(
+                (self.num_agents,), state.legacy_recipe_deliveries_remaining
+            ),
             "steps_until_layout_change": jnp.full(
                 (self.num_agents,), steps_until_layout_change
             ),
@@ -378,6 +464,34 @@ class OvercookedV3(OvercookedV3Base):
         )
         grid = grid.at[:, :, 2].set(jnp.where(changed_cells, 0, grid[:, :, 2]))
 
+        next_recipe = jnp.where(
+            self.phase_has_recipe[layout_index],
+            self.phase_recipes[layout_index],
+            state.recipe,
+        )
+        recipe_changed = next_recipe != state.recipe
+        old_cooked_recipe = state.recipe | DynamicObject.COOKED
+        old_plated_recipe = old_cooked_recipe | DynamicObject.PLATE
+        dynamic_objects = grid[:, :, 1]
+        extra_info = grid[:, :, 2]
+        old_started_pots = (
+            (new_static == StaticObject.POT)
+            & (dynamic_objects == state.recipe)
+            & (extra_info > 0)
+        )
+        old_cooked_pots = (
+            (new_static == StaticObject.POT)
+            & (dynamic_objects == old_cooked_recipe)
+        )
+        old_plated_on_grid = dynamic_objects == old_plated_recipe
+        old_plated_in_inventory = state.agents.inventory == old_plated_recipe
+        legacy_deliveries = (
+            jnp.sum(old_started_pots)
+            + jnp.sum(old_cooked_pots)
+            + jnp.sum(old_plated_on_grid)
+            + jnp.sum(old_plated_in_inventory)
+        ).astype(jnp.int32)
+
         agent_positions = self._relocate_blocked_agents(
             state.agents.pos,
             state.agents.dir,
@@ -388,6 +502,15 @@ class OvercookedV3(OvercookedV3Base):
         return state.replace(
             agents=state.agents.replace(pos=agent_positions),
             grid=grid,
+            recipe=next_recipe,
+            previous_recipe=jnp.where(
+                recipe_changed, state.recipe, state.previous_recipe
+            ),
+            legacy_recipe_deliveries_remaining=jnp.where(
+                recipe_changed,
+                legacy_deliveries,
+                state.legacy_recipe_deliveries_remaining,
+            ),
             layout_index=layout_index,
         )
 

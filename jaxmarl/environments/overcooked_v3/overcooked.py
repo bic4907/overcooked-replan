@@ -75,6 +75,20 @@ class State(BaseState):
 
     recipe: jax.Array
 
+    # The previous recipe remains deliverable only for dishes that had already
+    # started cooking before a scheduled recipe transition.
+    previous_recipe: jax.Array = struct.field(
+        default_factory=lambda: jnp.array(0, dtype=jnp.int32)
+    )
+
+    next_recipe: jax.Array = struct.field(
+        default_factory=lambda: jnp.array(0, dtype=jnp.int32)
+    )
+
+    legacy_recipe_deliveries_remaining: jax.Array = struct.field(
+        default_factory=lambda: jnp.array(0, dtype=jnp.int32)
+    )
+
     new_correct_delivery: jax.Array = struct.field(
         default_factory=lambda: jnp.array(False)
     )
@@ -318,6 +332,9 @@ class OvercookedV3Base(MultiAgentEnv):
             step=jnp.array(0),
             done=jnp.array(False),
             recipe=recipe,
+            previous_recipe=recipe,
+            next_recipe=recipe,
+            legacy_recipe_deliveries_remaining=jnp.array(0, dtype=jnp.int32),
             new_correct_delivery=jnp.array(False),
             ingredient_permutations=ingredient_permutations,
             layout_change_mask=jnp.zeros_like(static_objects, dtype=jnp.bool_),
@@ -353,6 +370,9 @@ class OvercookedV3Base(MultiAgentEnv):
             step=0,
             done=False,
             new_correct_delivery=False,
+            previous_recipe=state.recipe,
+            next_recipe=state.recipe,
+            legacy_recipe_deliveries_remaining=0,
             ingredient_permutations=ingredient_permutations,
         )
 
@@ -1148,7 +1168,7 @@ class OvercookedV3Base(MultiAgentEnv):
             is_interact = action == OvercookedActionsEnum.interact
 
             def _interact(carry, agent):
-                grid, correct_delivery, reward = carry
+                grid, correct_delivery, reward, legacy_deliveries = carry
 
                 (
                     new_grid,
@@ -1156,14 +1176,21 @@ class OvercookedV3Base(MultiAgentEnv):
                     new_correct_delivery,
                     interact_reward,
                     shaped_reward,
+                    new_legacy_deliveries,
                 ) = self.process_interact(
-                    grid, agent, new_agents.inventory, state.recipe
+                    grid,
+                    agent,
+                    new_agents.inventory,
+                    state.recipe,
+                    state.previous_recipe,
+                    legacy_deliveries,
                 )
 
                 carry = (
                     new_grid,
                     correct_delivery | new_correct_delivery,
                     reward + interact_reward,
+                    new_legacy_deliveries,
                 )
                 return carry, (new_agent, shaped_reward)
 
@@ -1171,11 +1198,19 @@ class OvercookedV3Base(MultiAgentEnv):
                 is_interact, _interact, lambda c, a: (c, (a, 0.0)), carry, agent
             )
 
-        carry = (grid, jnp.array(False), jnp.array(0.0))
-        xs = (new_agents, actions)
-        (new_grid, new_correct_delivery, reward), (new_agents, shaped_rewards) = (
-            jax.lax.scan(_interact_wrapper, carry, xs)
+        carry = (
+            grid,
+            jnp.array(False),
+            jnp.array(0.0),
+            state.legacy_recipe_deliveries_remaining,
         )
+        xs = (new_agents, actions)
+        (
+            new_grid,
+            new_correct_delivery,
+            reward,
+            new_legacy_deliveries,
+        ), (new_agents, shaped_rewards) = jax.lax.scan(_interact_wrapper, carry, xs)
 
         # Update extra info:
         def _timestep_wrapper(cell):
@@ -1237,7 +1272,16 @@ class OvercookedV3Base(MultiAgentEnv):
                 agents=new_agents,
                 grid=new_grid,
                 recipe=new_recipe,
+                next_recipe=jnp.where(
+                    sample_new_recipe, new_recipe, state.next_recipe
+                ),
+                previous_recipe=jnp.where(
+                    sample_new_recipe, state.recipe, state.previous_recipe
+                ),
                 new_correct_delivery=new_correct_delivery,
+                legacy_recipe_deliveries_remaining=jnp.where(
+                    sample_new_recipe, 0, new_legacy_deliveries
+                ),
             ),
             reward,
             shaped_rewards,
@@ -1249,7 +1293,9 @@ class OvercookedV3Base(MultiAgentEnv):
         agent: Agent,
         all_inventories: jax.Array,
         recipe: jax.Array,
-    ) -> Tuple[jax.Array, Agent, jax.Array, jax.Array, jax.Array]:
+        previous_recipe: jax.Array,
+        legacy_recipe_deliveries_remaining: jax.Array,
+    ) -> Tuple[jax.Array, Agent, jax.Array, jax.Array, jax.Array, jax.Array]:
         """Assume agent took interact actions. Result depends on what agent is facing and what it is holding."""
 
         inventory = agent.inventory
@@ -1263,6 +1309,9 @@ class OvercookedV3Base(MultiAgentEnv):
         interact_ingredients = interact_cell[1]
         interact_extra = interact_cell[2]
         plated_recipe = recipe | DynamicObject.PLATE | DynamicObject.COOKED
+        plated_previous_recipe = (
+            previous_recipe | DynamicObject.PLATE | DynamicObject.COOKED
+        )
 
         # Booleans depending on what the object is
         object_is_plate_pile = interact_item == StaticObject.PLATE_PILE
@@ -1294,7 +1343,10 @@ class OvercookedV3Base(MultiAgentEnv):
         pot_is_idle = object_is_pot * ~pot_is_cooking * ~pot_is_cooked
 
         successful_dish_pickup = pot_is_cooked * inventory_is_plate
-        is_dish_pickup_useful = merged_ingredients == plated_recipe
+        legacy_recipe_available = legacy_recipe_deliveries_remaining > 0
+        is_dish_pickup_useful = (merged_ingredients == plated_recipe) | (
+            legacy_recipe_available & (merged_ingredients == plated_previous_recipe)
+        )
         shaped_reward += (
             successful_dish_pickup
             * is_dish_pickup_useful
@@ -1361,6 +1413,7 @@ class OvercookedV3Base(MultiAgentEnv):
             pot_is_idle
             * ~object_has_no_ingredients
             * inventory_is_empty
+            * (interact_ingredients == recipe)
             * self.start_cooking_interaction
         )
         is_pot_start_cooking_useful = interact_ingredients == recipe
@@ -1369,7 +1422,12 @@ class OvercookedV3Base(MultiAgentEnv):
             * is_pot_start_cooking_useful
             * SHAPED_REWARDS["POT_START_COOKING"]
         )
-        auto_cook = pot_is_idle & pot_full_after_drop & ~self.start_cooking_interaction
+        auto_cook = (
+            pot_is_idle
+            & pot_full_after_drop
+            & (new_ingredients == recipe)
+            & ~self.start_cooking_interaction
+        )
 
         use_pot_extra = successful_pot_start_cooking | auto_cook
         new_extra = (
@@ -1389,7 +1447,13 @@ class OvercookedV3Base(MultiAgentEnv):
         # print("new_inventory: ", new_inventory)
         new_agent = agent.replace(inventory=new_inventory)
 
-        is_correct_recipe = inventory == plated_recipe
+        is_current_recipe = inventory == plated_recipe
+        is_legacy_recipe = (
+            ~is_current_recipe
+            & legacy_recipe_available
+            & (inventory == plated_previous_recipe)
+        )
+        is_correct_recipe = is_current_recipe | is_legacy_recipe
         # print("is_correct_recipe: ", is_correct_recipe)
 
         reward = jnp.array(0, dtype=float)
@@ -1407,6 +1471,13 @@ class OvercookedV3Base(MultiAgentEnv):
 
         # Cost for activating a button recipe indicator
         reward -= successful_indicator_activation * self.signal_activation_cost
+
+        consumed_legacy_delivery = successful_delivery & is_legacy_recipe
+        new_legacy_recipe_deliveries_remaining = jnp.maximum(
+            0,
+            legacy_recipe_deliveries_remaining
+            - consumed_legacy_delivery.astype(jnp.int32),
+        )
 
         # Plate pickup reward: number of plates in player hands < number ready/cooking/partially full pot
         inventory_is_plate = new_inventory == DynamicObject.PLATE
@@ -1426,7 +1497,14 @@ class OvercookedV3Base(MultiAgentEnv):
         )
 
         correct_delivery = successful_delivery & is_correct_recipe
-        return new_grid, new_agent, correct_delivery, reward, shaped_reward
+        return (
+            new_grid,
+            new_agent,
+            correct_delivery,
+            reward,
+            shaped_reward,
+            new_legacy_recipe_deliveries_remaining,
+        )
 
     def is_terminal(self, state: State) -> jax.Array:
         """Check whether state is terminal."""

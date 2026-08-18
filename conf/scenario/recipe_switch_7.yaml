@@ -1,0 +1,11 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: recipe_switch_7
+  max_steps: 450
+  random_agent_positions: false
+
+EXPERIMENT: recipe_switch
+CONDITION: recipe_switch_7
+SIGNAL_ENABLED: false
+WANDB_GROUP: recipe_switch
