@@ -33,4 +33,5 @@ command:
   - ${env}
   - ${interpreter}
   - ${program}
+  - inchangbaek4907/overcooked-v3-role-coordination
   - ${args_no_equals}
