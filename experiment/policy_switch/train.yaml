@@ -1,5 +1,5 @@
 program: baselines/PolicySwitch/train_overcooked_v3.py
-name: policy-switch
+name: policy-switch-nosig
 method: grid
 metric:
   goal: maximize
@@ -8,43 +8,12 @@ metric:
 parameters:
   scenario:
     values:
-      - dynamic_00
-      - dynamic_01
-      - dynamic_02
-      - dynamic_03
-      - dynamic_04
-      - dynamic_05
-      - dynamic_06
-      - dynamic_07
-      - dynamic_08
-      - dynamic_09
-      - dynamic_10
-      - dynamic_11
-      - dynamic_12
-      - dynamic_13
-      - dynamic_14
       - splitnosig_0
       - splitnosig_1
       - splitnosig_2
-      - splitsig_0
-      - splitsig_1
-      - splitsig_2
       - outagenosig_0
       - outagenosig_1
       - outagenosig_2
-      - outagesig_0
-      - outagesig_1
-      - outagesig_2
-      - recipe_switch_0
-      - recipe_switch_1
-      - recipe_switch_2
-      - recipe_switch_3
-      - recipe_switch_4
-      - recipe_switch_5
-      - recipe_switch_6
-      - recipe_switch_7
-      - recipe_switch_8
-      - recipe_switch_9
   SEED:
     values: [0, 1, 2, 3, 4, 5]
 

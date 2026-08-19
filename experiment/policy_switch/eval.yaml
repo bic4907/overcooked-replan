@@ -1,0 +1,29 @@
+program: baselines/PolicySwitch/eval_all_overcooked_v3.py
+name: policy-switch-nosig-seedwise-xp
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+parameters:
+  algorithms:
+    value: PolicySwitch-IPPO
+  layout:
+    values:
+      - splitnosig_0
+      - splitnosig_1
+      - splitnosig_2
+      - outagenosig_0
+      - outagenosig_1
+      - outagenosig_2
+  episodes:
+    value: 20
+  max-steps:
+    value: 400
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - inchangbaek4907/overcooked-v3-role-coordination
+  - ${args_no_equals}
