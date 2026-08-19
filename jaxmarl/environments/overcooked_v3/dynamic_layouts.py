@@ -245,7 +245,7 @@ ROLE_SCENARIO_LAYOUTS = {
         family: tuple(f"{family}_{variant}" for variant in range(3))
         for family in ("splitnosig", "splitsig", "outagenosig", "outagesig")
     },
-    "recipe_switch": tuple(f"recipe_switch_{variant}" for variant in range(10)),
+    "recipe_switch": tuple(f"recipe_switch_{variant}" for variant in range(3)),
     "distance_switch": tuple(
         f"distance_switch_{variant}" for variant in range(10)
     ),

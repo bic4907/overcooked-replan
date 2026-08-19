@@ -11,13 +11,6 @@ parameters:
       - recipe_switch_0
       - recipe_switch_1
       - recipe_switch_2
-      - recipe_switch_3
-      - recipe_switch_4
-      - recipe_switch_5
-      - recipe_switch_6
-      - recipe_switch_7
-      - recipe_switch_8
-      - recipe_switch_9
   SEED:
     values: [0, 1, 2, 3, 4, 5]
   recording:

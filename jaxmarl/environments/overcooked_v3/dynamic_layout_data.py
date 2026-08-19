@@ -408,50 +408,9 @@ def _recipe_switch_grid(spec):
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
+# Selected from the original ten-map catalog and reindexed as:
+# new 0 <- old 4, new 1 <- old 5, new 2 <- old 7.
 _RECIPE_SWITCH_SPECS = (
-    {
-        "width": 7,
-        "height": 5,
-        "handoff_rows": (2, 3),
-        "agent_positions": ((2, 2), (4, 2)),
-        "left_resources": (("0", (1, 0)), ("P", (0, 2)), ("X", (1, 4))),
-        "right_resources": (("1", (5, 0)), ("P", (6, 2)), ("B", (5, 4))),
-    },
-    {
-        "width": 7,
-        "height": 5,
-        "handoff_rows": (1, 2),
-        "agent_positions": ((1, 2), (5, 2)),
-        "left_resources": (
-            ("0", (0, 1)),
-            ("P", (2, 0)),
-            ("P", (0, 3)),
-            ("X", (2, 4)),
-        ),
-        "right_resources": (("1", (6, 1)), ("P", (4, 0)), ("B", (4, 4))),
-    },
-    {
-        "width": 7,
-        "height": 6,
-        "handoff_rows": (2, 3),
-        "agent_positions": ((2, 3), (4, 3)),
-        "left_resources": (("0", (1, 0)), ("P", (0, 2)), ("X", (2, 5))),
-        "right_resources": (("1", (5, 0)), ("P", (6, 3)), ("B", (4, 5))),
-        "notches": ((1, 4), (5, 4)),
-    },
-    {
-        "width": 7,
-        "height": 6,
-        "handoff_rows": (1, 4),
-        "agent_positions": ((1, 3), (5, 2)),
-        "left_resources": (
-            ("0", (0, 2)),
-            ("P", (1, 0)),
-            ("P", (0, 4)),
-            ("X", (2, 5)),
-        ),
-        "right_resources": (("1", (6, 2)), ("P", (5, 0)), ("B", (4, 5))),
-    },
     {
         "width": 9,
         "height": 5,
@@ -476,24 +435,6 @@ _RECIPE_SWITCH_SPECS = (
     },
     {
         "width": 7,
-        "height": 6,
-        "handoff_rows": (2, 4),
-        "agent_positions": ((1, 3), (5, 3)),
-        "left_resources": (
-            ("0", (2, 0)),
-            ("P", (0, 3)),
-            ("P", (1, 5)),
-            ("X", (0, 1)),
-        ),
-        "right_resources": (
-            ("1", (4, 0)),
-            ("P", (6, 3)),
-            ("P", (5, 5)),
-            ("B", (6, 1)),
-        ),
-    },
-    {
-        "width": 7,
         "height": 5,
         "handoff_rows": (1, 3),
         "agent_positions": ((1, 2), (5, 2)),
@@ -510,66 +451,30 @@ _RECIPE_SWITCH_SPECS = (
             ("B", (4, 4)),
         ),
     },
-    {
-        "width": 9,
-        "height": 5,
-        "handoff_rows": (1, 3),
-        "agent_positions": ((3, 2), (5, 2)),
-        "left_resources": (
-            ("0", (1, 0)),
-            ("P", (0, 2)),
-            ("X", (3, 4)),
-        ),
-        "right_resources": (
-            ("1", (7, 0)),
-            ("P", (8, 2)),
-            ("B", (5, 4)),
-        ),
-        "notches": ((2, 1), (6, 3)),
-    },
-    {
-        "width": 7,
-        "height": 6,
-        "handoff_rows": (1, 4),
-        "agent_positions": ((2, 2), (4, 3)),
-        "left_resources": (
-            ("0", (0, 2)),
-            ("P", (1, 0)),
-            ("X", (2, 5)),
-        ),
-        "right_resources": (
-            ("1", (6, 3)),
-            ("P", (5, 0)),
-            ("B", (4, 5)),
-        ),
-        "notches": ((1, 3), (5, 2)),
-    },
 )
 
 _RECIPE_ONION_MAJOR = [0, 0, 1]
 _RECIPE_TOMATO_MAJOR = [0, 1, 1]
 _RECIPE_SWITCH_TIMINGS = (
-    (150, 150),
-    (120, 180),
-    (180, 120),
-    (135, 165),
     (165, 135),
     (150, 150),
-    (120, 180),
     (180, 120),
-    (135, 165),
-    (165, 135),
 )
+_RECIPE_SWITCH_ONION_MAJOR_FIRST = (True, False, False)
 
 
 def _register_recipe_switch_catalog():
-    for variant_index, (spec, timings) in enumerate(
-        zip(_RECIPE_SWITCH_SPECS, _RECIPE_SWITCH_TIMINGS)
+    for variant_index, (spec, timings, onion_major_first) in enumerate(
+        zip(
+            _RECIPE_SWITCH_SPECS,
+            _RECIPE_SWITCH_TIMINGS,
+            _RECIPE_SWITCH_ONION_MAJOR_FIRST,
+        )
     ):
         grid = _recipe_switch_grid(spec)
         recipe_a, recipe_b = (
             (_RECIPE_ONION_MAJOR, _RECIPE_TOMATO_MAJOR)
-            if variant_index < 5
+            if onion_major_first
             else (_RECIPE_TOMATO_MAJOR, _RECIPE_ONION_MAJOR)
         )
         first_phase_steps, second_phase_steps = timings

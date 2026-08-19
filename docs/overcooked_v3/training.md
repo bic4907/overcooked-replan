@@ -45,7 +45,7 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 | `scenario=splitsig_<0-2>` | Kitchen Split | Yes |
 | `scenario=outagenosig_<0-2>` | Resource Outage | No |
 | `scenario=outagesig_<0-2>` | Resource Outage | Yes |
-| `scenario=recipe_switch_<0-9>` | Mixed Recipe Relay | No |
+| `scenario=recipe_switch_<0-2>` | Mixed Recipe Relay | No |
 | `scenario=distance_switch_<0-9>` | Distance-Driven Role Switch | No |
 
 Kitchen Split은 처음 40 step 동안 중앙 통로 하나가 열려 있고, 이후 160 step 동안
@@ -82,11 +82,11 @@ phase에서 오른쪽 onion을 전부 제거한다. 예를 들어 `_2`는
 
 Mixed Recipe Relay는 onion·serving이 있는 왼쪽 bay와 tomato·plate가 있는 오른쪽
 bay를 영구적으로 분리하고, 중앙 handoff counter 두 칸으로만 물건을 교환한다.
-8개 layout은 7×5 또는 7×6, 나머지 2개는 9×5로 제한해 탐색 동선을 짧게 유지한다.
-양쪽 모두 pot이 있어 `2 onion + 1 tomato`에서는 왼쪽, `1 onion + 2 tomato`에서는
-오른쪽 조리가 짧은 동선을 갖는다. 각 episode는 seed와 무관하게 A → B → A로
-전환하며 `recipe_switch_0`–`_4`와 `_5`–`_9`는 두 레시피의 시작 순서가 반대다.
-각 scenario config는 `max_steps: 450`을 사용한다.
+기존 catalog의 `_4`, `_5`, `_7`만 남겨 새 `_0`, `_1`, `_2`로 재인덱싱했다.
+새 `_0`은 9×5이며 onion-major → tomato-major → onion-major 순서와 165/135 step
+timing을 사용한다. 새 `_1`, `_2`는 7×5이며 tomato-major → onion-major →
+tomato-major 순서와 각각 150/150, 180/120 step timing을 사용한다. 모든 scenario
+config는 `max_steps: 450`을 사용한다.
 
 Distance-Driven Role Switch는 표준 onion 3개 레시피를 episode 전체에서 고정한다.
 두 agent의 이동 영역은 하나로 연결되어 있고 onion·pot·plate·serving station을

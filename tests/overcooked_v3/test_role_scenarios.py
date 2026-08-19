@@ -83,7 +83,7 @@ def test_each_role_scenario_family_has_expected_unique_layouts():
         "splitsig": 3,
         "outagenosig": 3,
         "outagesig": 3,
-        "recipe_switch": 10,
+        "recipe_switch": 3,
         "distance_switch": 10,
     }
     assert set(ROLE_SCENARIO_LAYOUTS) == set(expected_counts)
