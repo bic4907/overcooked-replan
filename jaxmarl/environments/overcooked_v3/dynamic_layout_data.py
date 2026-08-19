@@ -584,6 +584,235 @@ def _register_recipe_switch_catalog():
 
 _register_recipe_switch_catalog()
 
+
+# Distance-Driven Role Switch --------------------------------------------
+#
+# The recipe stays fixed at the standard three-onion dish. Both agents share
+# one connected movement region and can interact with every resource in every
+# phase. What changes is the placement cost: phase A clusters the onion pile
+# and pot near agent 0 while plate/serving are near agent 1; phase B swaps the
+# two station groups, forcing the efficient cook/server assignment to reverse.
+# All changing resources occupy permanent counter slots, so the walkable floor
+# and agent reachability remain unchanged at a transition.
+
+
+def _distance_switch_grid(spec, roles_swapped=False):
+    """Build one phase of a connected asymmetric-advantage-style kitchen."""
+    width = spec["width"]
+    height = spec["height"]
+    rows = [["W"] * width for _ in range(height)]
+    for y in range(1, height - 1):
+        for x in range(1, width - 1):
+            rows[y][x] = " "
+
+    for x, y in spec["counters"]:
+        if rows[y][x] != " ":
+            raise ValueError(f"Distance-switch counter collision at {(x, y)}")
+        rows[y][x] = "W"
+
+    recipe_x, recipe_y = spec["recipe_position"]
+    if rows[recipe_y][recipe_x] != "W":
+        raise ValueError("Distance-switch recipe indicator must use a counter slot")
+    rows[recipe_y][recipe_x] = "R"
+
+    group_a_symbols = ("B", "X") if roles_swapped else ("0", "P")
+    group_b_symbols = ("0", "P") if roles_swapped else ("B", "X")
+    resources = zip(
+        (*spec["group_a_slots"], *spec["group_b_slots"]),
+        (*group_a_symbols, *group_b_symbols),
+    )
+    for (x, y), symbol in resources:
+        if rows[y][x] != "W":
+            raise ValueError(
+                f"Distance-switch resource slot must be a counter at {(x, y)}"
+            )
+        rows[y][x] = symbol
+
+    for x, y in spec["agent_positions"]:
+        if rows[y][x] != " ":
+            raise ValueError(f"Distance-switch agent collision at {(x, y)}")
+        rows[y][x] = "A"
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+def _distance_switch_floor_distances(rows, start):
+    floor = {
+        (x, y)
+        for y, row in enumerate(rows)
+        for x, cell in enumerate(row)
+        if cell in {" ", "A"}
+    }
+    frontier = [(start, 0)]
+    distances = {start: 0}
+    while frontier:
+        (x, y), distance = frontier.pop(0)
+        for neighbor in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if neighbor in floor and neighbor not in distances:
+                distances[neighbor] = distance + 1
+                frontier.append((neighbor, distance + 1))
+    return distances
+
+
+def _validate_distance_switch_spec(spec):
+    """Enforce shared access and a large spawn-to-station distance advantage."""
+    grid = _distance_switch_grid(spec)
+    rows = [row for row in grid.splitlines() if row]
+    agent_a, agent_b = spec["agent_positions"]
+    distances_a = _distance_switch_floor_distances(rows, agent_a)
+    distances_b = _distance_switch_floor_distances(rows, agent_b)
+    if agent_b not in distances_a:
+        raise ValueError("Distance-switch agents must share one movement region")
+
+    minimum_advantage = spec.get("minimum_advantage", 3)
+
+    def station_distance(distances, position):
+        x, y = position
+        interaction_floors = (
+            (x - 1, y),
+            (x + 1, y),
+            (x, y - 1),
+            (x, y + 1),
+        )
+        reachable = [
+            distances[pos] for pos in interaction_floors if pos in distances
+        ]
+        if not reachable:
+            raise ValueError(
+                f"Distance-switch resource at {position} is not interactable"
+            )
+        return min(reachable)
+
+    for station in (*spec["group_a_slots"], *spec["group_b_slots"]):
+        station_distance(distances_a, station)
+        station_distance(distances_b, station)
+
+    for station in spec["group_a_slots"]:
+        if (
+            station_distance(distances_a, station) + minimum_advantage
+            > station_distance(distances_b, station)
+        ):
+            raise ValueError(
+                f"Agent 0 needs a larger distance advantage at {station}"
+            )
+    for station in spec["group_b_slots"]:
+        if (
+            station_distance(distances_b, station) + minimum_advantage
+            > station_distance(distances_a, station)
+        ):
+            raise ValueError(
+                f"Agent 1 needs a larger distance advantage at {station}"
+            )
+
+
+_DISTANCE_SWITCH_SPECS = (
+    {
+        "width": 9,
+        "height": 5,
+        "group_a_slots": ((0, 1), (0, 3)),
+        "group_b_slots": ((8, 1), (8, 3)),
+        "agent_positions": ((2, 2), (6, 2)),
+        "recipe_position": (4, 0),
+        "counters": ((2, 1), (4, 1), (6, 1), (4, 3)),
+    },
+    {
+        "width": 9,
+        "height": 5,
+        "group_a_slots": ((1, 0), (0, 3)),
+        "group_b_slots": ((7, 0), (8, 3)),
+        "agent_positions": ((2, 2), (6, 2)),
+        "recipe_position": (4, 0),
+        "counters": ((3, 1), (4, 1), (5, 1), (4, 3)),
+    },
+    {
+        "width": 9,
+        "height": 6,
+        "group_a_slots": ((0, 1), (0, 4)),
+        "group_b_slots": ((8, 1), (8, 4)),
+        "agent_positions": ((2, 2), (6, 3)),
+        "recipe_position": (4, 0),
+        "counters": ((4, 1), (4, 2), (4, 4)),
+    },
+    {
+        "width": 11,
+        "height": 5,
+        "group_a_slots": ((0, 1), (0, 3)),
+        "group_b_slots": ((10, 1), (10, 3)),
+        "agent_positions": ((2, 2), (8, 2)),
+        "recipe_position": (5, 0),
+        "counters": ((3, 1), (5, 1), (7, 1), (5, 3)),
+    },
+    {
+        "width": 11,
+        "height": 6,
+        "group_a_slots": ((0, 1), (0, 4)),
+        "group_b_slots": ((10, 1), (10, 4)),
+        "agent_positions": ((2, 2), (8, 3)),
+        "recipe_position": (5, 0),
+        "counters": ((5, 1), (5, 2), (5, 4), (3, 4), (7, 1)),
+    },
+    {
+        "width": 9,
+        "height": 7,
+        "group_a_slots": ((1, 0), (3, 0)),
+        "group_b_slots": ((5, 6), (7, 6)),
+        "agent_positions": ((2, 2), (6, 4)),
+        "recipe_position": (4, 0),
+        "counters": ((2, 3), (3, 3), (5, 3), (6, 3)),
+    },
+    {
+        "width": 9,
+        "height": 7,
+        "group_a_slots": ((1, 6), (3, 6)),
+        "group_b_slots": ((5, 0), (7, 0)),
+        "agent_positions": ((2, 4), (6, 2)),
+        "recipe_position": (4, 0),
+        "counters": ((2, 3), (3, 3), (5, 3), (6, 3)),
+    },
+    {
+        "width": 9,
+        "height": 7,
+        "group_a_slots": ((0, 1), (0, 5)),
+        "group_b_slots": ((8, 1), (8, 5)),
+        "agent_positions": ((2, 3), (6, 3)),
+        "recipe_position": (4, 0),
+        "counters": ((4, 1), (4, 2), (4, 4), (4, 5)),
+    },
+    {
+        "width": 11,
+        "height": 7,
+        "group_a_slots": ((0, 1), (0, 5)),
+        "group_b_slots": ((10, 1), (10, 5)),
+        "agent_positions": ((2, 3), (8, 3)),
+        "recipe_position": (5, 0),
+        "counters": ((5, 1), (5, 2), (5, 4), (5, 5), (3, 2), (7, 4)),
+    },
+    {
+        "width": 11,
+        "height": 7,
+        "group_a_slots": ((1, 0), (0, 2)),
+        "group_b_slots": ((9, 6), (10, 4)),
+        "agent_positions": ((2, 2), (8, 4)),
+        "recipe_position": (5, 0),
+        "counters": ((2, 3), (3, 3), (4, 3), (6, 3), (7, 3), (8, 3)),
+    },
+)
+
+
+def _register_distance_switch_catalog():
+    for variant_index, spec in enumerate(_DISTANCE_SWITCH_SPECS):
+        _validate_distance_switch_spec(spec)
+        phase_a = _distance_switch_grid(spec, roles_swapped=False)
+        phase_b = _distance_switch_grid(spec, roles_swapped=True)
+        globals()[f"distance_switch_{variant_index}"] = [
+            [phase_a, 150],
+            [phase_b, 150],
+            [phase_a, 1000],
+        ]
+
+
+_register_distance_switch_catalog()
+
+
 # Backward-compatible aliases for existing commands and checkpoints.
 split_no_sig = splitnosig_0
 split_sig = splitsig_0

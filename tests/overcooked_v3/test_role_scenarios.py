@@ -77,15 +77,19 @@ def _shortest_floor_distance(static_objects, starts, goals):
     return None
 
 
-def test_each_role_scenario_family_has_three_unique_layouts():
-    assert set(ROLE_SCENARIO_LAYOUTS) == {
-        "splitnosig",
-        "splitsig",
-        "outagenosig",
-        "outagesig",
+def test_each_role_scenario_family_has_expected_unique_layouts():
+    expected_counts = {
+        "splitnosig": 3,
+        "splitsig": 3,
+        "outagenosig": 3,
+        "outagesig": 3,
+        "recipe_switch": 10,
+        "distance_switch": 10,
     }
+    assert set(ROLE_SCENARIO_LAYOUTS) == set(expected_counts)
     for family, names in ROLE_SCENARIO_LAYOUTS.items():
-        assert names == tuple(f"{family}_{variant}" for variant in range(3))
+        count = expected_counts[family]
+        assert names == tuple(f"{family}_{variant}" for variant in range(count))
         signatures = {
             tuple(
                 phase.layout.static_objects.tobytes()
@@ -93,7 +97,7 @@ def test_each_role_scenario_family_has_three_unique_layouts():
             )
             for name in names
         }
-        assert len(signatures) == 3
+        assert len(signatures) == count
 
 
 @pytest.mark.parametrize("layout_name", CANONICAL_ROLE_SCENARIOS)
@@ -101,9 +105,98 @@ def test_all_role_scenario_variants_are_resettable(layout_name):
     env = OvercookedV3(layout=layout_name, max_steps=220)
     obs, state = env.reset(jax.random.PRNGKey(0))
 
-    expected_shape = (7, 9, 3) if layout_name.startswith("split") else (5, 7, 3)
+    layout_shape = dynamic_layouts[layout_name].initial_layout.static_objects.shape
+    expected_shape = (*layout_shape, 3)
+    expected_channels = 35 if layout_name.startswith("recipe_switch") else 33
     assert state.grid.shape == expected_shape
-    assert obs["agent_0"].shape == (*expected_shape[:2], 33)
+    assert obs["agent_0"].shape == (*expected_shape[:2], expected_channels)
+
+
+@pytest.mark.parametrize("layout_name", ROLE_SCENARIO_LAYOUTS["distance_switch"])
+def test_distance_switch_keeps_shared_access_and_reverses_distance_advantage(
+    layout_name,
+):
+    layout = dynamic_layouts[layout_name]
+    assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
+    assert all(phase.recipe is None for phase in layout.phases)
+
+    phase_a, phase_b, phase_a_return = (
+        phase.layout.static_objects for phase in layout.phases
+    )
+    starts = layout.phases[0].agent_positions
+    agent_0_start, agent_1_start = starts
+    assert all(phase.agent_positions == starts for phase in layout.phases)
+    assert np.array_equal(phase_a, phase_a_return)
+    assert np.array_equal(
+        phase_a == StaticObject.EMPTY,
+        phase_b == StaticObject.EMPTY,
+    )
+    assert agent_1_start in _reachable_floor(phase_a, agent_0_start)
+    assert np.sum(phase_a != phase_b) == 4
+
+    onion = StaticObject.ingredient_pile(0)
+    station_types = (
+        onion,
+        StaticObject.POT,
+        StaticObject.PLATE_PILE,
+        StaticObject.GOAL,
+    )
+    reachable_0 = _reachable_floor(phase_a, agent_0_start)
+    reachable_1 = _reachable_floor(phase_a, agent_1_start)
+    for phase in (phase_a, phase_b):
+        for station_type in station_types:
+            positions = np.argwhere(phase == station_type)
+            assert positions.shape == (1, 2)
+            y, x = positions[0]
+            assert _can_interact_from(phase, (x, y), reachable_0)
+            assert _can_interact_from(phase, (x, y), reachable_1)
+
+    def interaction_floors(position):
+        y, x = position
+        return {
+            candidate
+            for candidate in (
+                (x - 1, y),
+                (x + 1, y),
+                (x, y - 1),
+                (x, y + 1),
+            )
+            if candidate in reachable_0
+        }
+
+    phase_a_group_0 = {
+        tuple(position)
+        for station_type in (onion, StaticObject.POT)
+        for position in np.argwhere(phase_a == station_type)
+    }
+    phase_a_group_1 = {
+        tuple(position)
+        for station_type in (StaticObject.PLATE_PILE, StaticObject.GOAL)
+        for position in np.argwhere(phase_a == station_type)
+    }
+    phase_b_group_0 = {
+        tuple(position)
+        for station_type in (StaticObject.PLATE_PILE, StaticObject.GOAL)
+        for position in np.argwhere(phase_b == station_type)
+    }
+    phase_b_group_1 = {
+        tuple(position)
+        for station_type in (onion, StaticObject.POT)
+        for position in np.argwhere(phase_b == station_type)
+    }
+    assert phase_a_group_0 == phase_b_group_0
+    assert phase_a_group_1 == phase_b_group_1
+
+    for station in phase_a_group_0:
+        goals = interaction_floors(station)
+        distance_0 = _shortest_floor_distance(phase_a, {agent_0_start}, goals)
+        distance_1 = _shortest_floor_distance(phase_a, {agent_1_start}, goals)
+        assert distance_0 + 3 <= distance_1
+    for station in phase_a_group_1:
+        goals = interaction_floors(station)
+        distance_0 = _shortest_floor_distance(phase_a, {agent_0_start}, goals)
+        distance_1 = _shortest_floor_distance(phase_a, {agent_1_start}, goals)
+        assert distance_1 + 3 <= distance_0
 
 
 def test_outage_uses_two_onion_recipe_while_split_keeps_three_onions():

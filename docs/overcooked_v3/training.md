@@ -46,6 +46,7 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 | `scenario=outagenosig_<0-2>` | Resource Outage | No |
 | `scenario=outagesig_<0-2>` | Resource Outage | Yes |
 | `scenario=recipe_switch_<0-9>` | Mixed Recipe Relay | No |
+| `scenario=distance_switch_<0-9>` | Distance-Driven Role Switch | No |
 
 Kitchen Split은 처음 40 step 동안 중앙 통로 하나가 열려 있고, 이후 160 step 동안
 그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
@@ -86,6 +87,28 @@ bay를 영구적으로 분리하고, 중앙 handoff counter 두 칸으로만 물
 오른쪽 조리가 짧은 동선을 갖는다. 각 episode는 seed와 무관하게 A → B → A로
 전환하며 `recipe_switch_0`–`_4`와 `_5`–`_9`는 두 레시피의 시작 순서가 반대다.
 각 scenario config는 `max_steps: 450`을 사용한다.
+
+Distance-Driven Role Switch는 표준 onion 3개 레시피를 episode 전체에서 고정한다.
+두 agent의 이동 영역은 하나로 연결되어 있고 onion·pot·plate·serving station을
+모두 직접 사용할 수 있다. 대신 phase A에서는 onion·pot이 agent 0에 가깝고
+plate·serving이 agent 1에 가깝다. 150 step에 네 station group의 counter 위치가
+서로 바뀌어 효율적인 cook/server 역할이 뒤집히며, 300 step에는 초기 배치로
+돌아온다. `distance_switch_0`–`_9`는 9×5부터 11×7까지 서로 다른 counter
+장애물을 사용하고, 가까운 agent가 각 station까지 최소 3 movement step의 거리
+우위를 갖도록 구성한다. 레시피는 바뀌지 않으므로 관측은 표준 V3 33채널이다.
+
+| Layout | Size | Near-station axis |
+| --- | --- | --- |
+| `distance_switch_0` | 9×5 | left ↔ right, asymmetric-advantages core |
+| `distance_switch_1` | 9×5 | upper/side left ↔ upper/side right |
+| `distance_switch_2` | 9×6 | left ↔ right, offset center gate |
+| `distance_switch_3` | 11×5 | long left ↔ right corridor |
+| `distance_switch_4` | 11×6 | long left ↔ right, offset starts |
+| `distance_switch_5` | 9×7 | upper-left ↔ lower-right |
+| `distance_switch_6` | 9×7 | lower-left ↔ upper-right |
+| `distance_switch_7` | 9×7 | left ↔ right, narrow center gate |
+| `distance_switch_8` | 11×7 | long left ↔ right, staggered counters |
+| `distance_switch_9` | 11×7 | upper-left ↔ lower-right, split counter bar |
 
 V3 기본 관측은 V2의 30채널에 public signal status, phase 전환 countdown,
 change mask를 추가한 33채널이다. 뒤에서 세 번째 채널은 signal button 위치에서

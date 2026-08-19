@@ -23,3 +23,15 @@ wandb sweep --entity inchangbaek4907 --project overcooked-v3-role-coordination r
 ```bash
 wandb sweep --entity inchangbaek4907 --project overcooked-v3-crossplay recipe_switch_eval.yaml
 ```
+
+## Distance Switch Train
+
+```bash
+wandb sweep --entity inchangbaek4907 --project overcooked-v3-role-coordination distance_switch_train.yaml
+```
+
+## Distance Switch Evaluate
+
+```bash
+wandb sweep --entity inchangbaek4907 --project overcooked-v3-crossplay distance_switch_eval.yaml
+```

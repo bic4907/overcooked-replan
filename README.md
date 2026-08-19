@@ -14,6 +14,7 @@ The following role-coordination experiments are currently available:
 | `outagenosig_{0..2}` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
 | `outagesig_{0..2}` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
 | `recipe_switch_{0..9}` | Mixed Recipe Relay | No | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
+| `distance_switch_{0..9}` | Distance-Driven Role Switch | No | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
 
 Kitchen Split starts with one central doorway open for 40 steps. It then becomes
 a handoff counter for 160 steps, preventing agents from changing bays. The left
@@ -49,6 +50,15 @@ the recipe changes at deterministic phase boundaries within a 450-step episode.
 Select any layout through its Hydra scenario name, such as
 `scenario=outagesig_2`. Matching Sig/NoSig layouts with the same index differ
 only at the signal tile.
+
+Distance-Driven Role Switch keeps the standard three-onion recipe fixed. Both
+agents remain in one connected movement region and can reach every onion pile,
+pot, plate pile, and serving station. During each 450-step episode the station
+assignment follows A → B → A: onion/pot begin near agent 0 while plate/serving
+begin near agent 1, then the two station groups exchange counter slots at step
+150 and return at step 300. Ten `distance_switch_0`–`_9` layouts vary the
+asymmetric counter geometry while enforcing at least a three-step spawn-to-
+station advantage for the locally assigned agent.
 
 Overcooked V3 exposes public signals and upcoming layout transitions to every
 agent. The final three channels of the default 33-channel observation contain a
