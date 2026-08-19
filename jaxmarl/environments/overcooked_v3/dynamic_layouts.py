@@ -240,6 +240,76 @@ dynamic_layouts.update(
     }
 )
 
+
+POLICY_SWITCH_BASE_LAYOUTS = tuple(dynamic_layouts)
+_STATIC_POLICY_PHASE_STEPS = 1_000_000_000
+
+
+def _phase_policy_signature(phase: DynamicLayoutPhase) -> tuple:
+    """Describe every phase property that changes the policy's task."""
+    static_objects = np.asarray(phase.layout.static_objects)
+    return (
+        static_objects.shape,
+        static_objects.dtype.str,
+        static_objects.tobytes(),
+        tuple(phase.agent_positions),
+        phase.recipe,
+    )
+
+
+def phase_policy_layout_name(base_layout: str, policy_index: int) -> str:
+    """Return the no-transition training layout for one unique phase policy."""
+    if base_layout not in POLICY_SWITCH_BASE_LAYOUTS:
+        raise ValueError(f"Unsupported policy-switch layout: {base_layout}")
+    if isinstance(policy_index, bool) or not isinstance(
+        policy_index, (int, np.integer)
+    ):
+        raise TypeError("policy_index must be an integer")
+    policy_index = int(policy_index)
+    if policy_index < 0:
+        raise ValueError("policy_index must be non-negative")
+    return f"{base_layout}_policy_{policy_index}"
+
+
+def phase_policy_sequence(base_layout: str) -> Tuple[int, ...]:
+    """Map every dynamic phase to a deduplicated static policy index."""
+    if base_layout not in POLICY_SWITCH_BASE_LAYOUTS:
+        raise ValueError(f"Unsupported policy-switch layout: {base_layout}")
+    signatures = []
+    sequence = []
+    for phase in dynamic_layouts[base_layout].phases:
+        signature = _phase_policy_signature(phase)
+        try:
+            policy_index = signatures.index(signature)
+        except ValueError:
+            policy_index = len(signatures)
+            signatures.append(signature)
+        sequence.append(policy_index)
+    return tuple(sequence)
+
+
+def _register_static_phase_policy_layouts() -> None:
+    """Expose one transition-free training layout per unique dynamic phase."""
+    for base_layout in POLICY_SWITCH_BASE_LAYOUTS:
+        sequence = phase_policy_sequence(base_layout)
+        phases = dynamic_layouts[base_layout].phases
+        for policy_index in range(max(sequence) + 1):
+            source_phase_index = sequence.index(policy_index)
+            source_phase = phases[source_phase_index]
+            static_phase = DynamicLayoutPhase(
+                layout=source_phase.layout,
+                agent_positions=source_phase.agent_positions,
+                steps=_STATIC_POLICY_PHASE_STEPS,
+                name=f"policy_{policy_index}",
+                recipe=source_phase.recipe,
+            )
+            dynamic_layouts[phase_policy_layout_name(base_layout, policy_index)] = (
+                DynamicLayout((static_phase,))
+            )
+
+
+_register_static_phase_policy_layouts()
+
 ROLE_SCENARIO_LAYOUTS = {
     **{
         family: tuple(f"{family}_{variant}" for variant in range(3))
@@ -254,7 +324,10 @@ ROLE_SCENARIO_LAYOUT_NAMES = tuple(
 __all__ = [
     "DynamicLayout",
     "DynamicLayoutPhase",
+    "POLICY_SWITCH_BASE_LAYOUTS",
     "ROLE_SCENARIO_LAYOUTS",
     "ROLE_SCENARIO_LAYOUT_NAMES",
     "dynamic_layouts",
+    "phase_policy_layout_name",
+    "phase_policy_sequence",
 ]
