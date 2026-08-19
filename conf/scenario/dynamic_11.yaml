@@ -1,0 +1,10 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: dynamic_11
+  random_agent_positions: false
+
+EXPERIMENT: dynamic_map
+CONDITION: dynamic_11
+SIGNAL_ENABLED: false
+WANDB_GROUP: dynamic_map

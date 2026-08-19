@@ -1,0 +1,24 @@
+program: baselines/PolicySwitch/train_overcooked_v3.py
+name: policy-switch-nosig
+method: grid
+metric:
+  goal: maximize
+  name: train/policy_1/episode_return
+
+parameters:
+  scenario:
+    values:
+      - splitnosig_0
+      - splitnosig_1
+      - splitnosig_2
+      - outagenosig_0
+      - outagenosig_1
+      - outagenosig_2
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}
