@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=nvcr.io/nvidia/jax:26.04-py3
+ARG BASE_IMAGE=python:3.12-slim-bookworm
 FROM ${BASE_IMAGE}
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -6,9 +6,17 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 ARG UID=1000
 ARG GID=1000
 ARG USERNAME=runner
-ARG INSTALL_EXTRAS=algs
+ARG UV_VERSION=0.9.7
 
 ENV DEBIAN_FRONTEND=noninteractive \
+    UV_PROJECT_ENVIRONMENT=/opt/overcooked-venv \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never \
+    PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    MPLCONFIGDIR=/tmp/matplotlib \
+    XLA_PYTHON_CLIENT_PREALLOCATE=false \
+    TF_FORCE_GPU_ALLOW_GROWTH=true \
     TF_CPP_MIN_LOG_LEVEL=3 \
     GLOG_minloglevel=3
 
@@ -21,7 +29,8 @@ RUN apt-get update \
         libgl1 \
         libglib2.0-0 \
         tmux \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && python -m pip install --no-cache-dir "uv==${UV_VERSION}"
 
 # Match the host UID/GID so bind-mounted checkpoints are not owned by root.
 RUN groupadd --non-unique --gid "${GID}" "${USERNAME}" \
@@ -35,24 +44,25 @@ RUN groupadd --non-unique --gid "${GID}" "${USERNAME}" \
         "${USERNAME}"
 
 WORKDIR /workspace
+
+# Cache the locked Python/CUDA dependencies independently from source edits.
+COPY --chown=${UID}:${GID} pyproject.toml uv.lock README.md LICENSE ./
+RUN uv sync \
+        --frozen \
+        --no-dev \
+        --no-install-project \
+        --extra algs \
+        --extra cuda
+
 COPY --chown=${UID}:${GID} . /workspace
+RUN uv sync \
+        --frozen \
+        --no-dev \
+        --extra algs \
+        --extra cuda \
+    && chown -R "${UID}:${GID}" /opt/overcooked-venv
 
-# Preserve the CUDA-enabled JAX stack supplied by the NVIDIA base image while
-# installing this project and its algorithm dependencies.
-RUN python -m pip freeze \
-        | grep -iE '^(jax|jaxlib|jax-cuda[0-9]+)' \
-        > /tmp/jax-constraints.txt \
-    && python -m pip install \
-        --no-cache-dir \
-        --constraint /tmp/jax-constraints.txt \
-        -e ".[${INSTALL_EXTRAS}]" \
-    && python -m pip check \
-    && rm /tmp/jax-constraints.txt
-
-ENV PYTHONUNBUFFERED=1 \
-    MPLCONFIGDIR=/tmp/matplotlib \
-    XLA_PYTHON_CLIENT_PREALLOCATE=false \
-    TF_FORCE_GPU_ALLOW_GROWTH=true
+ENV PATH="/opt/overcooked-venv/bin:${PATH}"
 
 USER ${USERNAME}
 

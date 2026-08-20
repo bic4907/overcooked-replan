@@ -195,7 +195,9 @@ phase 전환 시 정적 타일 종류가 바뀐 칸은 새 phase의 타일 템�
 - 호스트 UID/GID로 실행
 - `/etc/passwd`, `/etc/group`을 읽기 전용으로 연결
 - 사용 가능한 NVIDIA GPU를 컨테이너에 전달
-- `/mnt/nas/overcooked-replan`이 존재하면 같은 경로로 bind mount
+- `.env`를 컨테이너 환경변수로 전달
+- 절대 경로 `SAVES_DIR` 환경변수가 설정되면 그 경로를 추가 bind mount
+- `uv.lock`의 Python 3.12/JAX CUDA 환경을 사용
 
 NAS가 준비됐는지 먼저 확인한다.
 
@@ -206,13 +208,13 @@ test -w /mnt/nas/overcooked-replan
 
 두 명령 중 하나라도 실패하면 학습 전에 NAS mount와 권한을 해결해야 한다.
 
-### 5.2 Conda에서 직접 실행
+### 5.2 uv 환경에서 직접 실행
 
 Docker를 사용하지 않는 경우 프로젝트 루트에서 다음과 같이 설치한다.
 
 ```bash
-conda activate overcooked-replan
-python -m pip install -e ".[algs,dev,mabrax]"
+uv sync --frozen --extra algs --extra cuda
+source .venv/bin/activate
 ```
 
 GPU 학습에는 CUDA 지원 JAX가 설치되어 있어야 한다. `jax.devices()` 결과가 `CpuDevice`만 보이면 CPU용 `jaxlib`이 사용 중인 것이다.
