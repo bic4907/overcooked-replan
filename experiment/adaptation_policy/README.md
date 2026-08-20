@@ -82,10 +82,10 @@ The sweep contains all ten original-layout pairs with six seeds, for 60 runs:
 ```bash
 wandb sweep \
   --entity cilab-overcooked \
-  --project overcooked-v3-switch-trained \
+  --project overcooked-v3-switch-trained-no-coplayer-action_train \
   experiment/adaptation_policy/motive/switch_trained_no_coplayer_action.yaml
 
-wandb agent cilab-overcooked/overcooked-v3-switch-trained/<SWEEP_ID>
+wandb agent cilab-overcooked/overcooked-v3-switch-trained-no-coplayer-action_train/<SWEEP_ID>
 ```
 
 After all 60 training runs have final checkpoint artifacts, create the 10-run
@@ -94,10 +94,10 @@ seed-wise SP/XP evaluation sweep in its separate project:
 ```bash
 wandb sweep \
   --entity cilab-overcooked \
-  --project overcooked-v3-switch-trained-eval \
+  --project overcooked-v3-switch-trained-no-coplayer-action_eval \
   experiment/adaptation_policy/motive/switch_trained_no_coplayer_action_eval.yaml
 
-wandb agent cilab-overcooked/overcooked-v3-switch-trained-eval/<SWEEP_ID>
+wandb agent cilab-overcooked/overcooked-v3-switch-trained-no-coplayer-action_eval/<SWEEP_ID>
 ```
 
 ## 2b. Switch-trained agent with previous co-player action
@@ -109,7 +109,7 @@ episode reset and is cleared whenever a fresh layout starts.
 ```bash
 wandb sweep \
   --entity cilab-overcooked \
-  --project overcooked-v3-switch-trained-coplayer-action \
+  --project overcooked-v3-switch-trained-coplayer-action_train \
   experiment/adaptation_policy/motive/switch_trained_coplayer_action.yaml
 ```
 
@@ -118,7 +118,7 @@ After 2b training completes, create its separate evaluation sweep:
 ```bash
 wandb sweep \
   --entity cilab-overcooked \
-  --project overcooked-v3-switch-trained-coplayer-action-eval \
+  --project overcooked-v3-switch-trained-coplayer-action_eval \
   experiment/adaptation_policy/motive/switch_trained_coplayer_action_eval.yaml
 ```
 
@@ -131,6 +131,6 @@ sweep to be exhausted, and then starts the next sweep. For example, this keeps
 ```bash
 GPUS="0 1 2 3" bash \
   experiment/adaptation_policy/motive/run_agents_sequential.sh \
-  cilab-overcooked/overcooked-v3-switch-trained/<TRAIN_SWEEP_ID> \
-  cilab-overcooked/overcooked-v3-switch-trained-eval/<EVAL_SWEEP_ID>
+  cilab-overcooked/overcooked-v3-switch-trained-no-coplayer-action_train/<TRAIN_SWEEP_ID> \
+  cilab-overcooked/overcooked-v3-switch-trained-no-coplayer-action_eval/<EVAL_SWEEP_ID>
 ```

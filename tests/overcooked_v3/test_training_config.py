@@ -226,6 +226,10 @@ def test_switch_trained_eval_sweep_covers_seedwise_sp_and_xp():
     assert parameters["episodes"]["value"] == 50
     assert parameters["max-steps"]["value"] == 400
     assert parameters["run-state"]["value"] == "finished"
+    assert sweep["command"][3] == (
+        "cilab-overcooked/"
+        "overcooked-v3-switch-trained-no-coplayer-action_train"
+    )
     assert sweep["command"][-8:] == [
         "--seeds",
         "0",
@@ -255,7 +259,7 @@ def test_coplayer_action_eval_sweep_uses_2b_source_project():
     assert parameters["episodes"]["value"] == 50
     assert parameters["run-state"]["value"] == "finished"
     assert sweep["command"][3] == (
-        "cilab-overcooked/overcooked-v3-switch-trained-coplayer-action"
+        "cilab-overcooked/overcooked-v3-switch-trained-coplayer-action_train"
     )
     assert sweep["command"][-8:] == [
         "--seeds",

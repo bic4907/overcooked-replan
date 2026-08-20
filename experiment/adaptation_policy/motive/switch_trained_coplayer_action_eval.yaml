@@ -35,7 +35,7 @@ command:
   - ${env}
   - ${interpreter}
   - ${program}
-  - cilab-overcooked/overcooked-v3-switch-trained-coplayer-action
+  - cilab-overcooked/overcooked-v3-switch-trained-coplayer-action_train
   - --seeds
   - "0"
   - "1"
