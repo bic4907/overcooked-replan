@@ -31,12 +31,22 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
     "License :: OSI Approved :: Apache Software License",
 ]
+# Pinned to the JAX 0.5.3 / Flax 0.10.5 stack (both released March 2025).
+# Upper bounds are load-bearing, not cosmetic: chex >= 0.1.90, distrax >= 0.1.6
+# and orbax-checkpoint >= 0.12 all require jax >= 0.6/0.7, and scipy >= 1.16
+# drops the numpy < 2.5 pin this stack is validated against.
+# GPU wheels come from the `cuda` extra; nvidia-* CUDA 12.9 libraries satisfy
+# jax-cuda12-plugin's `>=` bounds, so CUDA 12.9 is the supported runtime.
 dependencies = [
-  "jax>=0.4.25",
-  "numpy>=1.26",
-  "flax",
+  "jax==0.5.3",
+  "jaxlib==0.5.3",
+  "numpy>=1.26,<2.3",
+  "scipy>=1.11.1,<1.16",
+  "ml_dtypes>=0.4.0,<0.5.2",  # jaxlib 0.5.3 registers dtypes against the 0.5.1-era ml_dtypes
+  "flax==0.10.5",
+  "orbax-checkpoint>=0.11.0,<0.12",
+  "chex>=0.1.87,<0.1.90",
   "safetensors",
-  "chex",
   "matplotlib",
   "pillow",
   "jaxtyping>=0.2.28",
@@ -46,8 +56,11 @@ dependencies = [
 
 [project.optional-dependencies]
 algs = [
-  "optax",
-  "distrax",
+  "optax>=0.2.4,<0.2.5",
+  "distrax==0.1.5",
+  # distrax 0.1.5 runs on the TFP JAX substrate; 0.25.0 is the first release
+  # that supports numpy 2.x.
+  "tensorflow-probability>=0.25.0",
   "flashbax>=0.1.0",
   "wandb",
   "python-dotenv>=1.0.1",
@@ -65,6 +78,9 @@ dev = [
 ]
 mabrax = [
   "brax>=0.10.3",
+]
+cuda = [
+  "jax[cuda12]==0.5.3",
 ]
 
 [project.urls]

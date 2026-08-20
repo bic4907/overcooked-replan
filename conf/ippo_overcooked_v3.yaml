@@ -8,6 +8,9 @@ ALGORITHM: IPPO
 ARCHITECTURE: cnn
 ENV_KWARGS:
   layout: dynamic_00
+  layout_mode: cyclic
+  max_steps: 400
+  reset_on_layout_change: false
   random_agent_positions: false
   include_transition_countdown: true
   include_layout_change_mask: true

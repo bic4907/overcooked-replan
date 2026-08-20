@@ -3,9 +3,9 @@
 set -Eeuo pipefail
 
 PROJECT_DIR="${PROJECT_DIR:-$(pwd -P)}"
-IMAGE_NAME="${IMAGE_NAME:-bic4907/overcooked:cu13}"
-BASE_IMAGE="${BASE_IMAGE:-nvcr.io/nvidia/jax:26.04-py3}"
-INSTALL_EXTRAS="${INSTALL_EXTRAS:-algs}"
+IMAGE_NAME="${IMAGE_NAME:-overcooked-replan:uv-cuda12}"
+BASE_IMAGE="${BASE_IMAGE:-python:3.12-slim-bookworm}"
+UV_VERSION="${UV_VERSION:-0.9.7}"
 DOCKER_SHM_SIZE="${DOCKER_SHM_SIZE:-16g}"
 DOCKER_GPUS="${DOCKER_GPUS:-all}"
 REBUILD_IMAGE="${REBUILD_IMAGE:-0}"
@@ -17,7 +17,7 @@ build_image() {
         --build-arg "BASE_IMAGE=${BASE_IMAGE}" \
         --build-arg "UID=$(id -u)" \
         --build-arg "GID=$(id -g)" \
-        --build-arg "INSTALL_EXTRAS=${INSTALL_EXTRAS}" \
+        --build-arg "UV_VERSION=${UV_VERSION}" \
         --tag "${IMAGE_NAME}" \
         "${PROJECT_DIR}"
 }
@@ -25,7 +25,7 @@ build_image() {
 if [[ "${REBUILD_IMAGE}" == "1" ]]; then
     build_image
 elif ! docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
-    docker pull "${IMAGE_NAME}"
+    build_image
 fi
 
 docker_args=(
@@ -74,6 +74,7 @@ for variable in \
     WANDB_MODE \
     WANDB_PROJECT \
     WANDB_DIR \
+    XLA_PYTHON_CLIENT_PREALLOCATE \
     XLA_FLAGS
 do
     if printenv "${variable}" >/dev/null 2>&1; then
@@ -86,23 +87,10 @@ if [[ $# -eq 0 ]]; then
 fi
 
 if [[ "${REINSTALL_PROJECT}" == "1" ]]; then
-    docker_args+=(--env "INSTALL_EXTRAS=${INSTALL_EXTRAS}")
     reinstall_project_cmd='
 set -Eeuo pipefail
 
-constraints_file="$(mktemp)"
-python -m pip freeze \
-    | grep -iE "^(jax|jaxlib|jax-cuda[0-9]+)" \
-    > "${constraints_file}" || true
-
-install_args=(--user --force-reinstall)
-if [[ -s "${constraints_file}" ]]; then
-    install_args+=(--constraint "${constraints_file}")
-fi
-install_args+=(-e ".[${INSTALL_EXTRAS:-algs}]")
-
-python -m pip install "${install_args[@]}"
-rm -f "${constraints_file}"
+uv sync --frozen --no-dev --extra algs --extra cuda
 
 exec "$@"
 '

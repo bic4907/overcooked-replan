@@ -1,13 +1,17 @@
 """Validated cyclic layouts for the Overcooked V3 environment."""
 
 from dataclasses import dataclass
+from itertools import combinations
 from typing import Optional, Sequence, Tuple
 
 import numpy as np
 
 from jaxmarl.environments.overcooked_v3 import dynamic_layout_data
 from jaxmarl.environments.overcooked_v3.common import StaticObject
-from jaxmarl.environments.overcooked_v3.layouts import Layout
+from jaxmarl.environments.overcooked_v3.layouts import (
+    Layout,
+    overcooked_v3_base_layouts,
+)
 
 _ALLOWED_SYMBOLS = set(" WAXBP RLSO0123456789")
 _DEFAULT_RECIPES = [[0, 0, 0]]
@@ -241,6 +245,81 @@ dynamic_layouts.update(
 )
 
 
+ORIGINAL_LAYOUT_NAMES = (
+    "cramped_room",
+    "asymm_advantages",
+    "coord_ring",
+    "forced_coord",
+    "counter_circuit",
+)
+ORIGINAL_LAYOUT_PAIRS = tuple(combinations(ORIGINAL_LAYOUT_NAMES, 2))
+ORIGINAL_LAYOUT_HEIGHT = 7
+ORIGINAL_LAYOUT_WIDTH = 9
+ORIGINAL_SWITCH_PHASE_STEPS = 100
+_ORIGINAL_STATIC_PHASE_STEPS = 1_000_000_000
+
+
+def _pad_original_layout(
+    layout: Layout,
+    height: int = ORIGINAL_LAYOUT_HEIGHT,
+    width: int = ORIGINAL_LAYOUT_WIDTH,
+) -> Layout:
+    """Embed an original layout at the top-left of a fixed wall canvas."""
+    if layout.height > height or layout.width > width:
+        raise ValueError(
+            f"Cannot fit original layout shape {(layout.height, layout.width)} "
+            f"inside {(height, width)}"
+        )
+    static_objects = np.full((height, width), StaticObject.WALL, dtype=np.int32)
+    static_objects[: layout.height, : layout.width] = layout.static_objects
+    possible_recipes = (
+        None
+        if layout.possible_recipes is None
+        else [list(recipe) for recipe in layout.possible_recipes]
+    )
+    return Layout(
+        agent_positions=list(layout.agent_positions),
+        static_objects=static_objects,
+        num_ingredients=layout.num_ingredients,
+        possible_recipes=possible_recipes,
+    )
+
+
+def _register_original_layouts() -> None:
+    padded_layouts = {
+        name: _pad_original_layout(overcooked_v3_base_layouts[name])
+        for name in ORIGINAL_LAYOUT_NAMES
+    }
+    for name, layout in padded_layouts.items():
+        dynamic_layouts[name] = DynamicLayout(
+            (
+                DynamicLayoutPhase(
+                    layout=layout,
+                    agent_positions=tuple(layout.agent_positions),
+                    steps=_ORIGINAL_STATIC_PHASE_STEPS,
+                    name=name,
+                ),
+            )
+        )
+
+    for first_name, second_name in ORIGINAL_LAYOUT_PAIRS:
+        phases = tuple(
+            DynamicLayoutPhase(
+                layout=padded_layouts[name],
+                agent_positions=tuple(padded_layouts[name].agent_positions),
+                steps=ORIGINAL_SWITCH_PHASE_STEPS,
+                name=name,
+            )
+            for name in (first_name, second_name)
+        )
+        dynamic_layouts[f"multilayout_{first_name}__{second_name}"] = DynamicLayout(
+            phases
+        )
+
+
+_register_original_layouts()
+
+
 POLICY_SWITCH_BASE_LAYOUTS = tuple(dynamic_layouts)
 _STATIC_POLICY_PHASE_STEPS = 1_000_000_000
 
@@ -324,6 +403,9 @@ ROLE_SCENARIO_LAYOUT_NAMES = tuple(
 __all__ = [
     "DynamicLayout",
     "DynamicLayoutPhase",
+    "ORIGINAL_LAYOUT_NAMES",
+    "ORIGINAL_LAYOUT_PAIRS",
+    "ORIGINAL_SWITCH_PHASE_STEPS",
     "POLICY_SWITCH_BASE_LAYOUTS",
     "ROLE_SCENARIO_LAYOUTS",
     "ROLE_SCENARIO_LAYOUT_NAMES",
