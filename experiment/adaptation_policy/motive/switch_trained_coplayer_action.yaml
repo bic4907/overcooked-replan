@@ -33,9 +33,7 @@ parameters:
     value: false
   ENV_KWARGS.include_signal_status:
     value: false
-  # Hydra's ++ form works with both older configs where this key is absent and
-  # newer configs where it is already declared.
-  ++ENV_KWARGS.include_previous_coplayer_action:
+  ENV_KWARGS.include_previous_coplayer_action:
     value: true
   ARCHITECTURE:
     value: cnn

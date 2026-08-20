@@ -202,9 +202,7 @@ def test_coplayer_action_sweep_matches_switch_trained_control():
     assert parameters["ENV_KWARGS.reset_on_layout_change"]["value"] is True
     assert parameters["ENV_KWARGS.include_transition_countdown"]["value"] is False
     assert parameters["ENV_KWARGS.include_layout_change_mask"]["value"] is False
-    assert (
-        parameters["++ENV_KWARGS.include_previous_coplayer_action"]["value"] is True
-    )
+    assert parameters["ENV_KWARGS.include_previous_coplayer_action"]["value"] is True
     assert parameters["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
     assert "${args_no_hyphens}" in sweep["command"]
 
