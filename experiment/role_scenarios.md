@@ -14,6 +14,7 @@
 | Split-Sig | `splitsig_{0..2}` | matched designs with signal |
 | Outage-NoSig | `outagenosig_{0..2}` | selected Outage designs |
 | Outage-Sig | `outagesig_{0..2}` | matched designs with signal |
+| Distance Switch | `distance_switch_{0..9}` | connected asymmetric-distance designs |
 
 전체 catalog에는 cross-play 결과에서 선별한 layout을 각 category마다 `_0`~`_2`
 3개씩, 총 12개 등록한다. 같은 index의 Sig/NoSig pair는 geometry와 resource
@@ -24,6 +25,13 @@ recipe indicator는 두 조건 모두 위쪽 중앙의 별도 타일에 고정�
 Split은 선별된 workload와 배치를 유지하면서 7×9 크기를 사용한다.
 Split은 표준 양파 3개 레시피를 유지한다. Outage는 조리시간을 바꾸지 않고
 양파 2개가 pot에 들어오면 조리를 시작하는 레시피를 사용한다.
+
+Distance Switch는 별도 10개 layout으로 구성한다. 표준 양파 3개 레시피는
+고정하며 두 agent는 하나의 연결된 floor에서 모든 resource에 접근할 수 있다.
+Phase A의 가까운 역할 배치는 agent 0=onion/pot, agent 1=plate/serve이고,
+150 step 뒤 station 위치를 교환해 역할 거리 우위를 반대로 만든다. 300 step에는
+초기 위치로 돌아온다. 각 가까운 agent와 먼 agent의 spawn-to-station 최단거리
+차이는 station마다 최소 3 step이다.
 
 Outage는 5×7로 줄이고 normal/outage phase를 40/160 step으로 설정했다.
 각 layout은 onion→handoff와 handoff→right pot 구간을 각각 최대 1 movement

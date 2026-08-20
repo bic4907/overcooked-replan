@@ -15,6 +15,7 @@ from jaxmarl.environments.overcooked_v3.dynamic_layouts import (
     dynamic_layouts,
 )
 from jaxmarl.environments.overcooked_v3.dynamic_overcooked import OvercookedV3
+from jaxmarl.environments.overcooked_v3.layouts import overcooked_v3_base_layouts
 from jaxmarl.environments.overcooked_v3.settings import INDICATOR_ACTIVATION_COST
 from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
 
@@ -28,6 +29,8 @@ ROLE_SCENARIOS = (
 CANONICAL_ROLE_SCENARIOS = tuple(
     name for names in ROLE_SCENARIO_LAYOUTS.values() for name in names
 )
+
+
 def _reachable_floor(static_objects, start):
     width = static_objects.shape[1]
     height = static_objects.shape[0]
@@ -77,15 +80,19 @@ def _shortest_floor_distance(static_objects, starts, goals):
     return None
 
 
-def test_each_role_scenario_family_has_three_unique_layouts():
-    assert set(ROLE_SCENARIO_LAYOUTS) == {
-        "splitnosig",
-        "splitsig",
-        "outagenosig",
-        "outagesig",
+def test_each_role_scenario_family_has_expected_unique_layouts():
+    expected_counts = {
+        "splitnosig": 3,
+        "splitsig": 3,
+        "outagenosig": 3,
+        "outagesig": 3,
+        "recipe_switch": 3,
+        "distance_switch": 10,
     }
+    assert set(ROLE_SCENARIO_LAYOUTS) == set(expected_counts)
     for family, names in ROLE_SCENARIO_LAYOUTS.items():
-        assert names == tuple(f"{family}_{variant}" for variant in range(3))
+        count = expected_counts[family]
+        assert names == tuple(f"{family}_{variant}" for variant in range(count))
         signatures = {
             tuple(
                 phase.layout.static_objects.tobytes()
@@ -93,7 +100,7 @@ def test_each_role_scenario_family_has_three_unique_layouts():
             )
             for name in names
         }
-        assert len(signatures) == 3
+        assert len(signatures) == count
 
 
 @pytest.mark.parametrize("layout_name", CANONICAL_ROLE_SCENARIOS)
@@ -101,9 +108,77 @@ def test_all_role_scenario_variants_are_resettable(layout_name):
     env = OvercookedV3(layout=layout_name, max_steps=220)
     obs, state = env.reset(jax.random.PRNGKey(0))
 
-    expected_shape = (7, 9, 3) if layout_name.startswith("split") else (5, 7, 3)
+    layout_shape = dynamic_layouts[layout_name].initial_layout.static_objects.shape
+    expected_shape = (*layout_shape, 3)
+    expected_channels = 35 if layout_name.startswith("recipe_switch") else 33
     assert state.grid.shape == expected_shape
-    assert obs["agent_0"].shape == (*expected_shape[:2], 33)
+    assert obs["agent_0"].shape == (*expected_shape[:2], expected_channels)
+
+
+@pytest.mark.parametrize("layout_name", ROLE_SCENARIO_LAYOUTS["distance_switch"])
+def test_distance_switch_keeps_local_access_and_reverses_role_costs(
+    layout_name,
+):
+    layout = dynamic_layouts[layout_name]
+    assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
+    assert all(phase.recipe is None for phase in layout.phases)
+
+    phase_a, phase_b, phase_a_return = (
+        phase.layout.static_objects for phase in layout.phases
+    )
+    starts = layout.phases[0].agent_positions
+    agent_0_start, agent_1_start = starts
+    assert all(phase.agent_positions == starts for phase in layout.phases)
+    assert np.array_equal(phase_a, phase_a_return)
+    assert np.array_equal(
+        phase_a == StaticObject.EMPTY,
+        phase_b == StaticObject.EMPTY,
+    )
+    reachable_0 = _reachable_floor(phase_a, agent_0_start)
+    reachable_1 = _reachable_floor(phase_a, agent_1_start)
+    assert agent_1_start not in reachable_0
+    assert agent_0_start not in reachable_1
+    assert np.sum(phase_a != phase_b) == 4
+
+    onion = StaticObject.ingredient_pile(0)
+    station_types = (
+        onion,
+        StaticObject.POT,
+        StaticObject.PLATE_PILE,
+        StaticObject.GOAL,
+    )
+    for phase in (phase_a, phase_b):
+        for station_type in station_types:
+            positions = np.argwhere(phase == station_type)
+            assert positions.shape == (2, 2)
+            for reachable in (reachable_0, reachable_1):
+                assert any(
+                    _can_interact_from(phase, (x, y), reachable) for y, x in positions
+                )
+
+    assert np.array_equal(
+        np.argwhere(phase_a == StaticObject.POT),
+        np.argwhere(phase_b == StaticObject.POT),
+    )
+    assert np.array_equal(
+        np.argwhere(phase_a == StaticObject.PLATE_PILE),
+        np.argwhere(phase_b == StaticObject.PLATE_PILE),
+    )
+    assert {tuple(position) for position in np.argwhere(phase_a == onion)} == {
+        tuple(position) for position in np.argwhere(phase_b == StaticObject.GOAL)
+    }
+    assert {
+        tuple(position) for position in np.argwhere(phase_a == StaticObject.GOAL)
+    } == {tuple(position) for position in np.argwhere(phase_b == onion)}
+
+
+def test_distance_switch_zero_starts_from_canonical_asymmetric_advantages():
+    distance_switch = dynamic_layouts["distance_switch_0"].phases[0]
+    canonical = overcooked_v3_base_layouts["asymm_advantages"]
+    assert np.array_equal(
+        distance_switch.layout.static_objects, canonical.static_objects
+    )
+    assert distance_switch.agent_positions == tuple(canonical.agent_positions)
 
 
 def test_outage_uses_two_onion_recipe_while_split_keeps_three_onions():
@@ -172,10 +247,7 @@ def test_each_sig_variant_only_replaces_one_indicator(
 
         assert differences.shape == (1, 2)
         signal_y, signal_x = differences[0]
-        assert (
-            no_sig_static[signal_y, signal_x]
-            == StaticObject.INERT_SIGNAL_INDICATOR
-        )
+        assert no_sig_static[signal_y, signal_x] == StaticObject.INERT_SIGNAL_INDICATOR
         assert sig_static[signal_y, signal_x] == StaticObject.BUTTON_RECIPE_INDICATOR
 
 
@@ -368,10 +440,7 @@ def test_sig_pair_only_replaces_one_counter_with_button(
         differences = np.argwhere(no_sig_static != sig_static)
 
         assert differences.tolist() == [[signal_y, signal_x]]
-        assert (
-            no_sig_static[signal_y, signal_x]
-            == StaticObject.INERT_SIGNAL_INDICATOR
-        )
+        assert no_sig_static[signal_y, signal_x] == StaticObject.INERT_SIGNAL_INDICATOR
         assert sig_static[signal_y, signal_x] == StaticObject.BUTTON_RECIPE_INDICATOR
 
 

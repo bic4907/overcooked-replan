@@ -1,5 +1,5 @@
 program: baselines/IPPO/eval_crossplay_overcooked_v3.py
-name: recipe-switch-seedwise-xp
+name: distance-switch-seedwise-xp
 method: grid
 metric:
   goal: maximize
@@ -10,9 +10,16 @@ parameters:
     value: IPPO
   layout:
     values:
-      - recipe_switch_0
-      - recipe_switch_1
-      - recipe_switch_2
+      - distance_switch_0
+      - distance_switch_1
+      - distance_switch_2
+      - distance_switch_3
+      - distance_switch_4
+      - distance_switch_5
+      - distance_switch_6
+      - distance_switch_7
+      - distance_switch_8
+      - distance_switch_9
   episodes:
     value: 20
   max-steps:

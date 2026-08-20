@@ -21,6 +21,7 @@
 # Each role category exposes the three layouts selected from the cross-play
 # report. Sig/NoSig use matched geometry at each index.
 
+
 def _role_grid(
     resources,
     agent_positions,
@@ -302,10 +303,7 @@ def _build_outage_catalog_variant(variant_index, signal_enabled):
         position for position in _OUTAGE_BOUNDARY if position not in occupied
     )
     remaining_symbols = (
-        ("0",) * (onions - 1)
-        + ("P",) * (pots - 1)
-        + ("B",) * plates
-        + ("X",) * goals
+        ("0",) * (onions - 1) + ("P",) * (pots - 1) + ("B",) * plates + ("X",) * goals
     )
     remaining_positions = _rotated_take(
         available,
@@ -319,9 +317,7 @@ def _build_outage_catalog_variant(variant_index, signal_enabled):
     )
     spec = (
         3,
-        _OUTAGE_AGENT_STARTS[
-            (variant_index - 1) % len(_OUTAGE_AGENT_STARTS)
-        ],
+        _OUTAGE_AGENT_STARTS[(variant_index - 1) % len(_OUTAGE_AGENT_STARTS)],
         left_resources,
         (),
     )
@@ -408,50 +404,9 @@ def _recipe_switch_grid(spec):
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
+# Selected from the original ten-map catalog and reindexed as:
+# new 0 <- old 4, new 1 <- old 5, new 2 <- old 7.
 _RECIPE_SWITCH_SPECS = (
-    {
-        "width": 7,
-        "height": 5,
-        "handoff_rows": (2, 3),
-        "agent_positions": ((2, 2), (4, 2)),
-        "left_resources": (("0", (1, 0)), ("P", (0, 2)), ("X", (1, 4))),
-        "right_resources": (("1", (5, 0)), ("P", (6, 2)), ("B", (5, 4))),
-    },
-    {
-        "width": 7,
-        "height": 5,
-        "handoff_rows": (1, 2),
-        "agent_positions": ((1, 2), (5, 2)),
-        "left_resources": (
-            ("0", (0, 1)),
-            ("P", (2, 0)),
-            ("P", (0, 3)),
-            ("X", (2, 4)),
-        ),
-        "right_resources": (("1", (6, 1)), ("P", (4, 0)), ("B", (4, 4))),
-    },
-    {
-        "width": 7,
-        "height": 6,
-        "handoff_rows": (2, 3),
-        "agent_positions": ((2, 3), (4, 3)),
-        "left_resources": (("0", (1, 0)), ("P", (0, 2)), ("X", (2, 5))),
-        "right_resources": (("1", (5, 0)), ("P", (6, 3)), ("B", (4, 5))),
-        "notches": ((1, 4), (5, 4)),
-    },
-    {
-        "width": 7,
-        "height": 6,
-        "handoff_rows": (1, 4),
-        "agent_positions": ((1, 3), (5, 2)),
-        "left_resources": (
-            ("0", (0, 2)),
-            ("P", (1, 0)),
-            ("P", (0, 4)),
-            ("X", (2, 5)),
-        ),
-        "right_resources": (("1", (6, 2)), ("P", (5, 0)), ("B", (4, 5))),
-    },
     {
         "width": 9,
         "height": 5,
@@ -476,24 +431,6 @@ _RECIPE_SWITCH_SPECS = (
     },
     {
         "width": 7,
-        "height": 6,
-        "handoff_rows": (2, 4),
-        "agent_positions": ((1, 3), (5, 3)),
-        "left_resources": (
-            ("0", (2, 0)),
-            ("P", (0, 3)),
-            ("P", (1, 5)),
-            ("X", (0, 1)),
-        ),
-        "right_resources": (
-            ("1", (4, 0)),
-            ("P", (6, 3)),
-            ("P", (5, 5)),
-            ("B", (6, 1)),
-        ),
-    },
-    {
-        "width": 7,
         "height": 5,
         "handoff_rows": (1, 3),
         "agent_positions": ((1, 2), (5, 2)),
@@ -510,66 +447,30 @@ _RECIPE_SWITCH_SPECS = (
             ("B", (4, 4)),
         ),
     },
-    {
-        "width": 9,
-        "height": 5,
-        "handoff_rows": (1, 3),
-        "agent_positions": ((3, 2), (5, 2)),
-        "left_resources": (
-            ("0", (1, 0)),
-            ("P", (0, 2)),
-            ("X", (3, 4)),
-        ),
-        "right_resources": (
-            ("1", (7, 0)),
-            ("P", (8, 2)),
-            ("B", (5, 4)),
-        ),
-        "notches": ((2, 1), (6, 3)),
-    },
-    {
-        "width": 7,
-        "height": 6,
-        "handoff_rows": (1, 4),
-        "agent_positions": ((2, 2), (4, 3)),
-        "left_resources": (
-            ("0", (0, 2)),
-            ("P", (1, 0)),
-            ("X", (2, 5)),
-        ),
-        "right_resources": (
-            ("1", (6, 3)),
-            ("P", (5, 0)),
-            ("B", (4, 5)),
-        ),
-        "notches": ((1, 3), (5, 2)),
-    },
 )
 
 _RECIPE_ONION_MAJOR = [0, 0, 1]
 _RECIPE_TOMATO_MAJOR = [0, 1, 1]
 _RECIPE_SWITCH_TIMINGS = (
-    (150, 150),
-    (120, 180),
-    (180, 120),
-    (135, 165),
     (165, 135),
     (150, 150),
-    (120, 180),
     (180, 120),
-    (135, 165),
-    (165, 135),
 )
+_RECIPE_SWITCH_ONION_MAJOR_FIRST = (True, False, False)
 
 
 def _register_recipe_switch_catalog():
-    for variant_index, (spec, timings) in enumerate(
-        zip(_RECIPE_SWITCH_SPECS, _RECIPE_SWITCH_TIMINGS)
+    for variant_index, (spec, timings, onion_major_first) in enumerate(
+        zip(
+            _RECIPE_SWITCH_SPECS,
+            _RECIPE_SWITCH_TIMINGS,
+            _RECIPE_SWITCH_ONION_MAJOR_FIRST,
+        )
     ):
         grid = _recipe_switch_grid(spec)
         recipe_a, recipe_b = (
             (_RECIPE_ONION_MAJOR, _RECIPE_TOMATO_MAJOR)
-            if variant_index < 5
+            if onion_major_first
             else (_RECIPE_TOMATO_MAJOR, _RECIPE_ONION_MAJOR)
         )
         first_phase_steps, second_phase_steps = timings
@@ -583,6 +484,342 @@ def _register_recipe_switch_catalog():
 
 
 _register_recipe_switch_catalog()
+
+
+# Distance-Driven Role Switch --------------------------------------------
+#
+# The recipe stays fixed at the standard three-onion dish. These layouts follow
+# Overcooked-AI's asymmetric_advantages design: a central pot bar separates the
+# two agents, while each side still has direct access to an onion pile, pot,
+# plate pile, and serving station. The role split is therefore a comparative
+# cost advantage rather than an access restriction.
+#
+# Phase A gives agent 0 the short pot-to-plate-to-serving loop and agent 1 the
+# short onion-to-pot loop. Phase B swaps only the onion and serving endpoints on
+# each side, reversing those loop costs without moving pots, plates, counters,
+# agents, or walkable floor. Phase C returns to the original assignment.
+
+
+def _distance_switch_grid(spec, roles_swapped=False):
+    """Build one phase of an asymmetric-advantages-style kitchen."""
+    width = spec["width"]
+    height = spec["height"]
+    rows = [["W"] * width for _ in range(height)]
+    for y in range(1, height - 1):
+        for x in range(1, width - 1):
+            rows[y][x] = " "
+
+    for x, y in spec["divider"]:
+        if rows[y][x] != " ":
+            raise ValueError(f"Distance-switch divider collision at {(x, y)}")
+        rows[y][x] = "W"
+
+    for x, y in spec.get("counters", ()):
+        if rows[y][x] != " ":
+            raise ValueError(f"Distance-switch counter collision at {(x, y)}")
+        rows[y][x] = "W"
+
+    for (x, y), symbol in (
+        *((position, "P") for position in spec["pot_positions"]),
+        *((position, "B") for position in spec["plate_positions"]),
+    ):
+        if rows[y][x] != "W":
+            raise ValueError(
+                f"Distance-switch fixed station needs a counter at {(x, y)}"
+            )
+        rows[y][x] = symbol
+
+    left_far, left_near = spec["left_role_slots"]
+    right_near, right_far = spec["right_role_slots"]
+    role_resources = (
+        ((left_far, "X"), (left_near, "0"), (right_near, "X"), (right_far, "0"))
+        if roles_swapped
+        else ((left_far, "0"), (left_near, "X"), (right_near, "0"), (right_far, "X"))
+    )
+    for (x, y), symbol in role_resources:
+        if rows[y][x] != "W":
+            raise ValueError(
+                f"Distance-switch role station needs a counter at {(x, y)}"
+            )
+        rows[y][x] = symbol
+
+    for x, y in spec["agent_positions"]:
+        if rows[y][x] != " ":
+            raise ValueError(f"Distance-switch agent collision at {(x, y)}")
+        rows[y][x] = "A"
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+def _distance_switch_floor_distances(rows, start):
+    floor = {
+        (x, y)
+        for y, row in enumerate(rows)
+        for x, cell in enumerate(row)
+        if cell in {" ", "A"}
+    }
+    frontier = [(start, 0)]
+    distances = {start: 0}
+    while frontier:
+        (x, y), distance = frontier.pop(0)
+        for neighbor in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if neighbor in floor and neighbor not in distances:
+                distances[neighbor] = distance + 1
+                frontier.append((neighbor, distance + 1))
+    return distances
+
+
+def _distance_switch_interaction_floors(position, distances):
+    x, y = position
+    return {
+        candidate
+        for candidate in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1))
+        if candidate in distances
+    }
+
+
+def _distance_switch_route_distance(reachable, starts, goals):
+    goal_floors = _distance_switch_interaction_floors(goals, reachable)
+    start_floors = _distance_switch_interaction_floors(starts, reachable)
+    if not start_floors or not goal_floors:
+        raise ValueError(
+            f"Distance-switch route endpoint is not interactable: {starts} -> {goals}"
+        )
+    frontier = [(position, 0) for position in start_floors]
+    visited = {position for position, _ in frontier}
+    while frontier:
+        position, distance = frontier.pop(0)
+        if position in goal_floors:
+            return distance
+        x, y = position
+        for neighbor in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if neighbor in reachable and neighbor not in visited:
+                visited.add(neighbor)
+                frontier.append((neighbor, distance + 1))
+    raise ValueError(f"No distance-switch route from {starts} to {goals}")
+
+
+def _validate_distance_switch_spec(spec):
+    """Enforce local resource access and a reversible task-loop advantage."""
+    phase_a = _distance_switch_grid(spec, roles_swapped=False)
+    phase_b = _distance_switch_grid(spec, roles_swapped=True)
+    rows_a = [row for row in phase_a.splitlines() if row]
+    rows_b = [row for row in phase_b.splitlines() if row]
+    if len(rows_a) != len(rows_b) or any(
+        len(a) != len(b) for a, b in zip(rows_a, rows_b)
+    ):
+        raise ValueError("Distance-switch phases must keep the same shape")
+    if any(
+        (cell_a in {" ", "A"}) != (cell_b in {" ", "A"})
+        for row_a, row_b in zip(rows_a, rows_b)
+        for cell_a, cell_b in zip(row_a, row_b)
+    ):
+        raise ValueError("Distance-switch phases must keep the same walkable floor")
+
+    agents = spec["agent_positions"]
+    reachable = tuple(
+        _distance_switch_floor_distances(rows_a, agent) for agent in agents
+    )
+    if agents[1] in reachable[0]:
+        raise ValueError("Distance-switch agents should occupy separate work regions")
+
+    minimum_advantage = spec.get("minimum_advantage", 3)
+    pots = spec["pot_positions"]
+    plates = spec["plate_positions"]
+    left_far, left_near = spec["left_role_slots"]
+    right_near, right_far = spec["right_role_slots"]
+
+    local_pots_by_agent = []
+    local_plates_by_agent = []
+    for agent_index, distances in enumerate(reachable):
+        local_pots = [
+            position
+            for position in pots
+            if _distance_switch_interaction_floors(position, distances)
+        ]
+        local_plates = [
+            position
+            for position in plates
+            if _distance_switch_interaction_floors(position, distances)
+        ]
+        if not local_pots or not local_plates:
+            raise ValueError(f"Agent {agent_index} needs local access to pot and plate")
+        local_pots_by_agent.append(local_pots)
+        local_plates_by_agent.append(local_plates)
+
+    def route(agent_index, starts, goals):
+        return _distance_switch_route_distance(reachable[agent_index], starts, goals)
+
+    def input_cost(agent_index, onion):
+        return min(
+            route(agent_index, onion, pot) for pot in local_pots_by_agent[agent_index]
+        )
+
+    def serving_cost(agent_index, goal):
+        return min(
+            route(agent_index, pot, plate) + route(agent_index, plate, goal)
+            for pot in local_pots_by_agent[agent_index]
+            for plate in local_plates_by_agent[agent_index]
+        )
+
+    phase_a_input = (
+        input_cost(0, left_far),
+        input_cost(1, right_near),
+    )
+    phase_a_serve = (
+        serving_cost(0, left_near),
+        serving_cost(1, right_far),
+    )
+    phase_b_input = (
+        input_cost(0, left_near),
+        input_cost(1, right_far),
+    )
+    phase_b_serve = (
+        serving_cost(0, left_far),
+        serving_cost(1, right_near),
+    )
+
+    if phase_a_input[1] + minimum_advantage > phase_a_input[0]:
+        raise ValueError("Phase A needs an agent 1 onion-input advantage")
+    if phase_a_serve[0] + minimum_advantage > phase_a_serve[1]:
+        raise ValueError("Phase A needs an agent 0 serving advantage")
+    if phase_b_input[0] + minimum_advantage > phase_b_input[1]:
+        raise ValueError("Phase B needs an agent 0 onion-input advantage")
+    if phase_b_serve[1] + minimum_advantage > phase_b_serve[0]:
+        raise ValueError("Phase B needs an agent 1 serving advantage")
+
+
+def _vertical_distance_switch_spec(width, height, extra_counters=()):
+    """Build a vertical-pot-bar asymmetric-advantages variant."""
+    center_x = width // 2
+    bottom_y = height - 1
+    return {
+        "width": width,
+        "height": height,
+        "left_role_slots": ((0, 1), (center_x - 1, 1)),
+        "right_role_slots": ((center_x + 1, 1), (width - 1, 1)),
+        "pot_positions": ((center_x, 2), (center_x, height - 2)),
+        "plate_positions": ((center_x - 1, bottom_y), (center_x + 1, bottom_y)),
+        "agent_positions": ((center_x - 2, height - 2), (center_x + 1, height - 2)),
+        "divider": tuple((center_x, y) for y in range(1, height - 1)),
+        "counters": (
+            (center_x - 2, 1),
+            (center_x - 1, 1),
+            (center_x + 1, 1),
+            (center_x + 2, 1),
+            *extra_counters,
+        ),
+        "minimum_advantage": 3,
+    }
+
+
+_DISTANCE_SWITCH_SPECS = (
+    # Canonical Overcooked-AI asymmetric_advantages.
+    _vertical_distance_switch_spec(9, 5),
+    # Wider canonical corridor.
+    _vertical_distance_switch_spec(11, 5),
+    # Symmetric counter islands leave inner and outer bypass lanes.
+    _vertical_distance_switch_spec(
+        11,
+        7,
+        ((2, 3), (3, 3), (7, 3), (8, 3)),
+    ),
+    # Offset vertical pillars create different left/right doglegs.
+    _vertical_distance_switch_spec(
+        9,
+        7,
+        ((2, 2), (2, 3), (6, 3), (6, 4)),
+    ),
+    # Mirrored stair counters produce a zigzag route to the outer endpoints.
+    _vertical_distance_switch_spec(
+        11,
+        7,
+        ((2, 2), (3, 2), (3, 3), (3, 4), (7, 2), (7, 3), (7, 4), (8, 4)),
+    ),
+    # Long asymmetric shelves emphasize inner versus outer lanes.
+    _vertical_distance_switch_spec(
+        13,
+        7,
+        ((2, 3), (3, 3), (4, 3), (4, 4), (8, 2), (8, 3), (9, 3), (10, 3)),
+    ),
+    # Staggered islands make the two work regions visually non-isomorphic.
+    _vertical_distance_switch_spec(
+        11,
+        8,
+        ((2, 2), (2, 3), (3, 3), (3, 5), (7, 2), (8, 2), (8, 3), (7, 5)),
+    ),
+    # Large counter blocks form narrow outer and inner circulation lanes.
+    _vertical_distance_switch_spec(
+        13,
+        8,
+        (
+            (2, 2),
+            (3, 2),
+            (4, 2),
+            (2, 3),
+            (3, 3),
+            (4, 3),
+            (2, 4),
+            (3, 4),
+            (4, 4),
+            (8, 2),
+            (9, 2),
+            (10, 2),
+            (8, 3),
+            (9, 3),
+            (10, 3),
+            (8, 4),
+            (9, 4),
+            (10, 4),
+        ),
+    ),
+    # Tall hooked counters create U-shaped detours on both sides.
+    _vertical_distance_switch_spec(
+        11,
+        9,
+        (
+            (2, 2),
+            (2, 3),
+            (2, 4),
+            (2, 5),
+            (3, 5),
+            (8, 2),
+            (8, 3),
+            (8, 4),
+            (8, 5),
+            (7, 5),
+        ),
+    ),
+    # Rotated asymmetric-advantages: agent 0 works above the pot bar and
+    # agent 1 below it. Endpoint swapping still reverses the same two roles.
+    {
+        "width": 9,
+        "height": 9,
+        "left_role_slots": ((0, 1), (4, 2)),
+        "right_role_slots": ((4, 6), (8, 7)),
+        "pot_positions": ((3, 4), (5, 4)),
+        "plate_positions": ((4, 0), (4, 8)),
+        "agent_positions": ((3, 2), (5, 6)),
+        "divider": tuple((x, 4) for x in range(1, 8)),
+        "counters": ((4, 2), (4, 6)),
+        "minimum_advantage": 3,
+    },
+)
+
+
+def _register_distance_switch_catalog():
+    for variant_index, spec in enumerate(_DISTANCE_SWITCH_SPECS):
+        _validate_distance_switch_spec(spec)
+        phase_a = _distance_switch_grid(spec, roles_swapped=False)
+        phase_b = _distance_switch_grid(spec, roles_swapped=True)
+        globals()[f"distance_switch_{variant_index}"] = [
+            [phase_a, 150],
+            [phase_b, 150],
+            [phase_a, 1000],
+        ]
+
+
+_register_distance_switch_catalog()
+
 
 # Backward-compatible aliases for existing commands and checkpoints.
 split_no_sig = splitnosig_0

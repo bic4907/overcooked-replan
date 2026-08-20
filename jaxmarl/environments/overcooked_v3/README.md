@@ -57,15 +57,27 @@ scenarios retain the standard 20-step cooking timer. The three layouts per
 category were selected from the cross-play catalog and reindexed as `_0`, `_1`,
 and `_2`. Equal Sig/NoSig indices differ only at the signal cell.
 
-`recipe_switch_0` through `recipe_switch_9` are Mixed Recipe Relay layouts.
+`recipe_switch_0` through `recipe_switch_2` are Mixed Recipe Relay layouts.
 The center divider permanently separates an onion/serving bay from a
 tomato/plate bay and leaves exactly two shared storage counters. Both bays have
-at least one pot. Eight variants are 7×5 or 7×6 and two are 9×5, keeping travel
-short while retaining different handoff and workload arrangements. The
-lower-cost cooking side changes with the active mixed
-recipe. Every 450-step episode follows a deterministic A → B → A schedule; the
-first five layouts use onion-majority → tomato-majority → onion-majority, and
-the remaining five reverse the recipes. Layout geometry never changes. A dish
+at least one pot. The retained former variants `_4`, `_5`, and `_7` are
+reindexed as `_0`, `_1`, and `_2`. New `_0` is 9×5 and starts onion-majority;
+new `_1` and `_2` are 7×5 and start tomato-majority. The lower-cost cooking
+side changes with the active mixed recipe. Every 450-step episode follows a
+deterministic A → B → A schedule. Layout geometry never changes. A dish
 that had already started cooking before a switch remains deliverable, but a new
 pot can start only when its contents match the current recipe. Recipe Relay
 adds two next-recipe preview channels to the standard V3 observation.
+
+`distance_switch_0` through `distance_switch_9` are Distance-Driven Role
+Switch layouts based on `asymm_advantages`. The standard three-onion recipe is
+fixed, and each agent's separate work region contains access to an onion pile,
+central pot, plate pile, and serving station. Pots and plates remain fixed;
+only the onion and serving endpoints exchange at steps 150 and 300. This
+reverses which agent has the short onion-input loop and which has the short
+serving loop. `distance_switch_0` exactly matches the canonical 9×5 map in its
+first phase, while the other nine layouts vary counter islands, pillars,
+shelves, U-shaped detours, and pot-bar orientation without changing the
+comparative-cost objective.
+Because no recipe is scheduled, these layouts use the standard 33-channel V3
+observation rather than next-recipe preview channels.

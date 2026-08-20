@@ -85,6 +85,23 @@ def test_hydra_scenario_group_composes_all_conditions():
             assert config.wandb_mode == "online"
 
 
+def test_distance_switch_scenarios_use_fixed_positions_and_full_episode():
+    with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
+        for variant in range(10):
+            scenario = f"distance_switch_{variant}"
+            config = compose(
+                config_name="ippo_overcooked_v3",
+                overrides=[f"scenario={scenario}"],
+            )
+            assert config.ENV_KWARGS.layout == scenario
+            assert config.ENV_KWARGS.max_steps == 450
+            assert config.ENV_KWARGS.random_agent_positions is False
+            assert config.EXPERIMENT == "distance_switch"
+            assert config.CONDITION == scenario
+            assert config.SIGNAL_ENABLED is False
+            assert config.WANDB_GROUP == "distance_switch"
+
+
 def test_dotenv_configures_wandb_but_not_hydra_saves_dir(tmp_path, monkeypatch):
     dotenv_path = tmp_path / ".env"
     dotenv_path.write_text(
