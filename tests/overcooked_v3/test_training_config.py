@@ -32,6 +32,9 @@ def test_default_training_config_preserves_dynamic_00():
         config = compose(config_name="ippo_overcooked_v3")
 
     assert config.ENV_KWARGS.layout == "dynamic_00"
+    assert config.ENV_KWARGS.layout_mode == "cyclic"
+    assert config.ENV_KWARGS.max_steps == 400
+    assert config.ENV_KWARGS.reset_on_layout_change is False
     assert config.get("LAYOUT_VARIANT") is None
     assert config.EXPERIMENT == "dynamic_map"
     assert config.SAVES_DIR == "saves"
@@ -152,6 +155,30 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
     assert "LAYOUT_VARIANT" not in sweep["parameters"]
     assert sweep["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
     assert sweep["parameters"]["recording"]["value"] == "enabled"
+    assert "${args_no_hyphens}" in sweep["command"]
+
+
+def test_switch_trained_sweep_covers_original_layout_pairs_and_seeds():
+    sweep = OmegaConf.to_container(
+        OmegaConf.load(
+            ROOT
+            / "experiment"
+            / "adaptation_policy"
+            / "switch_trained_no_coplayer_action.yaml"
+        ),
+        resolve=False,
+    )
+
+    parameters = sweep["parameters"]
+    assert sweep["method"] == "grid"
+    assert len(parameters["ENV_KWARGS.layout"]["values"]) == 10
+    assert parameters["ENV_KWARGS.layout_mode"]["value"] == "cyclic"
+    assert parameters["ENV_KWARGS.max_steps"]["value"] == 400
+    assert parameters["ENV_KWARGS.reset_on_layout_change"]["value"] is True
+    assert parameters["ENV_KWARGS.include_transition_countdown"]["value"] is False
+    assert parameters["ENV_KWARGS.include_layout_change_mask"]["value"] is False
+    assert parameters["ARCHITECTURE"]["value"] == "cnn"
+    assert parameters["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
     assert "${args_no_hyphens}" in sweep["command"]
 
 

@@ -11,6 +11,7 @@ from jaxtyping import PRNGKeyArray
 from jaxmarl.environments.multi_agent_env import Actions
 from jaxmarl.environments.overcooked_v3.common import (
     DIR_TO_VEC,
+    Direction,
     DynamicObject,
     Position,
     StaticObject,
@@ -40,6 +41,8 @@ class OvercookedV3(OvercookedV3Base):
         include_layout_change_mask: Union[bool, None] = None,
         include_signal_status: bool = True,
         transition_warning_steps: int = 20,
+        layout_mode: str = "cyclic",
+        reset_on_layout_change: bool = False,
         **kwargs,
     ):
         if isinstance(transition_warning_steps, bool) or not isinstance(
@@ -48,7 +51,13 @@ class OvercookedV3(OvercookedV3Base):
             raise ValueError("transition_warning_steps must be a positive integer")
         if transition_warning_steps <= 0:
             raise ValueError("transition_warning_steps must be a positive integer")
+        if layout_mode not in {"cyclic", "episode_random"}:
+            raise ValueError("layout_mode must be 'cyclic' or 'episode_random'")
+        if not isinstance(reset_on_layout_change, bool):
+            raise ValueError("reset_on_layout_change must be a boolean")
 
+        self.layout_mode = layout_mode
+        self.reset_on_layout_change = reset_on_layout_change
         self.include_transition_countdown = include_transition_countdown
         self.include_signal_status = include_signal_status
         self.include_layout_change_mask = (
@@ -147,6 +156,8 @@ class OvercookedV3(OvercookedV3Base):
         return jnp.sum(cycle_step >= self.phase_ends).astype(jnp.int32)
 
     def get_steps_until_layout_change(self, step: jax.Array) -> jax.Array:
+        if self.layout_mode == "episode_random":
+            return jnp.array(0, dtype=jnp.int32)
         cycle_step = jnp.mod(step, self.cycle_steps)
         layout_index = self.get_layout_index(step)
         return self.phase_ends[layout_index] - cycle_step
@@ -160,12 +171,16 @@ class OvercookedV3(OvercookedV3Base):
         return jnp.where(warning_active, countdown, 0.0)
 
     def get_transition_warning_active(self, step: jax.Array) -> jax.Array:
+        if self.layout_mode == "episode_random":
+            return jnp.array(False)
         steps_remaining = self.get_steps_until_layout_change(step)
         return (steps_remaining > 0) & (
             steps_remaining <= self.transition_warning_steps
         )
 
     def get_layout_change_mask(self, step: jax.Array) -> jax.Array:
+        if self.layout_mode == "episode_random":
+            return jnp.zeros((self.height, self.width), dtype=jnp.bool_)
         layout_index = self.get_layout_index(step)
         next_layout_index = (layout_index + 1) % self.phase_static_objects.shape[0]
         static_change_mask = (
@@ -320,7 +335,45 @@ class OvercookedV3(OvercookedV3Base):
         return self._append_featurized_next_recipe(obs, state)
 
     def reset(self, key: PRNGKeyArray):
-        _, state = super().reset(key)
+        if self.layout_mode == "episode_random":
+            reset_key, layout_key, randomize_key = jax.random.split(key, 3)
+            _, state = super().reset(reset_key)
+            layout_index = jax.random.randint(
+                layout_key,
+                (),
+                0,
+                self.phase_static_objects.shape[0],
+                dtype=jnp.int32,
+            )
+            static_objects = self.phase_static_objects[layout_index]
+            grid = jnp.stack(
+                [
+                    static_objects,
+                    jnp.zeros_like(static_objects),
+                    jnp.zeros_like(static_objects),
+                ],
+                axis=-1,
+                dtype=jnp.int32,
+            )
+            spawn_positions = self.phase_agent_positions[layout_index]
+            state = state.replace(
+                agents=state.agents.replace(
+                    pos=Position(
+                        x=spawn_positions[:, 0],
+                        y=spawn_positions[:, 1],
+                    ),
+                    dir=jnp.full((self.num_agents,), Direction.UP),
+                    inventory=jnp.zeros((self.num_agents,), dtype=jnp.int32),
+                ),
+                grid=grid,
+                layout_index=layout_index,
+            )
+            if self.random_reset:
+                state = self._randomize_state(state, randomize_key)
+            elif self.random_agent_positions:
+                state = self._randomize_agent_positions(state, randomize_key)
+        else:
+            _, state = super().reset(key)
         initial_recipe = jnp.where(
             self.phase_has_recipe[0], self.phase_recipes[0], state.recipe
         )
@@ -335,6 +388,8 @@ class OvercookedV3(OvercookedV3Base):
 
     def _get_move_area(self, state: State) -> jax.Array:
         current_empty = state.grid[:, :, 0] == StaticObject.EMPTY
+        if self.layout_mode == "episode_random":
+            return current_empty
         next_layout_index = self.get_layout_index(state.step + 1)
         layout_will_change = next_layout_index != state.layout_index
         next_empty = self.phase_static_objects[next_layout_index] == StaticObject.EMPTY
@@ -355,15 +410,26 @@ class OvercookedV3(OvercookedV3Base):
         recipe_before_step = state.recipe
         obs, state, rewards, dones, infos = super().step_env(key, state, actions)
 
-        layout_index = self.get_layout_index(state.step)
-        layout_changed = layout_index != state.layout_index
-        state = lax.cond(
-            layout_changed,
-            self._change_layout,
-            lambda current_state, _: current_state.replace(layout_index=layout_index),
-            state,
-            layout_index,
-        )
+        if self.layout_mode == "episode_random":
+            layout_index = state.layout_index
+            layout_changed = jnp.array(False)
+        else:
+            layout_index = self.get_layout_index(state.step)
+            layout_changed = layout_index != state.layout_index
+            change_layout = (
+                self._reset_for_layout_change
+                if self.reset_on_layout_change
+                else self._change_layout
+            )
+            state = lax.cond(
+                layout_changed,
+                change_layout,
+                lambda current_state, _: current_state.replace(
+                    layout_index=layout_index
+                ),
+                state,
+                layout_index,
+            )
         recipe_changed = state.recipe != recipe_before_step
         state = self._set_transition_awareness(state)
         obs = self.get_obs(state)
@@ -451,6 +517,44 @@ class OvercookedV3(OvercookedV3Base):
             rewards,
             dones,
             infos,
+        )
+
+    def _reset_for_layout_change(
+        self, state: State, layout_index: jax.Array
+    ) -> State:
+        """Start a fresh physical kitchen while keeping the episode clock alive."""
+        static_objects = self.phase_static_objects[layout_index]
+        grid = jnp.stack(
+            [
+                static_objects,
+                jnp.zeros_like(static_objects),
+                jnp.zeros_like(static_objects),
+            ],
+            axis=-1,
+            dtype=jnp.int32,
+        )
+        spawn_positions = self.phase_agent_positions[layout_index]
+        recipe = jnp.where(
+            self.phase_has_recipe[layout_index],
+            self.phase_recipes[layout_index],
+            state.recipe,
+        )
+        return state.replace(
+            agents=state.agents.replace(
+                pos=Position(
+                    x=spawn_positions[:, 0],
+                    y=spawn_positions[:, 1],
+                ),
+                dir=jnp.full((self.num_agents,), Direction.UP),
+                inventory=jnp.zeros((self.num_agents,), dtype=jnp.int32),
+            ),
+            grid=grid,
+            recipe=recipe,
+            previous_recipe=recipe,
+            next_recipe=recipe,
+            legacy_recipe_deliveries_remaining=jnp.array(0, dtype=jnp.int32),
+            new_correct_delivery=jnp.array(False),
+            layout_index=layout_index,
         )
 
     def _change_layout(self, state: State, layout_index: jax.Array) -> State:

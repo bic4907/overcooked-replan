@@ -11,6 +11,9 @@ from jaxmarl.environments.overcooked_v3.common import (
 )
 from jaxmarl.environments.overcooked_v3.dynamic_layouts import (
     DynamicLayout,
+    ORIGINAL_LAYOUT_NAMES,
+    ORIGINAL_LAYOUT_PAIRS,
+    ORIGINAL_SWITCH_PHASE_STEPS,
     dynamic_layouts,
 )
 from jaxmarl.environments.overcooked_v3.dynamic_overcooked import OvercookedV3
@@ -59,6 +62,97 @@ def test_overcooked_v3_is_registered_and_based_on_v2():
     env = make("overcooked_v3", layout="dynamic_00", max_steps=20)
     assert isinstance(env, OvercookedV3)
     assert isinstance(env, OvercookedV3Base)
+
+
+def test_original_layouts_and_pairs_share_nine_by_seven_canvas():
+    names = list(ORIGINAL_LAYOUT_NAMES) + [
+        f"multilayout_{first}__{second}"
+        for first, second in ORIGINAL_LAYOUT_PAIRS
+    ]
+
+    assert len(ORIGINAL_LAYOUT_NAMES) == 5
+    assert len(ORIGINAL_LAYOUT_PAIRS) == 10
+    for name in names:
+        assert name in dynamic_layouts
+        assert {
+            phase.layout.static_objects.shape
+            for phase in dynamic_layouts[name].phases
+        } == {(7, 9)}
+
+
+def test_original_pair_cycles_between_layouts_every_hundred_steps():
+    env = OvercookedV3(
+        layout="multilayout_coord_ring__forced_coord",
+        layout_mode="cyclic",
+        reset_on_layout_change=True,
+        max_steps=400,
+        include_transition_countdown=False,
+        include_layout_change_mask=False,
+        include_signal_status=False,
+    )
+    _, state = env.reset(jax.random.PRNGKey(0))
+
+    assert tuple(map(int, env.phase_durations)) == (
+        ORIGINAL_SWITCH_PHASE_STEPS,
+        ORIGINAL_SWITCH_PHASE_STEPS,
+    )
+    assert state.layout_index.item() == 0
+    state = state.replace(step=jnp.array(ORIGINAL_SWITCH_PHASE_STEPS - 1))
+    _, state, _, _, info = _step(env, state)
+    assert state.layout_index.item() == 1
+    assert jnp.all(info["layout_changed"])
+
+
+def test_switch_reset_starts_new_layout_from_fresh_physical_state():
+    env = OvercookedV3(
+        layout="multilayout_coord_ring__forced_coord",
+        layout_mode="cyclic",
+        reset_on_layout_change=True,
+        max_steps=400,
+        include_transition_countdown=False,
+        include_layout_change_mask=False,
+        include_signal_status=False,
+    )
+    _, state = env.reset(jax.random.PRNGKey(0))
+    onion = DynamicObject.ingredient(0)
+    state = state.replace(
+        step=jnp.array(ORIGINAL_SWITCH_PHASE_STEPS - 1),
+        agents=state.agents.replace(
+            dir=jnp.full((env.num_agents,), Direction.DOWN),
+            inventory=jnp.full((env.num_agents,), onion),
+        ),
+        grid=state.grid.at[:, :, 1].set(onion).at[:, :, 2].set(7),
+    )
+
+    _, state, _, dones, info = _step(env, state)
+    expected_positions = env.phase_agent_positions[1]
+
+    assert jnp.all(info["layout_changed"])
+    assert not jnp.any(jnp.asarray([dones[agent] for agent in env.agents]))
+    assert state.step.item() == ORIGINAL_SWITCH_PHASE_STEPS
+    assert jnp.array_equal(state.agents.pos.x, expected_positions[:, 0])
+    assert jnp.array_equal(state.agents.pos.y, expected_positions[:, 1])
+    assert jnp.all(state.agents.dir == Direction.UP)
+    assert jnp.all(state.agents.inventory == DynamicObject.EMPTY)
+    assert jnp.all(state.grid[:, :, 1:] == 0)
+
+
+def test_original_pair_episode_random_mode_never_switches_mid_episode():
+    env = OvercookedV3(
+        layout="multilayout_coord_ring__forced_coord",
+        layout_mode="episode_random",
+        max_steps=400,
+        include_transition_countdown=False,
+        include_layout_change_mask=False,
+        include_signal_status=False,
+    )
+    _, state = env.reset(jax.random.PRNGKey(0))
+    initial_layout_index = state.layout_index.item()
+    state = state.replace(step=jnp.array(ORIGINAL_SWITCH_PHASE_STEPS - 1))
+    _, state, _, _, info = _step(env, state)
+
+    assert state.layout_index.item() == initial_layout_index
+    assert not jnp.any(info["layout_changed"])
 
 
 def test_default_observation_adds_countdown_and_layout_change_mask():
@@ -170,7 +264,12 @@ def test_featurized_observation_appends_countdown_and_flat_change_mask():
     )
 
 
-@pytest.mark.parametrize("layout_name", sorted(dynamic_layouts))
+@pytest.mark.parametrize(
+    "layout_name",
+    sorted(
+        name for name, layout in dynamic_layouts.items() if len(layout.phases) > 1
+    ),
+)
 def test_registered_layouts_reset_and_reach_second_phase(layout_name):
     env = OvercookedV3(layout=layout_name, max_steps=500)
     _, state = env.reset(jax.random.PRNGKey(0))
