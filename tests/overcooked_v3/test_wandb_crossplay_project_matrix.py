@@ -6,7 +6,11 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from baselines.IPPO.eval_crossplay_overcooked_v3 import prepare_gpu_argv
+from baselines.IPPO.eval_crossplay_overcooked_v3 import (
+    expand_evaluation_case,
+    prepare_gpu_argv,
+)
+from baselines.IPPO.eval_wandb_crossplay_overcooked_v3 import _observation_config
 from baselines.IPPO.eval_wandb_crossplay_matrix_overcooked_v3 import (
     PolicyModel,
     _write_records_csv,
@@ -57,6 +61,41 @@ def test_user_entrypoint_preserves_explicit_gpu_list():
     assert environ["JAX_PLATFORMS"] == "cpu"
 
 
+def test_evaluation_case_expands_training_and_target_layouts():
+    argv = [
+        "eval_crossplay_overcooked_v3.py",
+        "entity/project",
+        "--evaluation-case",
+        "multilayout_coord_ring__forced_coord:forced_coord",
+    ]
+
+    expand_evaluation_case(argv)
+
+    assert argv[-4:] == [
+        "--training-layout",
+        "multilayout_coord_ring__forced_coord",
+        "--layout",
+        "forced_coord",
+    ]
+
+
+def test_evaluation_reproduces_switch_trained_environment_dynamics():
+    config = {
+        "ENV_KWARGS": {
+            "layout_mode": "cyclic",
+            "reset_on_layout_change": True,
+            "include_transition_countdown": False,
+            "include_layout_change_mask": False,
+            "include_signal_status": False,
+        }
+    }
+
+    environment_config = _observation_config(config)
+
+    assert environment_config["layout_mode"] == "cyclic"
+    assert environment_config["reset_on_layout_change"] is True
+
+
 def test_wandb_run_name_starts_with_xp():
     settings = SimpleNamespace(
         algorithms=["IPPO", "FCP"],
@@ -64,6 +103,18 @@ def test_wandb_run_name_starts_with_xp():
     )
 
     assert evaluation_run_name(settings) == "xp-ippo+fcp-splitsig_0"
+
+
+def test_wandb_run_name_identifies_training_layout_transfer():
+    settings = SimpleNamespace(
+        algorithms=["IPPO"],
+        training_layout="multilayout_coord_ring__forced_coord",
+        layout="forced_coord",
+    )
+
+    assert evaluation_run_name(settings) == (
+        "xp-ippo-multilayout_coord_ring__forced_coord-on-forced_coord"
+    )
 
 
 def test_policy_display_label_omits_run_and_vmap_details(tmp_path):

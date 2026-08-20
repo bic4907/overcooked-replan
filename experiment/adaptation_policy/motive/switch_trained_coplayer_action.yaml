@@ -1,0 +1,61 @@
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: adaptation-policy-switch-trained-coplayer-action
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+# Direct comparison to switch_trained_no_coplayer_action.yaml. At every step,
+# both agents receive a one-hot encoding of the teammate's previous action.
+# Action history is cleared at each fresh-layout transition.
+parameters:
+  ENV_KWARGS.layout:
+    values:
+      - multilayout_cramped_room__asymm_advantages
+      - multilayout_cramped_room__coord_ring
+      - multilayout_cramped_room__forced_coord
+      - multilayout_cramped_room__counter_circuit
+      - multilayout_asymm_advantages__coord_ring
+      - multilayout_asymm_advantages__forced_coord
+      - multilayout_asymm_advantages__counter_circuit
+      - multilayout_coord_ring__forced_coord
+      - multilayout_coord_ring__counter_circuit
+      - multilayout_forced_coord__counter_circuit
+  ENV_KWARGS.layout_mode:
+    value: cyclic
+  ENV_KWARGS.max_steps:
+    value: 400
+  ENV_KWARGS.reset_on_layout_change:
+    value: true
+  ENV_KWARGS.include_transition_countdown:
+    value: false
+  ENV_KWARGS.include_layout_change_mask:
+    value: false
+  ENV_KWARGS.include_signal_status:
+    value: false
+  # Hydra's ++ form works with both older configs where this key is absent and
+  # newer configs where it is already declared.
+  ++ENV_KWARGS.include_previous_coplayer_action:
+    value: true
+  ARCHITECTURE:
+    value: cnn
+  EXPERIMENT:
+    value: adaptation_policy_switch_trained
+  WANDB_GROUP:
+    value: adaptation-policy-switch-trained-coplayer-action
+  WANDB_TAGS:
+    value: [adaptation-policy, switch-trained, previous-coplayer-action, bidirectional, original-layouts-9x7]
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  NUM_SEEDS:
+    value: 1
+  EXPERIMENT_FOLDER:
+    value: original-layouts-9x7-switch-coplayer-action-v1
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

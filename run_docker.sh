@@ -94,7 +94,7 @@ uv sync --frozen --no-dev --extra algs --extra cuda
 
 exec "$@"
 '
-    exec docker run "${docker_args[@]}" "${IMAGE_NAME}" bash -lc "${reinstall_project_cmd}" bash "$@"
+    exec docker run "${docker_args[@]}" "${IMAGE_NAME}" bash -c "${reinstall_project_cmd}" bash "$@"
 fi
 
 exec docker run "${docker_args[@]}" "${IMAGE_NAME}" "$@"

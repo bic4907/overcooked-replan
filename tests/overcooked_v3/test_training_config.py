@@ -42,6 +42,7 @@ def test_default_training_config_preserves_dynamic_00():
     assert config.ENV_KWARGS.include_transition_countdown is True
     assert config.ENV_KWARGS.include_layout_change_mask is True
     assert config.ENV_KWARGS.include_signal_status is True
+    assert config.ENV_KWARGS.include_previous_coplayer_action is False
     assert config.ENV_KWARGS.transition_warning_steps == 20
     assert config.ENV_KWARGS.signal_activation_time == 10
     assert config.ENV_KWARGS.signal_activation_cost == 0.0
@@ -164,6 +165,7 @@ def test_switch_trained_sweep_covers_original_layout_pairs_and_seeds():
             ROOT
             / "experiment"
             / "adaptation_policy"
+            / "motive"
             / "switch_trained_no_coplayer_action.yaml"
         ),
         resolve=False,
@@ -180,6 +182,120 @@ def test_switch_trained_sweep_covers_original_layout_pairs_and_seeds():
     assert parameters["ARCHITECTURE"]["value"] == "cnn"
     assert parameters["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
     assert "${args_no_hyphens}" in sweep["command"]
+
+
+def test_coplayer_action_sweep_matches_switch_trained_control():
+    sweep = OmegaConf.to_container(
+        OmegaConf.load(
+            ROOT
+            / "experiment"
+            / "adaptation_policy"
+            / "motive"
+            / "switch_trained_coplayer_action.yaml"
+        ),
+        resolve=False,
+    )
+
+    parameters = sweep["parameters"]
+    assert len(parameters["ENV_KWARGS.layout"]["values"]) == 10
+    assert parameters["ENV_KWARGS.layout_mode"]["value"] == "cyclic"
+    assert parameters["ENV_KWARGS.reset_on_layout_change"]["value"] is True
+    assert parameters["ENV_KWARGS.include_transition_countdown"]["value"] is False
+    assert parameters["ENV_KWARGS.include_layout_change_mask"]["value"] is False
+    assert (
+        parameters["++ENV_KWARGS.include_previous_coplayer_action"]["value"] is True
+    )
+    assert parameters["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
+    assert "${args_no_hyphens}" in sweep["command"]
+
+
+def test_switch_trained_eval_sweep_covers_seedwise_sp_and_xp():
+    sweep = OmegaConf.to_container(
+        OmegaConf.load(
+            ROOT
+            / "experiment"
+            / "adaptation_policy"
+            / "motive"
+            / "switch_trained_no_coplayer_action_eval.yaml"
+        ),
+        resolve=False,
+    )
+
+    parameters = sweep["parameters"]
+    assert sweep["program"] == "baselines/IPPO/eval_crossplay_overcooked_v3.py"
+    assert len(parameters["layout"]["values"]) == 10
+    assert "seeds" not in parameters
+    assert parameters["episodes"]["value"] == 50
+    assert parameters["max-steps"]["value"] == 400
+    assert parameters["run-state"]["value"] == "finished"
+    assert sweep["command"][-8:] == [
+        "--seeds",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "${args_no_equals}",
+    ]
+
+
+def test_coplayer_action_eval_sweep_uses_2b_source_project():
+    sweep = OmegaConf.to_container(
+        OmegaConf.load(
+            ROOT
+            / "experiment"
+            / "adaptation_policy"
+            / "motive"
+            / "switch_trained_coplayer_action_eval.yaml"
+        ),
+        resolve=False,
+    )
+
+    parameters = sweep["parameters"]
+    assert len(parameters["layout"]["values"]) == 10
+    assert parameters["episodes"]["value"] == 50
+    assert parameters["run-state"]["value"] == "finished"
+    assert sweep["command"][3] == (
+        "cilab-overcooked/overcooked-v3-switch-trained-coplayer-action"
+    )
+    assert sweep["command"][-8:] == [
+        "--seeds",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "${args_no_equals}",
+    ]
+
+
+def test_multilayout_sp_eval_sweep_covers_all_valid_training_target_cases():
+    sweep = OmegaConf.to_container(
+        OmegaConf.load(
+            ROOT
+            / "experiment"
+            / "adaptation_policy"
+            / "motive"
+            / "multilayout_sp_eval.yaml"
+        ),
+        resolve=False,
+    )
+
+    cases = sweep["parameters"]["evaluation-case"]["values"]
+    assert len(cases) == 45
+    assert len(set(cases)) == 45
+    assert sweep["command"][-8:] == [
+        "--seeds",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "${args_no_equals}",
+    ]
 
 
 def test_wandb_metrics_are_split_into_train_and_debug_namespaces():

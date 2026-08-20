@@ -15,6 +15,7 @@ ENV_KWARGS:
   include_transition_countdown: true
   include_layout_change_mask: true
   include_signal_status: true
+  include_previous_coplayer_action: false
   transition_warning_steps: 20
   signal_activation_time: 10
   signal_activation_cost: 0.0

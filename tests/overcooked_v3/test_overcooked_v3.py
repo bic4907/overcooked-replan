@@ -230,6 +230,53 @@ def test_transition_countdown_can_be_disabled_for_old_checkpoints():
     assert obs["agent_0"].shape == env.obs_shape
 
 
+def test_previous_coplayer_action_is_bidirectional_and_causal():
+    env = OvercookedV3(
+        layout="dynamic_00",
+        max_steps=20,
+        include_transition_countdown=False,
+        include_layout_change_mask=False,
+        include_signal_status=False,
+        include_previous_coplayer_action=True,
+    )
+    obs, state = env.reset(jax.random.PRNGKey(0))
+
+    assert env.obs_shape[-1] == 36
+    assert jnp.all(obs["agent_0"][..., -6:] == 0)
+    assert jnp.all(obs["agent_1"][..., -6:] == 0)
+
+    obs, state, _, _, _ = _step(env, state, _actions(env, first=0, second=5))
+
+    # Agent 0 sees agent 1's INTERACT; agent 1 sees agent 0's RIGHT.
+    assert jnp.all(obs["agent_0"][..., -6:] == jax.nn.one_hot(5, 6))
+    assert jnp.all(obs["agent_1"][..., -6:] == jax.nn.one_hot(0, 6))
+    assert jnp.array_equal(state.previous_actions, jnp.array([0, 5]))
+
+
+def test_fresh_layout_switch_clears_previous_coplayer_action():
+    env = OvercookedV3(
+        layout="multilayout_coord_ring__forced_coord",
+        layout_mode="cyclic",
+        reset_on_layout_change=True,
+        max_steps=400,
+        include_transition_countdown=False,
+        include_layout_change_mask=False,
+        include_signal_status=False,
+        include_previous_coplayer_action=True,
+    )
+    _, state = env.reset(jax.random.PRNGKey(0))
+    state = state.replace(step=jnp.array(ORIGINAL_SWITCH_PHASE_STEPS - 1))
+
+    obs, state, _, _, info = _step(
+        env, state, _actions(env, first=0, second=5)
+    )
+
+    assert jnp.all(info["layout_changed"])
+    assert jnp.array_equal(state.previous_actions, jnp.array([-1, -1]))
+    assert jnp.all(obs["agent_0"][..., -6:] == 0)
+    assert jnp.all(obs["agent_1"][..., -6:] == 0)
+
+
 def test_layout_change_mask_can_be_disabled_independently():
     env = OvercookedV3(
         layout="dynamic_00",

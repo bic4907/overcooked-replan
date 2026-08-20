@@ -188,6 +188,12 @@ def _policy_config(run_config):
 def _observation_config(run_config):
     env_kwargs = dict(run_config.get("ENV_KWARGS") or {})
     return {
+        # These two values affect environment dynamics rather than tensor shape,
+        # but must travel with the checkpoint so evaluation reproduces training.
+        "layout_mode": str(env_kwargs.get("layout_mode", "cyclic")),
+        "reset_on_layout_change": bool(
+            env_kwargs.get("reset_on_layout_change", False)
+        ),
         "include_transition_countdown": bool(
             env_kwargs.get("include_transition_countdown", True)
         ),
@@ -195,6 +201,9 @@ def _observation_config(run_config):
             env_kwargs.get("include_layout_change_mask", True)
         ),
         "include_signal_status": bool(env_kwargs.get("include_signal_status", True)),
+        "include_previous_coplayer_action": bool(
+            env_kwargs.get("include_previous_coplayer_action", False)
+        ),
         "transition_warning_steps": int(env_kwargs.get("transition_warning_steps", 20)),
         "signal_activation_time": int(env_kwargs.get("signal_activation_time", 10)),
         "signal_activation_cost": float(env_kwargs.get("signal_activation_cost", 0.1)),

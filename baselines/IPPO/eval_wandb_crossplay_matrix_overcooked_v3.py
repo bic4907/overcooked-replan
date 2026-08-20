@@ -124,6 +124,14 @@ def parse_args(argv=None):
         ),
     )
     parser.add_argument(
+        "--training-layout",
+        choices=sorted(overcooked_v3_layouts),
+        help=(
+            "Checkpoint training layout. Defaults to --layout, allowing a "
+            "multi-layout policy to be evaluated on either constituent map."
+        ),
+    )
+    parser.add_argument(
         "--entity",
         default=os.getenv("WANDB_ENTITY", "cilab-overcooked"),
         help="Entity for a bare source project name.",
@@ -494,8 +502,14 @@ def _algorithm_slug(algorithms):
 
 
 def evaluation_run_name(args):
-    """Build a concise W&B run name from algorithm and map only."""
-    return f"xp-{_algorithm_slug(args.algorithms)}-{args.layout}"
+    """Build a concise W&B run name from algorithm and evaluation condition."""
+    training_layout = getattr(args, "training_layout", None) or args.layout
+    condition = (
+        args.layout
+        if training_layout == args.layout
+        else f"{training_layout}-on-{args.layout}"
+    )
+    return f"xp-{_algorithm_slug(args.algorithms)}-{condition}"
 
 
 def resolve_run_paths(args, timestamp, process_id):
@@ -860,13 +874,14 @@ def main():
     records_path = output_dir / "pair_cache.json"
 
     api = wandb.Api()
-    filters = build_run_filters([args.layout], args.seeds, args.run_state)
+    training_layout = args.training_layout or args.layout
+    filters = build_run_filters([training_layout], args.seeds, args.run_state)
     LOGGER.info("Scanning W&B project %s/%s", source_entity, source_project)
     runs = api.runs(f"{source_entity}/{source_project}", filters=filters)
     candidates = discover_run_candidates(
         runs,
         args.algorithms,
-        [args.layout],
+        [training_layout],
         artifact_alias=args.artifact_alias,
         seeds=args.seeds,
         latest_per_seed=args.latest_per_seed,
@@ -888,6 +903,7 @@ def main():
         config={
             "source_project": f"{source_entity}/{source_project}",
             "algorithms": args.algorithms,
+            "training_layout": training_layout,
             "layout": args.layout,
             "training_seeds": args.seeds,
             "vmap_indices": args.vmap_indices,
@@ -940,7 +956,7 @@ def main():
                     vmap_index,
                 )
 
-        layout_models = [model for model in models if model.layout == args.layout]
+        layout_models = [model for model in models if model.layout == training_layout]
         available = {model.algorithm.casefold() for model in layout_models}
         missing = [
             algorithm
@@ -949,11 +965,13 @@ def main():
         ]
         if missing:
             raise RuntimeError(
-                f"Layout {args.layout} has no checkpoint for algorithm(s): {missing}"
+                f"Training layout {training_layout} has no checkpoint for "
+                f"algorithm(s): {missing}"
             )
         if len(layout_models) < 2:
             raise RuntimeError(
-                f"Layout {args.layout} needs at least two models to compute XP"
+                f"Training layout {training_layout} needs at least two models "
+                "to compute XP"
             )
 
         model_manifest = [

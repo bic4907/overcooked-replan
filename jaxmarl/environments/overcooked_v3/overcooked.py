@@ -107,6 +107,12 @@ class State(BaseState):
         default_factory=lambda: jnp.array(False)
     )
 
+    # Action taken by each agent at the previous environment step. A value of
+    # -1 means that no previous action exists (episode/layout reset).
+    previous_actions: jax.Array = struct.field(
+        default_factory=lambda: jnp.full((2,), -1, dtype=jnp.int32)
+    )
+
 
 class OvercookedV3Base(MultiAgentEnv):
     """Vanilla Overcooked"""
@@ -244,7 +250,7 @@ class OvercookedV3Base(MultiAgentEnv):
 
         state, reward, shaped_rewards = self.step_agents(key, state, acts)
 
-        state = state.replace(step=state.step + 1)
+        state = state.replace(step=state.step + 1, previous_actions=acts)
 
         done = self.is_terminal(state)
         state = state.replace(done=done)
@@ -338,6 +344,7 @@ class OvercookedV3Base(MultiAgentEnv):
             new_correct_delivery=jnp.array(False),
             ingredient_permutations=ingredient_permutations,
             layout_change_mask=jnp.zeros_like(static_objects, dtype=jnp.bool_),
+            previous_actions=jnp.full((num_agents,), -1, dtype=jnp.int32),
         )
 
         key, key_randomize = jax.random.split(key)
@@ -374,6 +381,7 @@ class OvercookedV3Base(MultiAgentEnv):
             next_recipe=state.recipe,
             legacy_recipe_deliveries_remaining=0,
             ingredient_permutations=ingredient_permutations,
+            previous_actions=jnp.full((self.num_agents,), -1, dtype=jnp.int32),
         )
 
         obs = self.get_obs(state)

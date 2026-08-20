@@ -13,6 +13,7 @@ from jaxmarl.environments.overcooked_v3.common import (
     DIR_TO_VEC,
     Direction,
     DynamicObject,
+    OvercookedActionsEnum,
     Position,
     StaticObject,
 )
@@ -43,6 +44,7 @@ class OvercookedV3(OvercookedV3Base):
         transition_warning_steps: int = 20,
         layout_mode: str = "cyclic",
         reset_on_layout_change: bool = False,
+        include_previous_coplayer_action: bool = False,
         **kwargs,
     ):
         if isinstance(transition_warning_steps, bool) or not isinstance(
@@ -55,9 +57,12 @@ class OvercookedV3(OvercookedV3Base):
             raise ValueError("layout_mode must be 'cyclic' or 'episode_random'")
         if not isinstance(reset_on_layout_change, bool):
             raise ValueError("reset_on_layout_change must be a boolean")
+        if not isinstance(include_previous_coplayer_action, bool):
+            raise ValueError("include_previous_coplayer_action must be a boolean")
 
         self.layout_mode = layout_mode
         self.reset_on_layout_change = reset_on_layout_change
+        self.include_previous_coplayer_action = include_previous_coplayer_action
         self.include_transition_countdown = include_transition_countdown
         self.include_signal_status = include_signal_status
         self.include_layout_change_mask = (
@@ -142,6 +147,8 @@ class OvercookedV3(OvercookedV3Base):
                     if obs_type == ObservationType.DEFAULT
                     else self.height * self.width
                 )
+            if self.include_previous_coplayer_action:
+                extra_features += len(OvercookedActionsEnum)
             return (*shape[:-1], shape[-1] + extra_features)
 
         if isinstance(obs_shape, list):
@@ -150,6 +157,37 @@ class OvercookedV3(OvercookedV3Base):
                 for shape, obs_type in zip(obs_shape, self.observation_type)
             ]
         return _append_transition_features(obs_shape, self.observation_type)
+
+    def _previous_coplayer_action_features(self, state: State) -> jax.Array:
+        """Return a bidirectional one-hot encoding of the teammate's last action."""
+        if self.num_agents != 2:
+            raise ValueError(
+                "include_previous_coplayer_action currently requires two agents"
+            )
+        coplayer_indices = jnp.array([1, 0], dtype=jnp.int32)
+        return jax.nn.one_hot(
+            state.previous_actions[coplayer_indices],
+            len(OvercookedActionsEnum),
+            dtype=jnp.float32,
+        )
+
+    def _append_default_coplayer_action(self, obs, state):
+        if not self.include_previous_coplayer_action:
+            return obs
+        features = self._previous_coplayer_action_features(state)
+        features = jnp.broadcast_to(
+            features[:, None, None, :],
+            (*obs.shape[:-1], features.shape[-1]),
+        )
+        return jnp.concatenate([obs.astype(jnp.float32), features], axis=-1)
+
+    def _append_featurized_coplayer_action(self, obs, state):
+        if not self.include_previous_coplayer_action:
+            return obs
+        return jnp.concatenate(
+            [obs.astype(jnp.float32), self._previous_coplayer_action_features(state)],
+            axis=-1,
+        )
 
     def get_layout_index(self, step: jax.Array) -> jax.Array:
         cycle_step = jnp.mod(step, self.cycle_steps)
@@ -326,13 +364,15 @@ class OvercookedV3(OvercookedV3Base):
         obs = super().get_obs_default(state)
         obs = self._append_default_signal_status(obs, state)
         obs = self._append_default_transition_features(obs, state.step)
-        return self._append_default_next_recipe(obs, state)
+        obs = self._append_default_next_recipe(obs, state)
+        return self._append_default_coplayer_action(obs, state)
 
     def get_obs_featurized(self, state: State):
         obs = super().get_obs_featurized(state)
         obs = self._append_featurized_signal_status(obs, state)
         obs = self._append_featurized_transition_features(obs, state.step)
-        return self._append_featurized_next_recipe(obs, state)
+        obs = self._append_featurized_next_recipe(obs, state)
+        return self._append_featurized_coplayer_action(obs, state)
 
     def reset(self, key: PRNGKeyArray):
         if self.layout_mode == "episode_random":
@@ -555,6 +595,7 @@ class OvercookedV3(OvercookedV3Base):
             legacy_recipe_deliveries_remaining=jnp.array(0, dtype=jnp.int32),
             new_correct_delivery=jnp.array(False),
             layout_index=layout_index,
+            previous_actions=jnp.full((self.num_agents,), -1, dtype=jnp.int32),
         )
 
     def _change_layout(self, state: State, layout_index: jax.Array) -> State:

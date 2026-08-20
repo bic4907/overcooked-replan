@@ -64,6 +64,14 @@ RUN uv sync \
 
 ENV PATH="/opt/overcooked-venv/bin:${PATH}"
 
+# Login shells source /etc/profile, which unconditionally overwrites PATH and
+# would drop the venv - leaving the base image python, where wandb and jax are
+# not installed. A `wandb/` run-log directory in the working tree then gets
+# imported as an empty namespace package, so the failure surfaces late as
+# `wandb.__file__ is None` instead of ModuleNotFoundError.
+RUN printf 'export PATH="/opt/overcooked-venv/bin:$PATH"\n' \
+        > /etc/profile.d/10-overcooked-venv.sh
+
 USER ${USERNAME}
 
 CMD ["/bin/bash"]

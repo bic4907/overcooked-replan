@@ -1,0 +1,79 @@
+program: baselines/IPPO/eval_crossplay_overcooked_v3.py
+name: adaptation-policy-multilayout-sp-eval
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+# Specialists are evaluated on all five original maps. Each two-map shared
+# policy is evaluated on both maps that appeared in its training distribution.
+parameters:
+  algorithms:
+    value: IPPO
+  evaluation-case:
+    values:
+      - "cramped_room:cramped_room"
+      - "cramped_room:asymm_advantages"
+      - "cramped_room:coord_ring"
+      - "cramped_room:forced_coord"
+      - "cramped_room:counter_circuit"
+      - "asymm_advantages:cramped_room"
+      - "asymm_advantages:asymm_advantages"
+      - "asymm_advantages:coord_ring"
+      - "asymm_advantages:forced_coord"
+      - "asymm_advantages:counter_circuit"
+      - "coord_ring:cramped_room"
+      - "coord_ring:asymm_advantages"
+      - "coord_ring:coord_ring"
+      - "coord_ring:forced_coord"
+      - "coord_ring:counter_circuit"
+      - "forced_coord:cramped_room"
+      - "forced_coord:asymm_advantages"
+      - "forced_coord:coord_ring"
+      - "forced_coord:forced_coord"
+      - "forced_coord:counter_circuit"
+      - "counter_circuit:cramped_room"
+      - "counter_circuit:asymm_advantages"
+      - "counter_circuit:coord_ring"
+      - "counter_circuit:forced_coord"
+      - "counter_circuit:counter_circuit"
+      - "multilayout_cramped_room__asymm_advantages:cramped_room"
+      - "multilayout_cramped_room__asymm_advantages:asymm_advantages"
+      - "multilayout_cramped_room__coord_ring:cramped_room"
+      - "multilayout_cramped_room__coord_ring:coord_ring"
+      - "multilayout_cramped_room__forced_coord:cramped_room"
+      - "multilayout_cramped_room__forced_coord:forced_coord"
+      - "multilayout_cramped_room__counter_circuit:cramped_room"
+      - "multilayout_cramped_room__counter_circuit:counter_circuit"
+      - "multilayout_asymm_advantages__coord_ring:asymm_advantages"
+      - "multilayout_asymm_advantages__coord_ring:coord_ring"
+      - "multilayout_asymm_advantages__forced_coord:asymm_advantages"
+      - "multilayout_asymm_advantages__forced_coord:forced_coord"
+      - "multilayout_asymm_advantages__counter_circuit:asymm_advantages"
+      - "multilayout_asymm_advantages__counter_circuit:counter_circuit"
+      - "multilayout_coord_ring__forced_coord:coord_ring"
+      - "multilayout_coord_ring__forced_coord:forced_coord"
+      - "multilayout_coord_ring__counter_circuit:coord_ring"
+      - "multilayout_coord_ring__counter_circuit:counter_circuit"
+      - "multilayout_forced_coord__counter_circuit:forced_coord"
+      - "multilayout_forced_coord__counter_circuit:counter_circuit"
+  episodes:
+    value: 50
+  max-steps:
+    value: 400
+  workers-per-gpu:
+    value: 8
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - cilab-overcooked/overcooked-v3-adaptation-policy
+  - --seeds
+  - "0"
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+  - "5"
+  - ${args_no_equals}
