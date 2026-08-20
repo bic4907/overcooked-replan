@@ -88,27 +88,27 @@ timing을 사용한다. 새 `_1`, `_2`는 7×5이며 tomato-major → onion-majo
 tomato-major 순서와 각각 150/150, 180/120 step timing을 사용한다. 모든 scenario
 config는 `max_steps: 450`을 사용한다.
 
-Distance-Driven Role Switch는 표준 onion 3개 레시피를 episode 전체에서 고정한다.
-두 agent의 이동 영역은 하나로 연결되어 있고 onion·pot·plate·serving station을
-모두 직접 사용할 수 있다. 대신 phase A에서는 onion·pot이 agent 0에 가깝고
-plate·serving이 agent 1에 가깝다. 150 step에 네 station group의 counter 위치가
-서로 바뀌어 효율적인 cook/server 역할이 뒤집히며, 300 step에는 초기 배치로
-돌아온다. `distance_switch_0`–`_9`는 9×5부터 11×7까지 서로 다른 counter
-장애물을 사용하고, 가까운 agent가 각 station까지 최소 3 movement step의 거리
-우위를 갖도록 구성한다. 레시피는 바뀌지 않으므로 관측은 표준 V3 33채널이다.
+Distance-Driven Role Switch는 표준 onion 3개 레시피를 episode 전체에서 고정하고
+원본 `asymm_advantages`의 비교비용 구조를 사용한다. 두 agent의 이동 영역은
+분리되어 있지만, 양쪽 영역 모두 onion·중앙 pot·plate·serving station을 직접
+사용할 수 있다. Phase A에서는 agent 0의 pot→plate→serving loop가 짧고 agent
+1의 onion→pot loop가 짧다. 150 step에는 각 영역의 onion과 serving endpoint만
+서로 바뀌어 두 역할의 비용 우위가 역전되며, 300 step에는 초기 배치로 돌아온다.
+Pot, plate, counter, floor와 agent 위치는 전환 중 고정된다. 레시피는 바뀌지
+않으므로 관측은 표준 V3 33채널이다.
 
 | Layout | Size | Near-station axis |
 | --- | --- | --- |
-| `distance_switch_0` | 9×5 | left ↔ right, asymmetric-advantages core |
-| `distance_switch_1` | 9×5 | upper/side left ↔ upper/side right |
-| `distance_switch_2` | 9×6 | left ↔ right, offset center gate |
-| `distance_switch_3` | 11×5 | long left ↔ right corridor |
-| `distance_switch_4` | 11×6 | long left ↔ right, offset starts |
-| `distance_switch_5` | 9×7 | upper-left ↔ lower-right |
-| `distance_switch_6` | 9×7 | lower-left ↔ upper-right |
-| `distance_switch_7` | 9×7 | left ↔ right, narrow center gate |
-| `distance_switch_8` | 11×7 | long left ↔ right, staggered counters |
-| `distance_switch_9` | 11×7 | upper-left ↔ lower-right, split counter bar |
+| `distance_switch_0` | 9×5 | canonical `asymm_advantages` |
+| `distance_switch_1` | 11×5 | wider input/serving detour |
+| `distance_switch_2` | 11×7 | symmetric counter islands |
+| `distance_switch_3` | 9×7 | offset vertical pillars |
+| `distance_switch_4` | 11×7 | mirrored stair/zigzag counters |
+| `distance_switch_5` | 13×7 | asymmetric long shelves |
+| `distance_switch_6` | 11×8 | staggered non-isomorphic islands |
+| `distance_switch_7` | 13×8 | large counter blocks and narrow lanes |
+| `distance_switch_8` | 11×9 | tall U-shaped detours |
+| `distance_switch_9` | 9×9 | rotated horizontal pot bar |
 
 V3 기본 관측은 V2의 30채널에 public signal status, phase 전환 countdown,
 change mask를 추가한 33채널이다. 뒤에서 세 번째 채널은 signal button 위치에서

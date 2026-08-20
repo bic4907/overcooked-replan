@@ -50,14 +50,17 @@ Select any layout through its Hydra scenario name, such as
 `scenario=outagesig_2`. Matching Sig/NoSig layouts with the same index differ
 only at the signal tile.
 
-Distance-Driven Role Switch keeps the standard three-onion recipe fixed. Both
-agents remain in one connected movement region and can reach every onion pile,
-pot, plate pile, and serving station. During each 450-step episode the station
-assignment follows A → B → A: onion/pot begin near agent 0 while plate/serving
-begin near agent 1, then the two station groups exchange counter slots at step
-150 and return at step 300. Ten `distance_switch_0`–`_9` layouts vary the
-asymmetric counter geometry while enforcing at least a three-step spawn-to-
-station advantage for the locally assigned agent.
+Distance-Driven Role Switch keeps the standard three-onion recipe fixed and
+follows the original `asymm_advantages` comparative-cost structure. The two
+agents work in separate regions, but each region can directly use an onion
+pile, central pot, plate pile, and serving station. During each 450-step episode
+the assignment follows A → B → A: agent 0 first has the short serving loop and
+agent 1 the short onion-input loop, the onion and serving endpoints exchange at
+step 150, and they return at step 300. Pots, plates, counters, floor, and agent
+positions remain fixed. `distance_switch_0` is the canonical 9×5
+`asymm_advantages` map; `_1`–`_9` vary counter islands, pillars, shelves,
+U-shaped detours, and pot-bar orientation while retaining at least a three-step
+comparative advantage for the efficient task loop.
 
 Overcooked V3 exposes public signals and upcoming layout transitions to every
 agent. The final three channels of the default 33-channel observation contain a

@@ -70,11 +70,14 @@ pot can start only when its contents match the current recipe. Recipe Relay
 adds two next-recipe preview channels to the standard V3 observation.
 
 `distance_switch_0` through `distance_switch_9` are Distance-Driven Role
-Switch layouts. They keep the standard three-onion recipe fixed and preserve
-one connected walkable region in every phase, so either agent can interact
-with every station. Onion/pot and plate/serving occupy opposite asymmetric
-counter groups and exchange positions at steps 150 and 300. Each layout
-guarantees the locally assigned spawn at least a three-step distance advantage
-to both stations in its group. Because no recipe is scheduled, these layouts
-use the standard 33-channel V3 observation rather than next-recipe preview
-channels.
+Switch layouts based on `asymm_advantages`. The standard three-onion recipe is
+fixed, and each agent's separate work region contains access to an onion pile,
+central pot, plate pile, and serving station. Pots and plates remain fixed;
+only the onion and serving endpoints exchange at steps 150 and 300. This
+reverses which agent has the short onion-input loop and which has the short
+serving loop. `distance_switch_0` exactly matches the canonical 9×5 map in its
+first phase, while the other nine layouts vary counter islands, pillars,
+shelves, U-shaped detours, and pot-bar orientation without changing the
+comparative-cost objective.
+Because no recipe is scheduled, these layouts use the standard 33-channel V3
+observation rather than next-recipe preview channels.
