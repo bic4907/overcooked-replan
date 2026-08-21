@@ -2,7 +2,7 @@
 # Run several W&B grid sweeps sequentially, with one agent per GPU.
 #
 # Usage:
-#   GPUS="0 1 2 3" bash experiment/adaptation_policy/motive/run_agents_sequential.sh \
+#   GPUS="0 1 2 3" bash experiment/run_agents_sequential.sh \
 #     entity/project/TRAIN_SWEEP_ID \
 #     entity/project/EVAL_SWEEP_ID
 #
@@ -10,7 +10,7 @@
 # after every agent for the current grid sweep exits. No --count is used.
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GPUS="${GPUS:-0}"
 read -r -a GPU_LIST <<< "$GPUS"
 
@@ -50,8 +50,8 @@ run_sweep_agents() {
     log "Starting $sweep_ref on GPUs: ${GPU_LIST[*]}"
     for gpu_id in "${GPU_LIST[@]}"; do
         env \
-            -u WANDB_API_KEY \
             -u LD_LIBRARY_PATH \
+            PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}" \
             CUDA_VISIBLE_DEVICES="$gpu_id" \
             XLA_PYTHON_CLIENT_PREALLOCATE=false \
             PYTHONFAULTHANDLER=1 \
