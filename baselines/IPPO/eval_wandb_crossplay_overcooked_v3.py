@@ -194,10 +194,7 @@ def _observation_config(run_config):
         "include_layout_change_mask": bool(
             env_kwargs.get("include_layout_change_mask", True)
         ),
-        "include_signal_status": bool(env_kwargs.get("include_signal_status", True)),
         "transition_warning_steps": int(env_kwargs.get("transition_warning_steps", 20)),
-        "signal_activation_time": int(env_kwargs.get("signal_activation_time", 10)),
-        "signal_activation_cost": float(env_kwargs.get("signal_activation_cost", 0.1)),
     }
 
 
@@ -462,7 +459,6 @@ def main():
             tile_size=24,
             seconds_per_step=1.0 / args.video_fps,
             transition_warning_steps=env.transition_warning_steps,
-            signal_activation_time=env.signal_activation_time,
         )
         visualizer.save_video(
             result["states"],

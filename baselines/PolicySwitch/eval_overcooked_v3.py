@@ -329,10 +329,7 @@ def _local_run_config(args):
             "layout": args.layout,
             "include_transition_countdown": True,
             "include_layout_change_mask": True,
-            "include_signal_status": True,
             "transition_warning_steps": 20,
-            "signal_activation_time": 10,
-            "signal_activation_cost": 0.0,
         },
     }
 
@@ -427,7 +424,6 @@ def main(argv=None):
             tile_size=24,
             seconds_per_step=1.0 / args.video_fps,
             transition_warning_steps=env.transition_warning_steps,
-            signal_activation_time=env.signal_activation_time,
         )
         visualizer.save_video(
             result["states"],

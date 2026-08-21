@@ -16,14 +16,11 @@ from jaxmarl.environments.overcooked_v3.dynamic_layouts import (
 )
 from jaxmarl.environments.overcooked_v3.dynamic_overcooked import OvercookedV3
 from jaxmarl.environments.overcooked_v3.layouts import overcooked_v3_base_layouts
-from jaxmarl.environments.overcooked_v3.settings import INDICATOR_ACTIVATION_COST
 from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
 
 ROLE_SCENARIOS = (
     "split_no_sig",
-    "split_sig",
     "outage_no_sig",
-    "outage_sig",
 )
 
 CANONICAL_ROLE_SCENARIOS = tuple(
@@ -83,9 +80,7 @@ def _shortest_floor_distance(static_objects, starts, goals):
 def test_each_role_scenario_family_has_expected_unique_layouts():
     expected_counts = {
         "splitnosig": 3,
-        "splitsig": 3,
         "outagenosig": 3,
-        "outagesig": 3,
         "recipe_switch": 3,
         "distance_switch": 3,
     }
@@ -110,7 +105,7 @@ def test_all_role_scenario_variants_are_resettable(layout_name):
 
     layout_shape = dynamic_layouts[layout_name].initial_layout.static_objects.shape
     expected_shape = (*layout_shape, 3)
-    expected_channels = 35 if layout_name.startswith("recipe_switch") else 33
+    expected_channels = 33 if layout_name.startswith("recipe_switch") else 31
     assert state.grid.shape == expected_shape
     assert obs["agent_0"].shape == (*expected_shape[:2], expected_channels)
 
@@ -184,19 +179,13 @@ def test_distance_switch_zero_starts_from_canonical_asymmetric_advantages():
 def test_outage_uses_two_onion_recipe_while_split_keeps_three_onions():
     onion = DynamicObject.ingredient(0)
 
-    for layout_name in (
-        *ROLE_SCENARIO_LAYOUTS["splitnosig"],
-        *ROLE_SCENARIO_LAYOUTS["splitsig"],
-    ):
+    for layout_name in ROLE_SCENARIO_LAYOUTS["splitnosig"]:
         env = OvercookedV3(layout=layout_name, max_steps=20)
         _, state = env.reset(jax.random.PRNGKey(0))
         assert env.recipe_size == 3
         assert state.recipe == 3 * onion
 
-    for layout_name in (
-        *ROLE_SCENARIO_LAYOUTS["outagenosig"],
-        *ROLE_SCENARIO_LAYOUTS["outagesig"],
-    ):
+    for layout_name in ROLE_SCENARIO_LAYOUTS["outagenosig"]:
         env = OvercookedV3(layout=layout_name, max_steps=20)
         _, state = env.reset(jax.random.PRNGKey(0))
         assert env.recipe_size == 2
@@ -227,28 +216,6 @@ def test_outage_pot_starts_cooking_after_second_onion():
 
     assert DynamicObject.ingredient_count(state.grid[0, 2, 1]) == 2
     assert state.grid[0, 2, 2] == 19
-
-
-@pytest.mark.parametrize("variant", range(3))
-@pytest.mark.parametrize(
-    ("no_sig_family", "sig_family"),
-    (("splitnosig", "splitsig"), ("outagenosig", "outagesig")),
-)
-def test_each_sig_variant_only_replaces_one_indicator(
-    variant, no_sig_family, sig_family
-):
-    no_sig = dynamic_layouts[f"{no_sig_family}_{variant}"]
-    sig = dynamic_layouts[f"{sig_family}_{variant}"]
-
-    for no_sig_phase, sig_phase in zip(no_sig.phases, sig.phases):
-        no_sig_static = no_sig_phase.layout.static_objects
-        sig_static = sig_phase.layout.static_objects
-        differences = np.argwhere(no_sig_static != sig_static)
-
-        assert differences.shape == (1, 2)
-        signal_y, signal_x = differences[0]
-        assert no_sig_static[signal_y, signal_x] == StaticObject.INERT_SIGNAL_INDICATOR
-        assert sig_static[signal_y, signal_x] == StaticObject.BUTTON_RECIPE_INDICATOR
 
 
 @pytest.mark.parametrize("variant", range(3))
@@ -406,9 +373,7 @@ def test_split_variants_keep_complementary_resources_in_separate_bays(variant):
     ("layout_name", "grid_shape"),
     (
         ("split_no_sig", (7, 9, 3)),
-        ("split_sig", (7, 9, 3)),
         ("outage_no_sig", (5, 7, 3)),
-        ("outage_sig", (5, 7, 3)),
     ),
 )
 def test_role_scenario_is_registered_and_resettable(layout_name, grid_shape):
@@ -416,51 +381,26 @@ def test_role_scenario_is_registered_and_resettable(layout_name, grid_shape):
     obs, state = env.reset(jax.random.PRNGKey(0))
 
     assert state.grid.shape == grid_shape
-    assert obs["agent_0"].shape == (*grid_shape[:2], 33)
+    assert obs["agent_0"].shape == (*grid_shape[:2], 31)
     assert state.layout_index.item() == 0
 
 
 @pytest.mark.parametrize(
-    ("no_sig_name", "sig_name", "signal_position"),
+    ("layout_name", "recipe_position"),
     (
-        ("split_no_sig", "split_sig", (4, 2)),
-        ("outage_no_sig", "outage_sig", (3, 3)),
+        ("split_no_sig", (4, 0)),
+        ("outage_no_sig", (3, 0)),
     ),
 )
-def test_sig_pair_only_replaces_one_counter_with_button(
-    no_sig_name, sig_name, signal_position
-):
-    no_sig = dynamic_layouts[no_sig_name]
-    sig = dynamic_layouts[sig_name]
-    signal_x, signal_y = signal_position
-
-    for no_sig_phase, sig_phase in zip(no_sig.phases, sig.phases):
-        no_sig_static = no_sig_phase.layout.static_objects
-        sig_static = sig_phase.layout.static_objects
-        differences = np.argwhere(no_sig_static != sig_static)
-
-        assert differences.tolist() == [[signal_y, signal_x]]
-        assert no_sig_static[signal_y, signal_x] == StaticObject.INERT_SIGNAL_INDICATOR
-        assert sig_static[signal_y, signal_x] == StaticObject.BUTTON_RECIPE_INDICATOR
-
-
-@pytest.mark.parametrize(
-    ("no_sig_name", "sig_name", "recipe_position"),
-    (
-        ("split_no_sig", "split_sig", (4, 0)),
-        ("outage_no_sig", "outage_sig", (3, 0)),
-    ),
-)
-def test_sig_pair_keeps_recipe_indicator_at_a_separate_fixed_tile(
-    no_sig_name, sig_name, recipe_position
+def test_role_layout_keeps_recipe_indicator_at_a_separate_fixed_tile(
+    layout_name, recipe_position
 ):
     recipe_x, recipe_y = recipe_position
-    for layout_name in (no_sig_name, sig_name):
-        for phase in dynamic_layouts[layout_name].phases:
-            assert (
-                phase.layout.static_objects[recipe_y, recipe_x]
-                == StaticObject.RECIPE_INDICATOR
-            )
+    for phase in dynamic_layouts[layout_name].phases:
+        assert (
+            phase.layout.static_objects[recipe_y, recipe_x]
+            == StaticObject.RECIPE_INDICATOR
+        )
 
 
 def test_kitchen_split_closes_doorway_between_complementary_bays():
@@ -488,9 +428,8 @@ def test_kitchen_split_closes_doorway_between_complementary_bays():
     assert np.sum(open_phase != split_phase) == 1
 
 
-@pytest.mark.parametrize("layout_name", ("outage_no_sig", "outage_sig"))
-def test_resource_outage_separates_agents_but_keeps_a_shared_handoff(layout_name):
-    layout = dynamic_layouts[layout_name]
+def test_resource_outage_separates_agents_but_keeps_a_shared_handoff():
+    layout = dynamic_layouts["outage_no_sig"]
     onion_pile = StaticObject.ingredient_pile(0)
 
     for phase in layout.phases:
@@ -525,9 +464,7 @@ def test_resource_outage_separates_agents_but_keeps_a_shared_handoff(layout_name
     ("layout_name", "change_position", "change_count"),
     (
         ("split_no_sig", (4, 5), 1),
-        ("split_sig", (4, 5), 1),
         ("outage_no_sig", (5, 0), 1),
-        ("outage_sig", (5, 0), 1),
     ),
 )
 def test_change_mask_marks_only_the_next_static_tile_change(
@@ -712,89 +649,7 @@ def test_outage_runtime_removes_only_the_right_kitchen_onion_at_step_40():
     assert jnp.all(infos["layout_changed"])
 
 
-@pytest.mark.parametrize(
-    ("layout_name", "signal_position", "standing_position"),
-    (
-        ("split_sig", (4, 2), (3, 2)),
-        ("outage_sig", (3, 3), (2, 3)),
-    ),
-)
-def test_sig_button_produces_public_timed_signal(
-    layout_name, signal_position, standing_position
-):
-    env = OvercookedV3(layout=layout_name, max_steps=20)
-    _, state = env.reset(jax.random.PRNGKey(0))
-    signal_x, signal_y = signal_position
-    standing_x, standing_y = standing_position
-    state = state.replace(
-        agents=state.agents.replace(
-            pos=Position(
-                x=state.agents.pos.x.at[0].set(standing_x),
-                y=state.agents.pos.y.at[0].set(standing_y),
-            ),
-            dir=state.agents.dir.at[0].set(Direction.RIGHT),
-        )
-    )
-    actions = {
-        env.agents[0]: jnp.array(OvercookedActionsEnum.interact),
-        env.agents[1]: jnp.array(OvercookedActionsEnum.stay),
-    }
-
-    obs, state, rewards, _, _ = jax.jit(env.step_env)(
-        jax.random.PRNGKey(1), state, actions
-    )
-
-    assert state.grid[signal_y, signal_x, 2].item() == env.signal_activation_time
-    assert obs[env.agents[0]][signal_y, signal_x, -3].item() == 1.0
-    assert obs[env.agents[1]][signal_y, signal_x, -3].item() == 1.0
-    assert INDICATOR_ACTIVATION_COST == 0.0
-    assert rewards[env.agents[0]].item() == 0.0
-    assert rewards[env.agents[1]].item() == 0.0
-
-    stay_actions = {
-        env.agents[0]: jnp.array(OvercookedActionsEnum.stay),
-        env.agents[1]: jnp.array(OvercookedActionsEnum.stay),
-    }
-    for expected_steps in range(env.signal_activation_time - 1, 0, -1):
-        obs, state, _, _, _ = jax.jit(env.step_env)(
-            jax.random.PRNGKey(expected_steps + 10), state, stay_actions
-        )
-        assert state.grid[signal_y, signal_x, 2].item() == expected_steps
-        assert obs[env.agents[1]][signal_y, signal_x, -3].item() == pytest.approx(
-            expected_steps / env.signal_activation_time
-        )
-
-    obs, state, _, _, _ = jax.jit(env.step_env)(
-        jax.random.PRNGKey(30), state, stay_actions
-    )
-    assert state.grid[signal_y, signal_x, 2].item() == 0
-    assert obs[env.agents[1]][signal_y, signal_x, -3].item() == 0.0
-
-
-def test_active_signal_is_labeled_in_rendered_button_tile():
-    env = OvercookedV3(layout="split_sig", max_steps=20)
-    _, state = env.reset(jax.random.PRNGKey(0))
-    signal_x, signal_y = 4, 2
-    state = state.replace(
-        grid=state.grid.at[signal_y, signal_x, 2].set(env.signal_activation_time)
-    )
-    visualizer = OvercookedV3Visualizer(tile_size=32)
-
-    raw_frame = np.asarray(visualizer._render_state(state))
-    labeled_frame = visualizer._render_frame(state)
-    changed_pixels = np.any(raw_frame != labeled_frame, axis=-1)
-    changed_tiles = np.zeros_like(state.layout_change_mask, dtype=bool)
-    for pixel_y, pixel_x in np.argwhere(changed_pixels):
-        changed_tiles[
-            pixel_y // visualizer.tile_size, pixel_x // visualizer.tile_size
-        ] = True
-
-    expected_tiles = np.zeros_like(changed_tiles)
-    expected_tiles[signal_y, signal_x] = True
-    assert np.array_equal(changed_tiles, expected_tiles)
-
-
-def test_no_sig_blank_signal_cell_does_not_activate_or_store_objects():
+def test_non_storage_blocker_does_not_store_objects():
     env = OvercookedV3(layout="split_no_sig", max_steps=20)
     _, state = env.reset(jax.random.PRNGKey(0))
     state = state.replace(
@@ -816,7 +671,7 @@ def test_no_sig_blank_signal_cell_does_not_activate_or_store_objects():
         jax.random.PRNGKey(1), state, actions
     )
 
-    assert state.grid[2, 4, 0].item() == StaticObject.INERT_SIGNAL_INDICATOR
+    assert state.grid[2, 4, 0].item() == StaticObject.BLOCKER
     assert state.grid[2, 4, 1].item() == DynamicObject.EMPTY
     assert state.grid[2, 4, 2].item() == 0
     assert state.agents.inventory[0] == DynamicObject.ingredient(0)

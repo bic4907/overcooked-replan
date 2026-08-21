@@ -10,15 +10,9 @@ parameters:
       - splitnosig_0
       - splitnosig_1
       - splitnosig_2
-      - splitsig_0
-      - splitsig_1
-      - splitsig_2
       - outagenosig_0
       - outagenosig_1
       - outagenosig_2
-      - outagesig_0
-      - outagesig_1
-      - outagesig_2
   SEED:
     values: [0, 1, 2, 3, 4, 5]
   recording:

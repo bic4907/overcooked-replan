@@ -38,7 +38,6 @@ class OvercookedV3(OvercookedV3Base):
         layout: Union[str, DynamicLayout] = "dynamic_cramped_room",
         include_transition_countdown: bool = True,
         include_layout_change_mask: Union[bool, None] = None,
-        include_signal_status: bool = True,
         transition_warning_steps: int = 20,
         **kwargs,
     ):
@@ -50,7 +49,6 @@ class OvercookedV3(OvercookedV3Base):
             raise ValueError("transition_warning_steps must be a positive integer")
 
         self.include_transition_countdown = include_transition_countdown
-        self.include_signal_status = include_signal_status
         self.include_layout_change_mask = (
             include_transition_countdown
             if include_layout_change_mask is None
@@ -122,9 +120,7 @@ class OvercookedV3(OvercookedV3Base):
         obs_shape = super()._get_obs_shape()
 
         def _append_transition_features(shape, obs_type):
-            extra_features = int(self.include_signal_status) + int(
-                self.include_transition_countdown
-            )
+            extra_features = int(self.include_transition_countdown)
             if self.has_scheduled_recipes:
                 extra_features += self.layout.num_ingredients
             if self.include_layout_change_mask:
@@ -248,26 +244,6 @@ class OvercookedV3(OvercookedV3Base):
             return obs
         return jnp.concatenate([obs.astype(jnp.float32), *transition_layers], axis=-1)
 
-    def _append_default_signal_status(self, obs, state):
-        if not self.include_signal_status:
-            return obs
-        static_objects = state.grid[:, :, 0]
-        signal_time = jnp.where(
-            static_objects == StaticObject.BUTTON_RECIPE_INDICATOR,
-            state.grid[:, :, 2],
-            0,
-        )
-        signal_status = signal_time.astype(jnp.float32) / float(
-            self.signal_activation_time
-        )
-        signal_status = jnp.broadcast_to(
-            signal_status,
-            (*obs.shape[:-3], *signal_status.shape),
-        )
-        return jnp.concatenate(
-            [obs.astype(jnp.float32), signal_status[..., None]], axis=-1
-        )
-
     def _append_featurized_transition_features(self, obs, step):
         transition_features = []
         if self.include_transition_countdown:
@@ -288,34 +264,13 @@ class OvercookedV3(OvercookedV3Base):
             return obs
         return jnp.concatenate([obs.astype(jnp.float32), *transition_features], axis=-1)
 
-    def _append_featurized_signal_status(self, obs, state):
-        if not self.include_signal_status:
-            return obs
-        static_objects = state.grid[:, :, 0]
-        signal_time = jnp.max(
-            jnp.where(
-                static_objects == StaticObject.BUTTON_RECIPE_INDICATOR,
-                state.grid[:, :, 2],
-                0,
-            )
-        )
-        signal_status = signal_time.astype(jnp.float32) / float(
-            self.signal_activation_time
-        )
-        signal_feature = jnp.full(
-            (*obs.shape[:-1], 1), signal_status, dtype=jnp.float32
-        )
-        return jnp.concatenate([obs.astype(jnp.float32), signal_feature], axis=-1)
-
     def get_obs_default(self, state: State):
         obs = super().get_obs_default(state)
-        obs = self._append_default_signal_status(obs, state)
         obs = self._append_default_transition_features(obs, state.step)
         return self._append_default_next_recipe(obs, state)
 
     def get_obs_featurized(self, state: State):
         obs = super().get_obs_featurized(state)
-        obs = self._append_featurized_signal_status(obs, state)
         obs = self._append_featurized_transition_features(obs, state.step)
         return self._append_featurized_next_recipe(obs, state)
 
@@ -375,18 +330,6 @@ class OvercookedV3(OvercookedV3Base):
         ingredient_pile_count = jnp.sum(
             static_objects >= StaticObject.INGREDIENT_PILE_BASE
         )
-        signal_tile_count = jnp.sum(
-            static_objects == StaticObject.BUTTON_RECIPE_INDICATOR
-        )
-        signal_steps_remaining = jnp.max(
-            jnp.where(
-                static_objects == StaticObject.BUTTON_RECIPE_INDICATOR,
-                state.grid[:, :, 2],
-                0,
-            )
-        )
-        signal_active = signal_steps_remaining > 0
-        signal_activated = signal_steps_remaining == self.signal_activation_time
         center_column = static_objects.shape[1] // 2
         column_indices = jnp.arange(static_objects.shape[1])[None, :]
         left_mask = column_indices < center_column
@@ -426,12 +369,6 @@ class OvercookedV3(OvercookedV3Base):
             "ingredient_pile_count": jnp.full(
                 (self.num_agents,), ingredient_pile_count
             ),
-            "signal_tile_count": jnp.full((self.num_agents,), signal_tile_count),
-            "signal_steps_remaining": jnp.full(
-                (self.num_agents,), signal_steps_remaining
-            ),
-            "signal_active": jnp.full((self.num_agents,), signal_active),
-            "signal_activated": jnp.full((self.num_agents,), signal_activated),
             "left_workload_tile_count": jnp.full(
                 (self.num_agents,), left_workload_tile_count
             ),

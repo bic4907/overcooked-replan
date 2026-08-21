@@ -9,10 +9,7 @@ import numpy as np
 
 import jaxmarl.viz.grid_rendering_v2 as rendering
 from jaxmarl.environments.overcooked_v3.common import DynamicObject, StaticObject
-from jaxmarl.environments.overcooked_v3.settings import (
-    INDICATOR_ACTIVATION_TIME,
-    POT_COOK_TIME,
-)
+from jaxmarl.environments.overcooked_v3.settings import POT_COOK_TIME
 from jaxmarl.environments.overcooked_v3.utils import compute_view_box
 from jaxmarl.viz.window import Window
 
@@ -78,21 +75,17 @@ class OvercookedV3Visualizer:
         subdivs=3,
         seconds_per_step=DEFAULT_SECONDS_PER_STEP,
         transition_warning_steps=DEFAULT_TRANSITION_WARNING_STEPS,
-        signal_activation_time=INDICATOR_ACTIVATION_TIME,
     ):
         if seconds_per_step <= 0:
             raise ValueError("seconds_per_step must be greater than zero")
         if transition_warning_steps <= 0:
             raise ValueError("transition_warning_steps must be greater than zero")
-        if signal_activation_time <= 0:
-            raise ValueError("signal_activation_time must be greater than zero")
         self.window: Optional[Window] = None
 
         self.tile_size = tile_size
         self.subdivs = subdivs
         self.seconds_per_step = seconds_per_step
         self.transition_warning_steps = transition_warning_steps
-        self.signal_activation_time = signal_activation_time
 
     def _lazy_init_window(self) -> Window:
         if self.window is None:
@@ -256,68 +249,7 @@ class OvercookedV3Visualizer:
 
     def _render_frame(self, state, agent_view_size=None):
         frame = np.asarray(self._render_state(state, agent_view_size))
-        frame = self._overlay_tile_countdown(frame, state)
-        return self._overlay_signal_countdown(frame, state)
-
-    def _overlay_signal_countdown(self, frame, state):
-        static_objects = np.asarray(state.grid[:, :, 0])
-        signal_positions = np.argwhere(
-            static_objects == StaticObject.BUTTON_RECIPE_INDICATOR
-        )
-        if not len(signal_positions):
-            return frame
-
-        from PIL import Image, ImageDraw, ImageFont
-
-        image = Image.fromarray(frame)
-        draw = ImageDraw.Draw(image)
-        font_size = max(7, min(12, self.tile_size // 3))
-        try:
-            font = ImageFont.truetype("DejaVuSans-Bold.ttf", font_size)
-        except OSError:
-            font = ImageFont.load_default()
-
-        for tile_y, tile_x in signal_positions:
-            steps_remaining = int(np.asarray(state.grid[tile_y, tile_x, 2]))
-            if steps_remaining <= 0:
-                continue
-            label = f"SIG\n{steps_remaining}"
-            text_box = draw.multiline_textbbox(
-                (0, 0),
-                label,
-                font=font,
-                spacing=0,
-                align="center",
-                stroke_width=1,
-            )
-            text_width = text_box[2] - text_box[0]
-            text_height = text_box[3] - text_box[1]
-            center_x = int(tile_x * self.tile_size + self.tile_size / 2)
-            center_y = int(tile_y * self.tile_size + self.tile_size / 2)
-            padding = max(1, self.tile_size // 20)
-            draw.rounded_rectangle(
-                (
-                    center_x - text_width // 2 - padding,
-                    center_y - text_height // 2 - padding,
-                    center_x + (text_width + 1) // 2 + padding,
-                    center_y + (text_height + 1) // 2 + padding,
-                ),
-                radius=max(1, padding),
-                fill=(0, 90, 0),
-                outline=(255, 255, 255),
-                width=1,
-            )
-            draw.multiline_text(
-                (center_x - text_width / 2, center_y - text_height / 2),
-                label,
-                fill=(255, 255, 255),
-                font=font,
-                spacing=0,
-                align="center",
-                stroke_width=1,
-                stroke_fill=(0, 60, 0),
-            )
-        return np.asarray(image)
+        return self._overlay_tile_countdown(frame, state)
 
     def _overlay_tile_countdown(self, frame, state):
         steps_remaining = int(np.asarray(state.steps_until_layout_change))
@@ -404,15 +336,10 @@ class OvercookedV3Visualizer:
 
         static_objects = grid[:, :, 0]
         ingredients = grid[:, :, 1]
-        extra_info = grid[:, :, 2]
 
         recipe_indicator_mask = static_objects == StaticObject.RECIPE_INDICATOR
-        button_recipe_indicator_mask = (
-            static_objects == StaticObject.BUTTON_RECIPE_INDICATOR
-        ) & (extra_info > 0)
-
         new_ingredients_layer = jnp.where(
-            recipe_indicator_mask | button_recipe_indicator_mask,
+            recipe_indicator_mask,
             recipe | DynamicObject.COOKED | DynamicObject.PLATE,
             ingredients,
         )
@@ -568,30 +495,6 @@ class OvercookedV3Visualizer:
 
             return img
 
-        def _render_button_recipe_indicator(cell, img):
-            img = rendering.fill_coords(
-                img, rendering.point_in_rect(0, 1, 0, 1), COLORS["grey"]
-            )
-            img = rendering.fill_coords(
-                img, rendering.point_in_rect(0.1, 0.9, 0.1, 0.9), COLORS["brown"]
-            )
-            img = OvercookedV3Visualizer._render_dynamic_item(cell[1], img)
-
-            time_left = cell[2]
-            progress_fn = rendering.point_in_rect(
-                0.1,
-                0.9 - (0.9 - 0.1) / self.signal_activation_time * time_left,
-                0.83,
-                0.88,
-            )
-            img_timer = rendering.fill_coords(img, progress_fn, COLORS["green"])
-
-            button_fn = rendering.point_in_circle(0.5, 0.5, 0.2)
-            img_button = rendering.fill_coords(img, button_fn, COLORS["red"])
-
-            img = jax.lax.select(time_left > 0, img_timer, img_button)
-            return img
-
         def _render_plate_pile(cell, img):
             img = rendering.fill_coords(
                 img, rendering.point_in_rect(0, 1, 0, 1), COLORS["grey"]
@@ -636,8 +539,7 @@ class OvercookedV3Visualizer:
             StaticObject.GOAL: _render_goal,
             StaticObject.POT: _render_pot,
             StaticObject.RECIPE_INDICATOR: _render_recipe_indicator,
-            StaticObject.BUTTON_RECIPE_INDICATOR: _render_button_recipe_indicator,
-            StaticObject.INERT_SIGNAL_INDICATOR: _render_wall,
+            StaticObject.BLOCKER: _render_wall,
             StaticObject.PLATE_PILE: _render_plate_pile,
         }
 

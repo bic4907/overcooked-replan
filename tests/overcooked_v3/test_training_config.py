@@ -14,10 +14,8 @@ from jaxmarl._experiment import experiment_folder
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = ROOT / "conf"
 SCENARIO_FAMILIES = {
-    "splitnosig": ("kitchen_split", False),
-    "splitsig": ("kitchen_split", True),
-    "outagenosig": ("resource_outage", False),
-    "outagesig": ("resource_outage", True),
+    "splitnosig": "kitchen_split",
+    "outagenosig": "resource_outage",
 }
 SCENARIOS = {
     f"{family}_{variant}": metadata
@@ -38,10 +36,7 @@ def test_default_training_config_preserves_dynamic_00():
     assert config.ENTITY == "cilab-overcooked"
     assert config.ENV_KWARGS.include_transition_countdown is True
     assert config.ENV_KWARGS.include_layout_change_mask is True
-    assert config.ENV_KWARGS.include_signal_status is True
     assert config.ENV_KWARGS.transition_warning_steps == 20
-    assert config.ENV_KWARGS.signal_activation_time == 10
-    assert config.ENV_KWARGS.signal_activation_cost == 0.0
     assert config.get("WANDB_DIR") is None
     assert config.RECORD_FINAL_EPISODE is True
     assert config.RECORD_MAX_STEPS == 400
@@ -72,7 +67,7 @@ def test_checkpoint_upload_boolean_can_disable_artifacts():
 
 def test_hydra_scenario_group_composes_all_conditions():
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
-        for scenario, (experiment, signal_enabled) in SCENARIOS.items():
+        for scenario, experiment in SCENARIOS.items():
             config = compose(
                 config_name="ippo_overcooked_v3",
                 overrides=[f"scenario={scenario}"],
@@ -81,7 +76,6 @@ def test_hydra_scenario_group_composes_all_conditions():
             assert config.ENV_KWARGS.layout == scenario
             assert config.EXPERIMENT == experiment
             assert config.CONDITION == scenario
-            assert config.SIGNAL_ENABLED is signal_enabled
             assert config.wandb_mode == "online"
 
 
@@ -98,7 +92,6 @@ def test_distance_switch_scenarios_use_fixed_positions_and_full_episode():
             assert config.ENV_KWARGS.random_agent_positions is False
             assert config.EXPERIMENT == "distance_switch"
             assert config.CONDITION == scenario
-            assert config.SIGNAL_ENABLED is False
             assert config.WANDB_GROUP == "distance_switch"
 
 
@@ -181,9 +174,6 @@ def test_wandb_metrics_are_split_into_train_and_debug_namespaces():
             "layout_index": 1,
             "layout_change_events": 2,
             "transition_countdown": 0.25,
-            "signal_steps_remaining": 7,
-            "signal_active": 1.0,
-            "signal_activation_events": 3,
         }
     )
 
@@ -194,9 +184,6 @@ def test_wandb_metrics_are_split_into_train_and_debug_namespaces():
         "debug/layout_index": 1,
         "debug/layout_change_events": 2,
         "debug/transition_countdown": 0.25,
-        "debug/signal_steps_remaining": 7,
-        "debug/signal_active": 1.0,
-        "debug/signal_activation_events": 3,
     }
 
 
@@ -204,29 +191,29 @@ def test_experiment_folder_uses_only_key_experiment_parameters(tmp_path):
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
         hydra_config = compose(
             config_name="ippo_overcooked_v3",
-            overrides=["scenario=splitsig_0", f"SAVES_DIR={tmp_path}"],
+            overrides=["scenario=splitnosig_0", f"SAVES_DIR={tmp_path}"],
         )
     config = OmegaConf.to_container(hydra_config, resolve=True)
 
-    assert experiment_folder(config) == "splitsig_0_cnn_seed0"
+    assert experiment_folder(config) == "splitnosig_0_cnn_seed0"
 
     fixed_parameter_change = deepcopy(config)
     fixed_parameter_change["LR"] = config["LR"] * 2
     fixed_parameter_change["NUM_ENVS"] = config["NUM_ENVS"] * 2
     fixed_parameter_change["TOTAL_TIMESTEPS"] = config["TOTAL_TIMESTEPS"] * 2
-    assert experiment_folder(fixed_parameter_change) == "splitsig_0_cnn_seed0"
+    assert experiment_folder(fixed_parameter_change) == "splitnosig_0_cnn_seed0"
 
     seed_change = deepcopy(config)
     seed_change["SEED"] = 1
-    assert experiment_folder(seed_change) == "splitsig_0_cnn_seed1"
+    assert experiment_folder(seed_change) == "splitnosig_0_cnn_seed1"
 
     architecture_change = deepcopy(config)
     architecture_change["ARCHITECTURE"] = "rnn"
-    assert experiment_folder(architecture_change) == "splitsig_0_rnn_seed0"
+    assert experiment_folder(architecture_change) == "splitnosig_0_rnn_seed0"
 
     layout_change = deepcopy(config)
-    layout_change["ENV_KWARGS"]["layout"] = "outagesig_0"
-    assert experiment_folder(layout_change) == "outagesig_0_cnn_seed0"
+    layout_change["ENV_KWARGS"]["layout"] = "outagenosig_0"
+    assert experiment_folder(layout_change) == "outagenosig_0_cnn_seed0"
 
 
 def test_custom_experiment_name_is_safe_and_precedes_seed():

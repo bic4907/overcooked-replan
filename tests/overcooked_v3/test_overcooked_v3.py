@@ -66,7 +66,7 @@ def test_default_observation_adds_countdown_and_layout_change_mask():
     obs, state = env.reset(jax.random.PRNGKey(0))
 
     assert state.grid.shape == (env.height, env.width, 3)
-    assert obs["agent_0"].shape == (env.height, env.width, 33)
+    assert obs["agent_0"].shape == (env.height, env.width, 31)
     assert state.layout_index.item() == 0
     assert state.steps_until_layout_change.item() == 100
     assert jnp.all(obs["agent_0"][..., -2] == 0.0)
@@ -128,11 +128,10 @@ def test_transition_countdown_can_be_disabled_for_old_checkpoints():
         layout="dynamic_00",
         max_steps=20,
         include_transition_countdown=False,
-        include_signal_status=False,
     )
     obs, _ = env.reset(jax.random.PRNGKey(0))
 
-    assert env.obs_shape == (env.height, env.width, 30)
+    assert env.obs_shape == (env.height, env.width, 29)
     assert obs["agent_0"].shape == env.obs_shape
 
 
@@ -146,7 +145,7 @@ def test_layout_change_mask_can_be_disabled_independently():
     _, state = env.reset(jax.random.PRNGKey(0))
     obs = env.get_obs(state.replace(step=jnp.array(80)))
 
-    assert env.obs_shape == (env.height, env.width, 32)
+    assert env.obs_shape == (env.height, env.width, 30)
     assert jnp.all(obs["agent_0"][..., -1] == 1.0)
 
 
@@ -332,7 +331,7 @@ def test_v2_configuration_flags_remain_available():
     obs, _ = env.reset(jax.random.PRNGKey(0))
 
     assert env.negative_rewards is True
-    assert env.obs_shape == (5, 5, 33)
+    assert env.obs_shape == (5, 5, 31)
     assert obs["agent_0"].shape == env.obs_shape
 
 
@@ -347,15 +346,15 @@ def test_jitted_step_reports_v2_reward_and_dynamic_layout_info():
         "shaped_reward",
         "layout_index",
         "layout_changed",
+        "recipe_changed",
+        "recipe_onion_count",
+        "recipe_tomato_count",
+        "legacy_recipe_deliveries_remaining",
         "steps_until_layout_change",
         "transition_countdown",
         "layout_change_tile_count",
         "wall_tile_count",
         "ingredient_pile_count",
-        "signal_tile_count",
-        "signal_steps_remaining",
-        "signal_active",
-        "signal_activated",
         "left_workload_tile_count",
         "right_workload_tile_count",
         "left_ingredient_pile_count",

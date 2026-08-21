@@ -11,10 +11,7 @@ ENV_KWARGS:
   random_agent_positions: false
   include_transition_countdown: true
   include_layout_change_mask: true
-  include_signal_status: true
   transition_warning_steps: 20
-  signal_activation_time: 10
-  signal_activation_cost: 0.0
 
 LR: 0.00025
 ANNEAL_LR: true

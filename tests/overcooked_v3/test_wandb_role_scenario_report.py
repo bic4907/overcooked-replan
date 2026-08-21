@@ -31,7 +31,7 @@ def test_selected_layouts_come_from_training_sweep():
 
     assert layouts == [
         f"{family}_{variant}"
-        for family in ("splitnosig", "splitsig", "outagenosig", "outagesig")
+        for family in ("splitnosig", "outagenosig")
         for variant in range(3)
     ]
 
@@ -80,7 +80,7 @@ def test_local_report_places_video_next_to_matrix_and_writes_metrics(tmp_path):
     matrix.write_bytes(b"matrix")
     records = [
         {
-            "map": "splitsig_0",
+            "map": "splitnosig_0",
             "video_seed": 0,
             "video_run": "train123",
             "video_path": video,
@@ -98,6 +98,6 @@ def test_local_report_places_video_next_to_matrix_and_writes_metrics(tmp_path):
     csv_text = (tmp_path / "metrics.csv").read_text(encoding="utf-8")
     html_text = (tmp_path / "index.html").read_text(encoding="utf-8")
     assert "map,SP,XP,SP-XP_gap" in csv_text
-    assert "splitsig_0,12.0,4.0,8.0" in csv_text
+    assert "splitnosig_0,12.0,4.0,8.0" in csv_text
     assert html_text.index("<video") < html_text.index("<img")
     assert "SP−XP" in html_text

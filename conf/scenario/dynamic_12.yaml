@@ -6,5 +6,4 @@ ENV_KWARGS:
 
 EXPERIMENT: dynamic_map
 CONDITION: dynamic_12
-SIGNAL_ENABLED: false
 WANDB_GROUP: dynamic_map

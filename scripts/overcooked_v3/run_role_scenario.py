@@ -69,7 +69,6 @@ def main():
         args.gif.parent.mkdir(parents=True, exist_ok=True)
         OvercookedV3Visualizer(
             transition_warning_steps=env.transition_warning_steps,
-            signal_activation_time=env.signal_activation_time,
         ).animate(
             states,
             filename=str(args.gif),

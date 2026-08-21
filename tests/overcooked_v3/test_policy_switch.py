@@ -33,10 +33,7 @@ def _run_config(layout):
             "layout": layout,
             "include_transition_countdown": True,
             "include_layout_change_mask": True,
-            "include_signal_status": True,
             "transition_warning_steps": 20,
-            "signal_activation_time": 10,
-            "signal_activation_cost": 0.0,
         },
     }
 

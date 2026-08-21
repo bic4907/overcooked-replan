@@ -39,14 +39,12 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 
 ## 시나리오
 
-| Hydra option | Scenario | Signal |
-| --- | --- | --- |
-| `scenario=splitnosig_<0-2>` | Kitchen Split | No |
-| `scenario=splitsig_<0-2>` | Kitchen Split | Yes |
-| `scenario=outagenosig_<0-2>` | Resource Outage | No |
-| `scenario=outagesig_<0-2>` | Resource Outage | Yes |
-| `scenario=recipe_switch_<0-2>` | Mixed Recipe Relay | No |
-| `scenario=distance_switch_<0-2>` | Distance-Driven Role Switch | No |
+| Hydra option | Scenario |
+| --- | --- |
+| `scenario=splitnosig_<0-2>` | Kitchen Split |
+| `scenario=outagenosig_<0-2>` | Resource Outage |
+| `scenario=recipe_switch_<0-2>` | Mixed Recipe Relay |
+| `scenario=distance_switch_<0-2>` | Distance-Driven Role Switch |
 
 Kitchen Split은 처음 40 step 동안 중앙 통로 하나가 열려 있고, 이후 160 step 동안
 그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
@@ -58,25 +56,23 @@ Resource Outage는 중앙 counter wall로 두 에이전트의 이동 영역을 �
 주방 모두 pot·plate·serving·onion을 갖는다. outage phase에는 오른쪽 양파만
 사라진다. 평소 각자 조리하던 왼쪽 에이전트가 자기 생산을 일부 포기하고 중앙
 shared counter로 양파를 넘겨야 오른쪽 주방이 조리를 계속할 수 있다.
-recipe indicator는 두 조건 모두 맵 위쪽 중앙의 별도 타일에 유지한다. NoSig의
-signal 위치에는 버튼 없이 물건도 보관할 수 없는 blank blocker를 두고, Sig에서만
-같은 위치가 activatable public signal이 된다.
+recipe indicator는 맵 위쪽 중앙의 별도 타일에 유지한다. 중앙열에는 이동과 물건
+보관을 모두 막는 일반 non-storage blocker를 둔다.
 
-각 category에는 cross-play 결과로 선별한 `_0`부터 `_2`까지 3개, 총 12개
-레이아웃이 등록되어 있다. 같은 번호의 Sig/NoSig pair는 signal tile만 다르다.
+Split과 Outage에는 cross-play 결과로 선별한 `_0`부터 `_2`까지 각각 3개, 총 6개
+레이아웃이 등록되어 있다.
 Split은 7×9, Resource Outage는 5×7이다. Outage는 normal 40 step, outage 160 step이다.
 모든 Outage variant는 onion→handoff와 handoff→pot 각각을 최대 1 step으로 제한한다.
 중앙은 항상 wall/counter로
 막혀 두 agent의 이동 영역이 완전히 분리된다. 오른쪽 agent는 왼쪽 onion pile에
 직접 갈 수 없고, left agent가 shared handoff counter에 올려놓은 onion만 받을 수 있다.
-signal tile은 중앙열 아래쪽에 두고, 그 위의 인접한 counter 2칸에 onion을 미리
+blocker는 중앙열 아래쪽에 두고, 그 위의 인접한 counter 2칸에 onion을 미리
 적재할 수 있다.
 Split은 기존의 양파 3개 레시피를 유지하고, Outage는 양파 2개를 pot에 넣으면
 바로 조리를 시작한다. 모든 scenario의 pot 조리시간은 기존과 동일한 20 step이다.
-Sig/NoSig pair는 signal indicator 한 타일만 다르며, 모든 Outage variant는 outage
-phase에서 오른쪽 onion을 전부 제거한다. 예를 들어 `_2`는
-`scenario=splitnosig_2` 또는 `scenario=outagesig_2`처럼 바로 선택할 수 있다.
-기본 sweep에도 12개 layout이 모두 등록되어 있다.
+모든 Outage variant는 outage phase에서 오른쪽 onion을 전부 제거한다. 예를 들어
+`_2`는 `scenario=splitnosig_2` 또는 `scenario=outagenosig_2`처럼 바로 선택할 수
+있다. 기본 sweep에는 6개 layout이 등록되어 있다.
 
 기존 dynamic map 기본값은 `scenario=dynamic_00`이다.
 
@@ -95,7 +91,7 @@ Distance-Driven Role Switch는 표준 onion 3개 레시피를 episode 전체에�
 1의 onion→pot loop가 짧다. 150 step에는 각 영역의 onion과 serving endpoint만
 서로 바뀌어 두 역할의 비용 우위가 역전되며, 300 step에는 초기 배치로 돌아온다.
 Pot, plate, counter, floor와 agent 위치는 전환 중 고정된다. 레시피는 바뀌지
-않으므로 관측은 표준 V3 33채널이다.
+않으므로 관측은 표준 V3 31채널이다.
 
 | Layout | Size | Near-station axis |
 | --- | --- | --- |
@@ -103,16 +99,12 @@ Pot, plate, counter, floor와 agent 위치는 전환 중 고정된다. 레시피
 | `distance_switch_1` | 11×5 | wider input/serving detour (former `_1`) |
 | `distance_switch_2` | 11×8 | staggered non-isomorphic islands (former `_6`) |
 
-V3 기본 관측은 V2의 30채널에 public signal status, phase 전환 countdown,
-change mask를 추가한 33채널이다. 뒤에서 세 번째 채널은 signal button 위치에서
-활성 직후 두 agent 모두에게 `1.0`이고 10 observed step 동안 `0.1`까지 감소한다.
-버튼을 눌러도 reward cost는 발생하지 않는다. 마지막 두 채널은 전환 20 step
-전까지 0이다. 경고 구간에서 countdown은 `1.0`부터 `0.05`로 감소하고, 마지막
+V3의 signal-free grid encoding은 29채널이며, phase 전환 countdown과 change
+mask를 추가한 기본 관측은 31채널이다. 마지막 두 채널은 전환 20 step 전까지
+0이다. 경고 구간에서 countdown은 `1.0`부터 `0.05`로 감소하고, 마지막
 binary 채널은 다음 phase에서 static object가 달라질 위치를 표시한다. 경고 구간은
 `ENV_KWARGS.transition_warning_steps`로 조정할 수 있다.
-이전 30채널 규격으로 학습하려면
-`ENV_KWARGS.include_signal_status=false`,
-`ENV_KWARGS.include_transition_countdown=false`와
+29채널 규격으로 학습하려면 `ENV_KWARGS.include_transition_countdown=false`와
 `ENV_KWARGS.include_layout_change_mask=false`를 모두 명시한다. 관측 규격이 다른
 checkpoint는 첫 CNN layer shape이 달라 서로 호환되지 않는다.
 
@@ -138,7 +130,7 @@ saves/<experiment-folder>/
 파라미터는 이름에 넣지 않는다.
 
 ```text
-splitsig_0_cnn_seed0
+splitnosig_0_cnn_seed0
 ```
 
 사람이 읽기 쉬운 prefix를 지정할 수도 있다. LR ablation처럼 평소 고정된
@@ -146,14 +138,14 @@ splitsig_0_cnn_seed0
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitsig_0 \
+  scenario=splitnosig_0 \
   EXPERIMENT_FOLDER=lr-1e-4 \
   LR=0.0001 \
   SEED=0
 ```
 
-결과 폴더는 `saves/splitsig_0_cnn_lr-1e-4_seed0`이다. W&B 기본 run 이름은
-`ippo_cnn_splitsig_0_seed0`이다. 동일 layout, architecture, seed를 다시 실행하면
+결과 폴더는 `saves/splitnosig_0_cnn_lr-1e-4_seed0`이다. W&B 기본 run 이름은
+`ippo_cnn_splitnosig_0_seed0`이다. 동일 layout, architecture, seed를 다시 실행하면
 기존 결과를 덮어쓸 수 있으므로 별도 실행은 `SEED` 또는 `EXPERIMENT_FOLDER`로
 구분한다.
 
@@ -161,10 +153,10 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
 
 ```text
 saves/
-└── splitsig_0_cnn_seed0/
-    ├── ippo_cnn_overcooked_v3_splitsig_0_seed0_config.yaml
-    ├── ippo_cnn_overcooked_v3_splitsig_0_seed0_vmap0.safetensors
-    └── ippo_cnn_splitsig_0_seed0_vmap0_final_episode.mp4
+└── splitnosig_0_cnn_seed0/
+    ├── ippo_cnn_overcooked_v3_splitnosig_0_seed0_config.yaml
+    ├── ippo_cnn_overcooked_v3_splitnosig_0_seed0_vmap0.safetensors
+    └── ippo_cnn_splitnosig_0_seed0_vmap0_final_episode.mp4
 ```
 
 `saves/`에는 실험 config와 checkpoint만 저장한다. Hydra와 W&B는 별도 경로
@@ -189,7 +181,7 @@ NAS 등 다른 루트를 쓰려면 학습 명령에
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitsig_0 \
+  scenario=splitnosig_0 \
   SEED=0
 ```
 
@@ -202,14 +194,14 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
 
 ```bash
 python baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=outagesig_0 \
+  scenario=outagenosig_0 \
   --cfg job --resolve
 ```
 
 ## W&B sweep
 
-`experiment/self_play/train.yaml`은 네 category의 layout 3개씩과
-seed 6개를 조합한 72-run grid다. Mac에서 W&B 로그인을 마친 뒤
+`experiment/self_play/train.yaml`은 두 category의 layout 3개씩과
+seed 6개를 조합한 36-run grid다. Mac에서 W&B 로그인을 마친 뒤
 다음 명령으로 sweep을 생성한다.
 
 ```bash
@@ -259,7 +251,7 @@ run에서도 끄려면 `recording=disabled`를 사용한다. 길이, FPS, 압축
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitsig_0 \
+  scenario=splitnosig_0 \
   recording=disabled \
   SEED=0
 ```

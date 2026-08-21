@@ -9,7 +9,7 @@ from jaxmarl.environments.overcooked_v3 import dynamic_layout_data
 from jaxmarl.environments.overcooked_v3.common import StaticObject
 from jaxmarl.environments.overcooked_v3.layouts import Layout
 
-_ALLOWED_SYMBOLS = set(" WAXBP RLSO0123456789")
+_ALLOWED_SYMBOLS = set(" WAXBP RNO0123456789")
 _DEFAULT_RECIPES = [[0, 0, 0]]
 _OUTAGE_RECIPES = [[0, 0]]
 _RECIPE_SWITCH_RECIPES = [[0, 0, 1], [0, 1, 1]]
@@ -313,7 +313,7 @@ _register_static_phase_policy_layouts()
 ROLE_SCENARIO_LAYOUTS = {
     **{
         family: tuple(f"{family}_{variant}" for variant in range(3))
-        for family in ("splitnosig", "splitsig", "outagenosig", "outagesig")
+        for family in ("splitnosig", "outagenosig")
     },
     "recipe_switch": tuple(f"recipe_switch_{variant}" for variant in range(3)),
     "distance_switch": tuple(f"distance_switch_{variant}" for variant in range(3)),

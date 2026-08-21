@@ -12,7 +12,7 @@ def load_yaml(path):
     return yaml.safe_load(path.read_text(encoding="utf-8"))
 
 
-def test_crossplay_sweep_contains_all_twelve_training_maps():
+def test_crossplay_sweep_contains_all_six_training_maps():
     training = load_yaml(TRAIN_SWEEP)
     crossplay = load_yaml(CROSSPLAY_SWEEP)
 
@@ -21,13 +21,13 @@ def test_crossplay_sweep_contains_all_twelve_training_maps():
 
     expected_maps = [
         f"{family}_{variant}"
-        for family in ("splitnosig", "splitsig", "outagenosig", "outagesig")
+        for family in ("splitnosig", "outagenosig")
         for variant in range(3)
     ]
 
     assert training_maps == expected_maps
     assert crossplay_maps == training_maps
-    assert len(set(crossplay_maps)) == 12
+    assert len(set(crossplay_maps)) == 6
 
 
 def test_crossplay_sweep_renders_argparse_compatible_flags():

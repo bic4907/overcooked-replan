@@ -11,17 +11,12 @@
 | Category | Selected layouts | Status |
 | --- | --- | --- |
 | Split-NoSig | `splitnosig_{0..2}` | selected Split designs |
-| Split-Sig | `splitsig_{0..2}` | matched designs with signal |
 | Outage-NoSig | `outagenosig_{0..2}` | selected Outage designs |
-| Outage-Sig | `outagesig_{0..2}` | matched designs with signal |
 | Distance Switch | `distance_switch_{0..2}` | selected asymmetric-distance designs |
 
-전체 catalog에는 cross-play 결과에서 선별한 layout을 각 category마다 `_0`~`_2`
-3개씩, 총 12개 등록한다. 같은 index의 Sig/NoSig pair는 geometry와 resource
-count가 같고 signal indicator 한 타일만 다르다.
-recipe indicator는 두 조건 모두 위쪽 중앙의 별도 타일에 고정한다. signal
-위치는 NoSig에서 버튼 없는 non-storage blocker, Sig에서 activatable button으로
-구분한다.
+Split과 Outage catalog에는 cross-play 결과에서 선별한 layout을 각 category마다
+`_0`~`_2` 3개씩, 총 6개 등록한다. recipe indicator는 위쪽 중앙의 별도 타일에
+고정하고, 중앙열의 구분 타일은 일반 non-storage blocker로 유지한다.
 Split은 선별된 workload와 배치를 유지하면서 7×9 크기를 사용한다.
 Split은 표준 양파 3개 레시피를 유지한다. Outage는 조리시간을 바꾸지 않고
 양파 2개가 pot에 들어오면 조리를 시작하는 레시피를 사용한다.
@@ -41,10 +36,10 @@ movement region을
 완전히 분리한다. 따라서 right agent는 남아 있는 왼쪽 onion을 직접 가져올 수
 없고, left agent가 shared counter로 양파를 공급해야만 right cook이 160-step
 outage 동안 지속적으로 생산할 수 있다.
-signal tile은 중앙열 아래쪽으로 옮기고 그 위에 인접한 handoff counter 2칸을
+blocker는 중앙열 아래쪽에 두고 그 위에 인접한 handoff counter 2칸을
 확보해, left agent가 onion 두 개를 미리 적재할 수 있게 한다.
 
-현재 `experiment/self_play/train.yaml`은 12개 전체 catalog와 seed 6개를
+현재 `experiment/self_play/train.yaml`은 6개 전체 catalog와 seed 6개를
 조합한다. 개별 실행할 때는 `scenario=<family>_<0-2>`를 사용한다.
 
 ## 2. Training sweep 생성

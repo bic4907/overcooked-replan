@@ -10,7 +10,7 @@
 | 기반 환경 | `OvercookedV2` |
 | 레시피 | 양파 3개로 만드는 단일 양파 수프 |
 | 에이전트 수 | 2 |
-| 관측 | V2 30채널 + signal status + countdown + change mask, 단일 재료 맵 기준 `height × width × 33` |
+| 관측 | signal-free 29채널 + countdown + change mask, 단일 재료 맵 기준 `height × width × 31` |
 | 정책 | IPPO CNN |
 | 시작 위치 | 맵의 `A` 위치로 고정 |
 | 에이전트 초기 방향 | 에피소드 reset마다 무작위 |
@@ -357,7 +357,7 @@ step=<현재 step> score=<누적 sparse score> actions=<agent_0>/<agent_1> | lay
 에이전트 관측의 뒤에서 두 번째 채널은 현재 phase 시작 시 `1.0`이고 전환 직전
 `0.0`에 가까워지는 연속값이다. 마지막 binary 채널은 다음 phase에서 static
 object가 달라질 타일만 `1`이다. 렌더러는 이 타일을 주황색 테두리로 표시한다.
-기존 30채널 checkpoint를 평가할 때는 `--legacy-observation`을 추가한다.
+29채널 checkpoint를 평가할 때는 `--legacy-observation`을 추가한다.
 
 ### 7.2 단일 맵 same/cross 평가
 
@@ -410,7 +410,7 @@ GUI 창으로 직접 보려면 `--render --render-delay 0.2`를 추가한다. GU
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitsig_0 \
+  scenario=splitnosig_0 \
   SEED=0
 ```
 
@@ -424,7 +424,7 @@ python -u baselines/IPPO/eval_wandb_crossplay_overcooked_v3.py \
   --source-project overcooked-v3-role-coordination \
   --project overcooked-v3-crossplay \
   --run-ids AGENT_0_RUN_ID AGENT_1_RUN_ID \
-  --layout splitsig_0 \
+  --layout splitnosig_0 \
   --episodes 10 \
   --max-steps 400
 ```
@@ -452,7 +452,7 @@ artifact의 `vmap0` policy를 사용한다. 다른 vmap policy는
 스크립트를 사용한다.
 
 ```bash
-LAYOUT=splitsig_0 \
+LAYOUT=splitnosig_0 \
 EPISODES=10 \
 bash scripts/overcooked_v3/eval_all_wandb_crossplay_overcooked_v3_cnn.sh \
   RUN_ID_SEED0 RUN_ID_SEED1
@@ -479,7 +479,7 @@ XLA_PYTHON_CLIENT_PREALLOCATE=false \
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO \
-  --layout splitsig_0 \
+  --layout splitnosig_0 \
   --output-project cilab-overcooked/overcooked-v3-crossplay-matrix \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \

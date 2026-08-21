@@ -60,16 +60,16 @@ def test_user_entrypoint_preserves_explicit_gpu_list():
 def test_wandb_run_name_starts_with_xp():
     settings = SimpleNamespace(
         algorithms=["IPPO", "FCP"],
-        layout="splitsig_0",
+        layout="splitnosig_0",
     )
 
-    assert evaluation_run_name(settings) == "xp-ippo+fcp-splitsig_0"
+    assert evaluation_run_name(settings) == "xp-ippo+fcp-splitnosig_0"
 
 
 def test_policy_display_label_omits_run_and_vmap_details(tmp_path):
     model = PolicyModel(
         algorithm="IPPO",
-        layout="splitsig_0",
+        layout="splitnosig_0",
         seed=0,
         run_id="abc123",
         run_path="entity/project/abc123",
@@ -87,7 +87,7 @@ def test_policy_display_label_omits_run_and_vmap_details(tmp_path):
 def test_default_run_paths_keep_all_outputs_under_one_saves_directory():
     settings = SimpleNamespace(
         algorithms=["IPPO"],
-        layout="splitsig_0",
+        layout="splitnosig_0",
         output_dir=None,
         artifact_dir=None,
     )
@@ -95,7 +95,7 @@ def test_default_run_paths_keep_all_outputs_under_one_saves_directory():
     output_dir, artifact_dir = resolve_run_paths(settings, "20260813-120000", 1234)
 
     assert output_dir == Path(
-        "saves/crossplay/xp-ippo-splitsig_0-20260813-120000-p1234"
+        "saves/crossplay/xp-ippo-splitnosig_0-20260813-120000-p1234"
     )
     assert artifact_dir == output_dir / "artifacts"
 
@@ -105,7 +105,7 @@ def test_reproducibility_bundle_saves_command_config_and_executable_sources(
 ):
     settings = SimpleNamespace(
         algorithms=["IPPO"],
-        layout="splitsig_0",
+        layout="splitnosig_0",
         output_dir=None,
         artifact_dir=None,
     )
@@ -114,13 +114,13 @@ def test_reproducibility_bundle_saves_command_config_and_executable_sources(
         "sys.argv", ["eval_crossplay_overcooked_v3.py", "entity/project"]
     )
 
-    write_reproducibility_bundle(tmp_path, settings, "xp-ippo-splitsig_0", artifact_dir)
+    write_reproducibility_bundle(tmp_path, settings, "xp-ippo-splitnosig_0", artifact_dir)
 
     assert (tmp_path / "command.txt").read_text(encoding="utf-8").strip() == (
         "eval_crossplay_overcooked_v3.py entity/project"
     )
     config = json.loads((tmp_path / "run_config.json").read_text(encoding="utf-8"))
-    assert config["wandb_run_name"] == "xp-ippo-splitsig_0"
+    assert config["wandb_run_name"] == "xp-ippo-splitnosig_0"
     assert config["artifact_dir"] == str(artifact_dir)
     assert (tmp_path / "source/eval_crossplay_overcooked_v3.py").is_file()
     assert (tmp_path / "source/eval_wandb_crossplay_matrix_overcooked_v3.py").is_file()
@@ -152,13 +152,13 @@ def test_result_artifact_excludes_downloaded_checkpoint_cache(tmp_path):
 def test_eval_cli_accepts_exactly_one_map_with_singular_or_legacy_flag():
     common = ["entity/project", "--algorithms", "IPPO"]
 
-    parsed = parse_args([*common, "--layout", "splitsig_0"])
-    assert parsed.layout == "splitsig_0"
+    parsed = parse_args([*common, "--layout", "splitnosig_0"])
+    assert parsed.layout == "splitnosig_0"
     assert parsed.workers_per_gpu == 8
-    assert parse_args([*common, "--layouts", "splitsig_0"]).layout == "splitsig_0"
+    assert parse_args([*common, "--layouts", "splitnosig_0"]).layout == "splitnosig_0"
 
     with pytest.raises(SystemExit):
-        parse_args([*common, "--layouts", "splitsig_0", "outagesig_0"])
+        parse_args([*common, "--layouts", "splitnosig_0", "outagenosig_0"])
 
 
 def test_pair_results_csv_records_the_map_in_the_first_column(tmp_path):
@@ -166,14 +166,14 @@ def test_pair_results_csv_records_the_map_in_the_first_column(tmp_path):
 
     _write_records_csv(
         csv_path,
-        [{"layout": "splitsig_0", "pair_type": "XP", "mean_return": 3.0}],
+        [{"layout": "splitnosig_0", "pair_type": "XP", "mean_return": 3.0}],
     )
 
     with csv_path.open(encoding="utf-8", newline="") as stream:
         reader = csv.DictReader(stream)
         assert reader.fieldnames == ["map", "pair_type", "mean_return"]
         assert list(reader) == [
-            {"map": "splitsig_0", "pair_type": "XP", "mean_return": "3.0"}
+            {"map": "splitnosig_0", "pair_type": "XP", "mean_return": "3.0"}
         ]
 
 
@@ -182,7 +182,7 @@ def fake_run(
     *,
     algorithm=None,
     tags=(),
-    layout="splitsig_0",
+    layout="splitnosig_0",
     seed=0,
     created_at="2026-01-01T00:00:00Z",
     artifact=None,
@@ -211,12 +211,12 @@ def test_split_project_path_accepts_qualified_and_bare_projects():
 
 
 def test_run_filters_push_layout_seed_and_state_to_wandb():
-    assert build_run_filters(["splitsig_0"], [1, 2], "finished") == {
-        "config.ENV_KWARGS.layout": {"$in": ["splitsig_0"]},
+    assert build_run_filters(["splitnosig_0"], [1, 2], "finished") == {
+        "config.ENV_KWARGS.layout": {"$in": ["splitnosig_0"]},
         "config.SEED": {"$in": [1, 2]},
         "state": "finished",
     }
-    assert "state" not in build_run_filters(["splitsig_0"], run_state="all")
+    assert "state" not in build_run_filters(["splitnosig_0"], run_state="all")
 
 
 def test_shard_tasks_balances_pairs_without_dropping_ordered_tasks():
@@ -291,7 +291,7 @@ def test_gpu_workers_start_multiple_instances_per_device_and_merge_results(
 
 def test_recover_worker_records_deduplicates_interrupted_results(tmp_path):
     base = {
-        "layout": "splitsig_0",
+        "layout": "splitnosig_0",
         "agent_0_model_id": "a",
         "agent_1_model_id": "b",
         "episodes": 1,
@@ -323,12 +323,12 @@ def test_discovery_keeps_latest_run_per_algorithm_layout_and_seed():
     old = fake_run("old", algorithm="IPPO", created_at="2026-01-01T00:00:00Z")
     new = fake_run("new", algorithm="IPPO", created_at="2026-02-01T00:00:00Z")
     other_seed = fake_run("seed1", algorithm="IPPO", seed=1)
-    wrong_layout = fake_run("wrong", algorithm="IPPO", layout="outagesig_0")
+    wrong_layout = fake_run("wrong", algorithm="IPPO", layout="outagenosig_0")
 
     candidates = discover_run_candidates(
         [old, new, other_seed, wrong_layout],
         algorithms=["IPPO"],
-        layouts=["splitsig_0"],
+        layouts=["splitnosig_0"],
     )
 
     assert [candidate.run.id for candidate in candidates] == ["new", "seed1"]

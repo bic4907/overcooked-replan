@@ -7,14 +7,12 @@ under `overcooked_v3`.
 
 The following role-coordination experiments are currently available:
 
-| Hydra scenario | Environment | Signal counter | Research question |
-| --- | --- | --- | --- |
-| `splitnosig_{0..2}` | Kitchen Split | No | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
-| `splitsig_{0..2}` | Kitchen Split | Yes | Does signaling reduce same-side choices before the kitchen splits? |
-| `outagenosig_{0..2}` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
-| `outagesig_{0..2}` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
-| `recipe_switch_{0..2}` | Mixed Recipe Relay | No | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
-| `distance_switch_{0..2}` | Distance-Driven Role Switch | No | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
+| Hydra scenario | Environment | Research question |
+| --- | --- | --- |
+| `splitnosig_{0..2}` | Kitchen Split | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
+| `outagenosig_{0..2}` | Resource Outage | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
+| `recipe_switch_{0..2}` | Mixed Recipe Relay | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
+| `distance_switch_{0..2}` | Distance-Driven Role Switch | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
 
 Kitchen Split starts with one central doorway open for 40 steps. It then becomes
 a handoff counter for 160 steps, preventing agents from changing bays. The left
@@ -23,13 +21,11 @@ choose opposite sides before closure and sustain complementary cook–server
 roles through the counter. Resource Outage instead keeps two complete kitchens
 in disconnected bays; the right onion pile disappears during the outage, so
 the left cook must trade off local production against supplying the right bay.
-Both conditions keep a recipe indicator at a separate fixed tile. NoSig has a
-blank non-storage blocker where Sig provides the activatable public signal,
-keeping the remaining geometry equal without displaying a dummy button.
+Both conditions keep a recipe indicator at a separate fixed tile and use a
+generic non-storage blocker in the center column.
 
 Each category has three cross-play-selected layouts named `_0` through `_2`.
-Matching Sig/NoSig indices have identical geometry and resources. Split uses a
-7×9 map, while Outage uses a compact 5×7 map whose normal and outage phases last
+Split uses a 7×9 map, while Outage uses a compact 5×7 map whose phases last
 40 and 160 steps. Outage keeps each onion-to-handoff and handoff-to-pot leg
 within one movement step. The central wall always
 separates agent movement, so cross-bay assistance is possible only by placing
@@ -38,7 +34,7 @@ allowing it to walk to the surviving onion pile directly.
 Split keeps the standard three-onion recipe, while Outage completes and starts
 cooking a pot with two onions. Pot cooking time remains 20 steps in every
 scenario.
-Outage places two adjacent storage counters above the signal tile, allowing the
+Outage places two adjacent storage counters above the blocker tile, allowing the
 left cook to preload two onions for the right cook.
 Mixed Recipe Relay permanently separates an onion/serving bay from a
 tomato/plate bay and exposes exactly two shared handoff counters. Both bays have
@@ -47,8 +43,7 @@ as `_0`, `_1`, and `_2`. New `_0` is a 9×5 onion-major-first layout; new `_1`
 and `_2` are 7×5 tomato-major-first layouts. The map stays fixed while the
 recipe changes at deterministic phase boundaries within a 450-step episode.
 Select any layout through its Hydra scenario name, such as
-`scenario=outagesig_2`. Matching Sig/NoSig layouts with the same index differ
-only at the signal tile.
+`scenario=outagenosig_2`.
 
 Distance-Driven Role Switch keeps the standard three-onion recipe fixed and
 follows the original `asymm_advantages` comparative-cost structure. The two
@@ -63,17 +58,14 @@ positions remain fixed. The retained layouts are the former `_0`, `_1`, and
 staggered-islands variant. All retain at least a three-step comparative
 advantage for the efficient task loop.
 
-Overcooked V3 exposes public signals and upcoming layout transitions to every
-agent. The final three channels of the default 33-channel observation contain a
-spatial signal timer, a global transition countdown, and a binary map-change
-mask. Pressing a signal button sets its public channel to `1.0` for both agents;
-it decreases to `0.1` over 10 observed steps and has no reward cost. The
-transition channels stay at zero until 20 steps before a layout
-change. Rendered GIFs label active buttons as `SIG 10...1`, blink an orange
-border on changing tiles, and draw the remaining transition step count on each
-affected tile.
+Overcooked V3 exposes upcoming layout transitions to every agent. The final two
+channels of the default 31-channel observation contain a global transition
+countdown and a binary map-change mask. They stay at zero until 20 steps before
+a layout change. Rendered GIFs blink an orange border on changing tiles and draw
+the remaining transition step count on each affected tile.
 Recipe Relay adds two more preview channels at the recipe indicator, one per
-ingredient, so both agents observe the next recipe as well as the current one.
+ingredient, producing 33 channels so both agents observe the next recipe as
+well as the current one.
 
 ## Quick start
 
@@ -95,13 +87,13 @@ works correctly:
 
 ```bash
 python scripts/overcooked_v3/run_role_scenario.py \
-  --layout splitsig_0 \
+  --layout splitnosig_0 \
   --steps 220 \
   --seed 0 \
-  --gif evaluation/previews/splitsig_0.gif
+  --gif evaluation/previews/splitnosig_0.gif
 ```
 
-The resulting GIF is saved to `evaluation/previews/splitsig_0.gif`.
+The resulting GIF is saved to `evaluation/previews/splitnosig_0.gif`.
 
 ## W&B and environment variables
 
@@ -155,16 +147,14 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
 Change only the `scenario` override to run another condition:
 
 ```bash
-scenario=splitsig_0
 scenario=outagenosig_0
-scenario=outagesig_0
 ```
 
 CNN is the default policy architecture. Select the RNN policy as follows:
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=outagesig_0 \
+  scenario=outagenosig_0 \
   ARCHITECTURE=rnn \
   EXPERIMENT_FOLDER=baseline \
   SEED=0
@@ -201,7 +191,7 @@ Print the effective configuration without starting training:
 
 ```bash
 python baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=outagesig_0 \
+  scenario=outagenosig_0 \
   --cfg job --resolve
 ```
 
@@ -221,17 +211,17 @@ saves/
 For example, this configuration:
 
 ```text
-scenario=splitsig_0 ARCHITECTURE=cnn EXPERIMENT_FOLDER=baseline SEED=2
+scenario=splitnosig_0 ARCHITECTURE=cnn EXPERIMENT_FOLDER=baseline SEED=2
 ```
 
 creates the following directory:
 
 ```text
-saves/splitsig_0_cnn_baseline_seed2/
+saves/splitnosig_0_cnn_baseline_seed2/
 ```
 
 If `EXPERIMENT_FOLDER` is omitted, the directory is
-`saves/splitsig_0_cnn_seed2/`. Include only meaningful experimental axes in the
+`saves/splitnosig_0_cnn_seed2/`. Include only meaningful experimental axes in the
 name. For example, when a normally fixed learning rate becomes an ablation
 variable, use a name such as `EXPERIMENT_FOLDER=lr-1e-4`.
 
@@ -245,7 +235,7 @@ not hardcoded anywhere in the training code.
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitsig_0 \
+  scenario=splitnosig_0 \
   SAVES_DIR=/mnt/nas/overcooked-replan \
   EXPERIMENT_FOLDER=baseline \
   SEED=0
@@ -301,14 +291,14 @@ GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
 ```
 
 For example, a sweep run is saved under a directory such as
-`saves/splitsig_0_cnn_seed0/`.
+`saves/splitnosig_0_cnn_seed0/`.
 
 W&B metrics are grouped by slash-delimited namespaces:
 
 | Namespace | Contents |
 | --- | --- |
 | `train/...` | Episode return and length, sparse/shaped/combined rewards, PPO losses, entropy, learning rate, update, and environment step |
-| `debug/...` | Layout phase and changes, transition countdown, signal state and activation count, changed-tile count, and global/left/right workload and resource tile counts |
+| `debug/...` | Layout phase and changes, transition countdown, changed-tile count, and global/left/right workload and resource tile counts |
 | `eval/...` | Return and length of the final recorded episode |
 | `visualization/...` | Final-episode MP4 and recording diagnostics |
 
@@ -326,7 +316,7 @@ also skipped when `wandb_mode=disabled`.
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitsig_0 \
+  scenario=splitnosig_0 \
   recording=disabled \
   SEED=0
 ```
@@ -375,9 +365,9 @@ python baselines/IPPO/eval_ippo_overcooked_v3.py \
 
 On a headless server, use `--gif` instead of `--render`.
 
-The signal and transition features change the default V3 observation from 30
-to 33 channels, so policies trained before these changes require the legacy
-observation flag during evaluation:
+The signal-free V3 grid encoding has 29 base channels. Countdown and change-mask
+features produce the default 31-channel observation. Disable both transition
+features when evaluating a checkpoint trained with the 29-channel encoding:
 
 ```bash
 python baselines/IPPO/eval_ippo_overcooked_v3.py \
@@ -386,10 +376,9 @@ python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --legacy-observation
 ```
 
-For a recent 32-channel checkpoint with transition features but no explicit
-signal channel, use `--no-signal-status`. For a 31-channel checkpoint trained
-with the countdown but without the change mask or signal channel, combine
-`--no-layout-change-mask --no-signal-status`.
+For a 30-channel checkpoint trained with the countdown but without the change
+mask, use `--no-layout-change-mask`. Checkpoints from the removed 33-channel
+signal-enabled environment are not shape-compatible with the new encoding.
 
 ## Batch training and evaluation of dynamic maps
 

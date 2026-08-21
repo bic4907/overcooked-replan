@@ -2,11 +2,8 @@
 
 # Role-formation scenarios -------------------------------------------------
 #
-# The recipe display stays at a separate fixed cell in both conditions. The
-# Sig/NoSig pairs differ only at the signal cell: ``L`` is V2's interactable
-# button indicator, while ``S`` is a blank non-storage blocker with no button.
-# Both block movement and neither stores objects, so the comparison isolates
-# signaling capability.
+# The recipe display stays at a separate fixed cell. A non-storage blocker
+# separates the dynamic doorway or handoff counters from the rest of the map.
 #
 # Kitchen Split starts with one open central doorway. After 40 steps, that
 # doorway becomes a handoff counter and traps agents in their chosen bays until
@@ -18,15 +15,14 @@
 # phase. When the right onion pile disappears, the left agent must trade off
 # local cooking against supplying onions through the shared center counters.
 #
-# Each role category exposes the three layouts selected from the cross-play
-# report. Sig/NoSig use matched geometry at each index.
+# Each role category exposes the three NoSig layouts selected from the
+# cross-play report.
 
 
 def _role_grid(
     resources,
     agent_positions,
-    signal_row,
-    signal_enabled,
+    blocker_row,
     door=None,
     recipe_row=None,
     width=11,
@@ -40,7 +36,7 @@ def _role_grid(
             rows[y][x] = " "
         rows[y][center_x] = "W"
 
-    rows[signal_row][center_x] = "L" if signal_enabled else "S"
+    rows[blocker_row][center_x] = "N"
     if recipe_row is not None:
         rows[recipe_row][center_x] = "R"
     if door is not None:
@@ -58,14 +54,13 @@ def _role_grid(
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-def _build_split_workload(spec, signal_enabled, width=11, recipe_row=0):
-    door_row, signal_row, agents, left_resources, right_resources = spec
+def _build_split_workload(spec, width=11, recipe_row=0):
+    door_row, blocker_row, agents, left_resources, right_resources = spec
     resources = [*left_resources, *right_resources]
     open_grid = _role_grid(
         resources,
         agents,
-        signal_row,
-        signal_enabled,
+        blocker_row,
         door=(door_row, True),
         recipe_row=recipe_row,
         width=width,
@@ -73,8 +68,7 @@ def _build_split_workload(spec, signal_enabled, width=11, recipe_row=0):
     closed_grid = _role_grid(
         resources,
         agents,
-        signal_row,
-        signal_enabled,
+        blocker_row,
         door=(door_row, False),
         recipe_row=recipe_row,
         width=width,
@@ -85,8 +79,7 @@ def _build_split_workload(spec, signal_enabled, width=11, recipe_row=0):
 def _compact_outage_grid(
     resources,
     agent_positions,
-    signal_row,
-    signal_enabled,
+    blocker_row,
     notches=(),
 ):
     """Build a compact 5x7 kitchen with permanently separated movement bays."""
@@ -98,7 +91,7 @@ def _compact_outage_grid(
         rows[y][center_x] = "W"
 
     rows[0][center_x] = "R"
-    rows[signal_row][center_x] = "L" if signal_enabled else "S"
+    rows[blocker_row][center_x] = "N"
     for x, y in notches:
         rows[y][x] = "W"
         rows[y][width - 1 - x] = "W"
@@ -113,14 +106,13 @@ def _compact_outage_grid(
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-def _build_compact_outage_variant(spec, signal_enabled):
-    signal_row, agents, left_resources, notches = spec
+def _build_compact_outage_variant(spec):
+    blocker_row, agents, left_resources, notches = spec
     right_resources = tuple((symbol, (6 - x, y)) for symbol, (x, y) in left_resources)
     normal_grid = _compact_outage_grid(
         left_resources + right_resources,
         agents,
-        signal_row,
-        signal_enabled,
+        blocker_row,
         notches,
     )
     outage_right_resources = [
@@ -130,8 +122,7 @@ def _build_compact_outage_variant(spec, signal_enabled):
     outage_grid = _compact_outage_grid(
         [*left_resources, *outage_right_resources],
         agents,
-        signal_row,
-        signal_enabled,
+        blocker_row,
         notches,
     )
     return [[normal_grid, 40], [outage_grid, 160]]
@@ -187,7 +178,7 @@ _SPLIT_LEFT_BOUNDARY = (
     (3, 6),
 )
 _SPLIT_RIGHT_BOUNDARY = tuple((8 - x, y) for x, y in _SPLIT_LEFT_BOUNDARY)
-_SPLIT_DOOR_SIGNAL_ROWS = (
+_SPLIT_DOOR_BLOCKER_ROWS = (
     (4, 2),
     (3, 1),
     (2, 4),
@@ -218,9 +209,9 @@ _SPLIT_AGENT_STARTS = (
 )
 
 
-def _build_split_catalog_variant(variant_index, signal_enabled):
+def _build_split_catalog_variant(variant_index):
     onions, pots, plates, goals = _SPLIT_WORKLOADS[variant_index - 1]
-    door_row, signal_row = _SPLIT_DOOR_SIGNAL_ROWS[variant_index - 1]
+    door_row, blocker_row = _SPLIT_DOOR_BLOCKER_ROWS[variant_index - 1]
     agents = _SPLIT_AGENT_STARTS[(variant_index - 1) % len(_SPLIT_AGENT_STARTS)]
     left_symbols = ("0",) * onions + ("P",) * pots
     right_symbols = ("B",) * plates + ("X",) * goals
@@ -236,12 +227,12 @@ def _build_split_catalog_variant(variant_index, signal_enabled):
     )
     spec = (
         door_row,
-        signal_row,
+        blocker_row,
         agents,
         tuple(zip(left_symbols, left_positions)),
         tuple(zip(right_symbols, right_positions)),
     )
-    return _build_split_workload(spec, signal_enabled, width=9)
+    return _build_split_workload(spec, width=9)
 
 
 # Outage candidate sources keep the compact 5x7, permanently separated two-bay
@@ -293,7 +284,7 @@ _OUTAGE_AGENT_STARTS = (
 )
 
 
-def _build_outage_catalog_variant(variant_index, signal_enabled):
+def _build_outage_catalog_variant(variant_index):
     onions, pots, plates, goals = _OUTAGE_WORKLOADS[variant_index - 1]
     onion_anchor, pot_anchor = _OUTAGE_ONION_POT_ANCHORS[
         (variant_index - 1) % len(_OUTAGE_ONION_POT_ANCHORS)
@@ -321,7 +312,7 @@ def _build_outage_catalog_variant(variant_index, signal_enabled):
         left_resources,
         (),
     )
-    return _build_compact_outage_variant(spec, signal_enabled)
+    return _build_compact_outage_variant(spec)
 
 
 def _register_role_catalog():
@@ -333,16 +324,10 @@ def _register_role_catalog():
         zip(split_sources, outage_sources)
     ):
         globals()[f"splitnosig_{new_index}"] = _build_split_catalog_variant(
-            split_source, False
-        )
-        globals()[f"splitsig_{new_index}"] = _build_split_catalog_variant(
-            split_source, True
+            split_source
         )
         globals()[f"outagenosig_{new_index}"] = _build_outage_catalog_variant(
-            outage_source, False
-        )
-        globals()[f"outagesig_{new_index}"] = _build_outage_catalog_variant(
-            outage_source, True
+            outage_source
         )
 
 
@@ -370,10 +355,10 @@ def _recipe_switch_grid(spec):
     for y in range(1, height - 1):
         for x in range(1, width - 1):
             rows[y][x] = " "
-        rows[y][center_x] = "S"
+        rows[y][center_x] = "N"
 
     rows[0][center_x] = "R"
-    rows[height - 1][center_x] = "S"
+    rows[height - 1][center_x] = "N"
     if len(set(spec["handoff_rows"])) != 2:
         raise ValueError("Recipe-switch layouts require exactly two handoffs")
     for y in spec["handoff_rows"]:
@@ -745,9 +730,7 @@ _register_distance_switch_catalog()
 
 # Backward-compatible aliases for existing commands and checkpoints.
 split_no_sig = splitnosig_0
-split_sig = splitsig_0
 outage_no_sig = outagenosig_0
-outage_sig = outagesig_0
 
 dynamic_00 = [
     [

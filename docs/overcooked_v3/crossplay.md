@@ -26,14 +26,14 @@ export MPLCONFIGDIR=/tmp
 
 ## 2. 가장 작은 smoke test
 
-아래 명령은 `outagesig_0`의 IPPO seed 4·5 checkpoint를 받아 4개 ordered pair를
+아래 명령은 `outagenosig_0`의 IPPO seed 4·5 checkpoint를 받아 4개 ordered pair를
 각각 1 episode, 2 step만 평가한다. W&B evaluation run은 만들지 않는다.
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO \
-  --layout outagesig_0 \
+  --layout outagenosig_0 \
   --seeds 4 5 \
   --episodes 1 \
   --max-steps 2 \
@@ -52,7 +52,7 @@ python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO \
-  --layout splitsig_0 \
+  --layout splitnosig_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400 \
@@ -71,13 +71,13 @@ sweep처럼 맵마다 별도의 W&B run으로 실행한다.
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO \
-  --layout splitsig_0 \
+  --layout splitnosig_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400 \
   --gpus 0 1 2 3 \
   --output-project cilab-overcooked/overcooked-v3-crossplay \
-  --output-dir saves/crossplay/splitsig_0-ippo
+  --output-dir saves/crossplay/splitnosig_0-ippo
 ```
 
 GPU마다 `--workers-per-gpu`만큼 장시간 유지되는 worker 프로세스를 만들고 pending
@@ -91,7 +91,7 @@ runtime을 재사용한다. 부모
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO \
-  --layout splitsig_0 \
+  --layout splitnosig_0 \
   --gpus 0 \
   --workers-per-gpu 8
 ```
@@ -171,7 +171,7 @@ artifact 안의 모든 최종 vmap policy를 20 episodes, 400 max steps로 평�
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO FCP OTHER_PLAY \
-  --layout splitsig_0 \
+  --layout splitnosig_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400 \
@@ -209,12 +209,12 @@ SP-XP_gap   = SP - XP
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   cilab-overcooked/overcooked-v3-role-coordination \
   --algorithms IPPO \
-  --layout splitsig_0 \
+  --layout splitnosig_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400 \
   --output-project cilab-overcooked/overcooked-v3-crossplay \
-  --output-dir saves/crossplay/splitsig_0-ippo
+  --output-dir saves/crossplay/splitnosig_0-ippo
 ```
 
 같은 명령을 다시 실행하면 `pair_cache.json`에 있는 완료 pair는 건너뛴다. 평가
@@ -274,17 +274,17 @@ model matrix의 표시 label은 `IPPO|s0`처럼 알고리즘과 training seed만
 run ID와 vmap index는 label에서 생략하지만 CSV/JSON의 run, vmap, model ID 필드에는
 그대로 기록한다.
 
-예를 들어 IPPO를 `splitsig_0`에서 평가하면 run 이름은 다음처럼 표시된다. seed,
+예를 들어 IPPO를 `splitnosig_0`에서 평가하면 run 이름은 다음처럼 표시된다. seed,
 vmap, episode, step, GPU 등의 세부 설정은 W&B config에서 확인한다.
 
 ```text
-xp-ippo-splitsig_0
+xp-ippo-splitnosig_0
 ```
 
 기본적으로 각 eval은 다음처럼 독립된 run 폴더 하나를 만든다.
 
 ```text
-saves/crossplay/xp-ippo-splitsig_0-<timestamp>-p<pid>/
+saves/crossplay/xp-ippo-splitnosig_0-<timestamp>-p<pid>/
 ├── artifacts/                    # W&B에서 받은 source checkpoints
 ├── wandb/                        # 이 eval의 W&B SDK local run files
 ├── source/                       # eval Python 및 sweep YAML snapshot

@@ -37,8 +37,6 @@ from jaxmarl.environments.overcooked_v3.layouts import (
 )
 from jaxmarl.environments.overcooked_v3.settings import (
     DELIVERY_REWARD,
-    INDICATOR_ACTIVATION_COST,
-    INDICATOR_ACTIVATION_TIME,
     POT_COOK_TIME,
     SHAPED_REWARDS,
 )
@@ -128,8 +126,6 @@ class OvercookedV3Base(MultiAgentEnv):
         op_ingredient_permutations: Optional[List[int]] = None,
         initial_state_buffer: Optional[State] = None,
         force_path_planning: bool = False,
-        signal_activation_time: int = INDICATOR_ACTIVATION_TIME,
-        signal_activation_cost: float = INDICATOR_ACTIVATION_COST,
     ):
         """
         Initializes the OvercookedV3Base environment.
@@ -149,18 +145,6 @@ class OvercookedV3Base(MultiAgentEnv):
             initial_state_buffer (State): Initial state buffer to be used to reset the environment. On each reset, a state from this buffer will be used.
             force_path_planning (bool): Whether to force path planning in the environment. Used to access featurized obs manually.
         """
-
-        if isinstance(signal_activation_time, bool) or not isinstance(
-            signal_activation_time, int
-        ):
-            raise ValueError("signal_activation_time must be a positive integer")
-        if signal_activation_time <= 0:
-            raise ValueError("signal_activation_time must be a positive integer")
-        if signal_activation_cost < 0:
-            raise ValueError("signal_activation_cost must be non-negative")
-
-        self.signal_activation_time = signal_activation_time
-        self.signal_activation_cost = float(signal_activation_cost)
 
         if isinstance(layout, str):
             if layout not in overcooked_v3_base_layouts:
@@ -575,8 +559,11 @@ class OvercookedV3Base(MultiAgentEnv):
             match obs_type:
                 case ObservationType.DEFAULT:
                     num_ingredients = self.layout.num_ingredients
-                    # 17(Invariable objects[5 position and directions for each agents, wall, goal, pot, plate pile, recipe indicator, button, pot timer] + 4*(num_ingredients+2) objects[Inventory for each agents, recipe, grid] + N(ingredient pile))
-                    num_layers = 17 + num_ingredients + 4 * (num_ingredients + 2)
+                    # 16(Invariable objects[5 position and directions for each
+                    # agent, wall, goal, pot, plate pile, recipe indicator,
+                    # pot timer] + 4*(num_ingredients+2) objects[Inventory for
+                    # each agent, recipe, grid] + N(ingredient pile))
+                    num_layers = 16 + num_ingredients + 4 * (num_ingredients + 2)
 
                     if self.indicate_successful_delivery:
                         num_layers += 1
@@ -665,14 +652,13 @@ class OvercookedV3Base(MultiAgentEnv):
                 StaticObject.GOAL,
                 StaticObject.POT,
                 StaticObject.RECIPE_INDICATOR,
-                StaticObject.BUTTON_RECIPE_INDICATOR,
                 StaticObject.PLATE_PILE,
             ]
         )
         static_layers = static_objects[..., None] == static_encoding
         static_layers = static_layers.at[..., 0].set(
             static_layers[..., 0]
-            | (static_objects == StaticObject.INERT_SIGNAL_INDICATOR)
+            | (static_objects == StaticObject.BLOCKER)
         )
         # print("static_layers: ", static_layers.shape)
 
@@ -694,13 +680,7 @@ class OvercookedV3Base(MultiAgentEnv):
         # print("ingredients_layers: ", ingredients_layers.shape)
 
         recipe_indicator_mask = static_objects == StaticObject.RECIPE_INDICATOR
-        button_recipe_indicator_mask = (
-            static_objects == StaticObject.BUTTON_RECIPE_INDICATOR
-        ) & (extra_info > 0)
-
-        recipe_ingridients = jnp.where(
-            recipe_indicator_mask | button_recipe_indicator_mask, state.recipe, 0
-        )
+        recipe_ingridients = jnp.where(recipe_indicator_mask, state.recipe, 0)
         # recipe_layers = _ingridient_layers(recipe_ingridients)
         # print("recipe_layers: ", recipe_layers.shape)
 
@@ -1222,37 +1202,7 @@ class OvercookedV3Base(MultiAgentEnv):
 
                 return jnp.array([cell[0], new_ingredients, new_extra])
 
-            def _indicator(cell):
-                new_extra = jnp.clip(cell[2] - 1, min=0)
-                return cell.at[2].set(new_extra)
-
-            # return jax.lax.cond(is_pot, _cook, lambda x: x, cell)
-
-            branches = (
-                jnp.array(
-                    [
-                        StaticObject.POT,
-                        StaticObject.BUTTON_RECIPE_INDICATOR,
-                    ]
-                )
-                == cell[0]
-            )
-
-            branch_idx = jax.lax.select(
-                jnp.any(branches),
-                jnp.argmax(branches) + 1,
-                0,
-            )
-
-            return jax.lax.switch(
-                branch_idx,
-                [
-                    lambda x: x,
-                    _cook,
-                    _indicator,
-                ],
-                cell,
-            )
+            return jax.lax.cond(cell[0] == StaticObject.POT, _cook, lambda x: x, cell)
 
         new_grid = jax.vmap(jax.vmap(_timestep_wrapper))(new_grid)
 
@@ -1321,10 +1271,6 @@ class OvercookedV3Base(MultiAgentEnv):
         object_is_pot = interact_item == StaticObject.POT
         object_is_goal = interact_item == StaticObject.GOAL
         object_is_wall = interact_item == StaticObject.WALL
-        onject_is_button_recipe_indicator = (
-            interact_item == StaticObject.BUTTON_RECIPE_INDICATOR
-        )
-
         object_has_no_ingredients = interact_ingredients == 0
 
         inventory_is_empty = inventory == 0
@@ -1357,12 +1303,6 @@ class OvercookedV3Base(MultiAgentEnv):
             object_is_pile * inventory_is_empty
             + successful_dish_pickup
             + object_is_wall * ~object_has_no_ingredients * inventory_is_empty
-        )
-
-        successful_indicator_activation = (
-            onject_is_button_recipe_indicator
-            * inventory_is_empty
-            * object_has_no_ingredients
         )
 
         # print("successful_pickup: ", successful_pickup)
@@ -1430,11 +1370,7 @@ class OvercookedV3Base(MultiAgentEnv):
         )
 
         use_pot_extra = successful_pot_start_cooking | auto_cook
-        new_extra = (
-            use_pot_extra * POT_COOK_TIME
-            + successful_indicator_activation * (self.signal_activation_time + 1)
-            + ~use_pot_extra * ~successful_indicator_activation * interact_extra
-        )
+        new_extra = use_pot_extra * POT_COOK_TIME + ~use_pot_extra * interact_extra
 
         new_cell = jnp.array([interact_item, new_ingredients, new_extra])
 
@@ -1468,9 +1404,6 @@ class OvercookedV3Base(MultiAgentEnv):
             )
             * DELIVERY_REWARD
         )
-
-        # Cost for activating a button recipe indicator
-        reward -= successful_indicator_activation * self.signal_activation_cost
 
         consumed_legacy_delivery = successful_delivery & is_legacy_recipe
         new_legacy_recipe_deliveries_remaining = jnp.maximum(

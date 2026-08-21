@@ -19,11 +19,10 @@ class StaticObject(IntEnum):
     GOAL = 4
     POT = 5
     RECIPE_INDICATOR = 6
-    BUTTON_RECIPE_INDICATOR = 7
-    INERT_SIGNAL_INDICATOR = 8
+    BLOCKER = 7
 
-    PLATE_PILE = 9
-    INGREDIENT_PILE_BASE = 10
+    PLATE_PILE = 8
+    INGREDIENT_PILE_BASE = 9
 
     @staticmethod
     def is_ingredient_pile(obj):

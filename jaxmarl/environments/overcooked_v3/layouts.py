@@ -133,7 +133,7 @@ WWWWWBWW
 overcookedv2_demo = """
 WWPWW
 0A A1
-L   R
+N   R
 WBWXW
 """
 
@@ -142,18 +142,18 @@ WBWXW
 grounded_coord_simple = """
 WW2WWWWW
 W  WB  0
-R ALPA X
+R ANPA X
 W  WB  1
 WW2WWWWW
 """
 grounded_coord_ring = """
 WWW2R2WWW
 W       W
-W WWLWW W
+W WWNWW W
 2 0   B 2
 RAXAP X R
 2 1   B 2
-W WWLWW W
+W WWNWW W
 W       W
 WWW2R2WWW
 """
@@ -248,8 +248,7 @@ class Layout:
         B: plate (bowl) pile
         P: pot location
         R: recipe of the day indicator
-        L: button recipe indicator
-        S: non-storage blank blocker used where NoSig has no button
+        N: non-storage blocker
         0-9: Ingredient x pile
         ' ' (space) : empty cell
 
@@ -285,8 +284,7 @@ class Layout:
             "B": StaticObject.PLATE_PILE,
             "P": StaticObject.POT,
             "R": StaticObject.RECIPE_INDICATOR,
-            "L": StaticObject.BUTTON_RECIPE_INDICATOR,
-            "S": StaticObject.INERT_SIGNAL_INDICATOR,
+            "N": StaticObject.BLOCKER,
         }
 
         for r in range(10):

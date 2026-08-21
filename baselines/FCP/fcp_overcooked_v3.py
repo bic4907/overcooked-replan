@@ -60,10 +60,6 @@ DEBUG_METRIC_NAMES = {
     "layout_change_tile_count": "layout_change_tile_count",
     "wall_tile_count": "wall_tile_count",
     "ingredient_pile_count": "ingredient_pile_count",
-    "signal_tile_count": "signal_tile_count",
-    "signal_steps_remaining": "signal_steps_remaining",
-    "signal_active": "signal_active",
-    "signal_activation_events": "signal_activation_events",
     "left_workload_tile_count": "left_workload_tile_count",
     "right_workload_tile_count": "right_workload_tile_count",
     "left_ingredient_pile_count": "left_ingredient_pile_count",
@@ -236,12 +232,8 @@ def _wandb_metadata(config):
     layout_name = config["ENV_KWARGS"]["layout"]
     condition = layout_name
     experiment = config.get("EXPERIMENT", "overcooked_v3")
-    signal_tag = "Sig" if config.get("SIGNAL_ENABLED", False) else "NoSig"
-
     tags = list(config.get("WANDB_TAGS") or [])
-    tags.extend(
-        [algorithm, architecture.upper(), "OvercookedV3", experiment, signal_tag]
-    )
+    tags.extend([algorithm, architecture.upper(), "OvercookedV3", experiment])
     tags = list(dict.fromkeys(tags))
 
     group = str(config.get("WANDB_GROUP") or experiment)
@@ -371,7 +363,6 @@ def _record_final_episode(config, params, video_path):
         tile_size=24,
         seconds_per_step=1.0 / fps,
         transition_warning_steps=env.transition_warning_steps,
-        signal_activation_time=env.signal_activation_time,
     )
     visualizer.save_video(
         states,
@@ -1163,9 +1154,6 @@ def make_train(config):
                 ],
                 "wall_tile_count": traj_batch.info["wall_tile_count"][-1],
                 "ingredient_pile_count": traj_batch.info["ingredient_pile_count"][-1],
-                "signal_tile_count": traj_batch.info["signal_tile_count"][-1],
-                "signal_steps_remaining": traj_batch.info["signal_steps_remaining"][-1],
-                "signal_active": traj_batch.info["signal_active"][-1],
                 "left_workload_tile_count": traj_batch.info["left_workload_tile_count"][
                     -1
                 ],
@@ -1190,9 +1178,6 @@ def make_train(config):
                 ),
                 "recipe_change_events": (
                     traj_batch.info["recipe_changed"].sum() / env.num_agents
-                ),
-                "signal_activation_events": (
-                    traj_batch.info["signal_activated"].sum() / env.num_agents
                 ),
             }
             rng = update_state[-1]
