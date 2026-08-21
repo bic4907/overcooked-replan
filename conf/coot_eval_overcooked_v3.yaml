@@ -1,0 +1,76 @@
+defaults:
+  - _self_
+  - scenario: dynamic_00
+
+ENV_NAME: overcooked_v3
+ALGORITHM: CooT
+METHOD: CooT
+EGO_KIND: coot  # coot or fixed (FCP/Self-play comparison)
+ENV_KWARGS:
+  layout: dynamic_00
+  random_agent_positions: false
+  include_transition_countdown: true
+  include_layout_change_mask: true
+  transition_warning_steps: 20
+
+CHECKPOINT: ${oc.env:COOT_CHECKPOINT,null}
+CHECKPOINT_ROOT: ${oc.env:COOT_CHECKPOINT_ROOT,saves/coot_train}
+PARTNER_MANIFEST: ${oc.env:COOT_PARTNER_MANIFEST,null}
+PARTNER_MANIFEST_ROOT: ${oc.env:COOT_PARTNER_MANIFEST_ROOT,manifests/coot/eval}
+PARTNER_LIMIT: null
+# Paper-matched final evaluation must use a third population that was used by
+# neither gradient training nor validation/early stopping.
+PARTNER_SPLIT: test
+REQUIRE_PARTNER_SPLIT: true
+REQUIRE_REFERENCE_RETURN: true
+
+# Set these only with EGO_KIND=fixed. The evaluator then emits exactly the same
+# episode/switch metrics for FCP or Self-play.
+FIXED_EGO_CHECKPOINT: null
+FIXED_EGO_CHECKPOINT_ROOT: ${oc.env:COOT_FIXED_CHECKPOINT_ROOT,saves}
+# Optional Python format/glob string with {layout}, {seed}, {architecture}, and
+# {vmap_index}. Null selects this repository's standard FCP/IPPO filename.
+FIXED_EGO_CHECKPOINT_PATTERN: null
+FIXED_EGO_VMAP_INDEX: 0
+FIXED_EGO_ARCHITECTURE: rnn
+FIXED_EGO_ACTIVATION: relu
+FIXED_EGO_FC_DIM_SIZE: 128
+FIXED_EGO_GRU_HIDDEN_DIM: 128
+
+EPISODES_PER_PARTNER: 50
+MAX_STEPS: 450
+# V3 changes maps inside an episode. Commit completed transitions to the CooT
+# context every N steps so behavior/reward evidence affects the next action
+# chunk. Set to 450 for release-style full-horizon episode-boundary updates.
+CONTEXT_UPDATE_STEPS: 20
+STOCHASTIC: true
+# Separate checkpoint/training seed from environment/action RNG. This keeps the
+# evaluation trajectory seed identical across CooT, FCP, and Self-play.
+SEED: 0  # Backward-compatible training-seed override for W&B sweeps.
+TRAINING_SEED: ${SEED}
+EVALUATION_SEED: 0
+
+EARLY_WINDOW: 5
+LATE_WINDOW: 5
+SLOPE_EPISODES: 15
+ADAPTATION_TARGET_FRACTION: 0.9
+TARGET_ROLLING_WINDOW: 3
+
+SWITCH_EVAL: true
+SWITCH_INTERVAL: 10
+MAX_SWITCH_PAIRS: 6
+# Paper Table 4 uses the full non-switching return and a one-episode window.
+RECOVERY_TARGET_FRACTION: 1.0
+RECOVERY_ROLLING_WINDOW: 1
+
+# Extra forward pass every N steps with an empty context. Its JSD from the real
+# prediction is a direct debug signal for whether CooT is using episode context.
+CONTEXT_ABLATION_STRIDE: 20
+
+OUTPUT_DIR: ${oc.env:COOT_EVAL_OUTPUT_ROOT,saves/coot_eval/adaptation}
+ENTITY: ${oc.env:WANDB_ENTITY,cilab-overcooked}
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-coot-eval}
+wandb_mode: ${oc.env:WANDB_MODE,online}
+WANDB_GROUP: null
+WANDB_TAGS: [CooT, adaptation]
+RUN_NAME: null

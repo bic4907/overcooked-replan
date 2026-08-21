@@ -1,0 +1,35 @@
+program: baselines/CooT/train_overcooked_v3.py
+name: coot-role-scenarios
+method: grid
+metric:
+  goal: minimize
+  name: validation/loss
+
+parameters:
+  scenario:
+    values:
+      - split_0
+      - split_1
+      - split_2
+      - outage_0
+      - outage_1
+      - outage_2
+      - recipe_switch_0
+      - recipe_switch_1
+      - recipe_switch_2
+      - distance_switch_0
+      - distance_switch_1
+      - distance_switch_2
+  SEED:
+    # Match the six training seeds used by the existing FCP/Self-play sweeps.
+    values: [0, 1, 2, 3, 4, 5]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-coot-train
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

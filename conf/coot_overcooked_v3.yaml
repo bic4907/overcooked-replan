@@ -1,0 +1,72 @@
+defaults:
+  - _self_
+  - scenario: dynamic_00
+
+ENV_NAME: overcooked_v3
+ALGORITHM: CooT
+ARCHITECTURE: transformer
+ENV_KWARGS:
+  layout: dynamic_00
+
+# One directory per layout, produced by collect_overcooked_v3.py.
+DATASET_ROOT: ${oc.env:COOT_DATASET_ROOT,datasets/coot}
+DATASET_PATH: null
+SHARD_CACHE_SIZE: 2
+
+# Paper/supplementary architecture.
+CONTEXT_EPISODES: 5
+NUM_QUERY_STATES: 6
+EMBEDDING_DIM: 128
+NUM_LAYERS: 4
+NUM_HEADS: 2
+DROPOUT: 0.3
+ATTENTION_DROPOUT: 0.21
+LAYER_NORM_EPSILON: 1e-5
+
+LR: 5e-5
+# The supplementary scheduler advances once per epoch, not per minibatch.
+LR_WARMUP_FRACTION: 0.1
+WEIGHT_DECAY: 1e-3
+GRAD_CLIP: 0.25
+LABEL_SMOOTHING: 0.0
+MAX_EPOCHS: 70
+PATIENCE: 25
+
+# Paper/supplementary default. V3's 450-step context is 2.25x longer than the
+# original 200-step sequence; override this only if the target GPU cannot fit it.
+BATCH_SIZE: 120
+EXAMPLES_PER_EPOCH: null
+# Prefer manifest pairs with split=validation (five in the release). If none
+# exist, the dataset loader uses its validation_fraction trajectory holdout.
+VALIDATION_BATCHES: 32
+
+# Released augmentation/masking behavior.
+ROLLOUT_MASKING: true
+ROLLOUT_MASK_EXPONENT: 1.5
+STEP_MASKING: true
+CURRICULUM_MASKING: true
+MIN_MASK_STEPS_PER_EPISODE: 10
+MAX_MASK_STEPS_PER_EPISODE: 70
+MASK_SCHEDULE: logarithmic
+CHUNK_SHUFFLE: true
+CHUNK_SIZE: 20
+
+# Deployment-only metadata saved in the checkpoint sidecar. The released code
+# updates context per episode; V3 defaults to refreshing the current partial
+# episode slot every 20 transitions because its map may change within one
+# 450-step episode.
+RUNTIME_CONTEXT_UPDATE_STEPS: 20
+
+SEED: 2
+# Keep CooT checkpoints out of the generic SP/FCP save namespace. Evaluation
+# discovers recursively, so this isolation does not change checkpoint names.
+SAVES_DIR: ${oc.env:COOT_TRAIN_SAVES_DIR,saves/coot_train}
+EXPERIMENT_FOLDER: coot
+upload_final_checkpoint: true
+
+ENTITY: ${oc.env:WANDB_ENTITY,cilab-overcooked}
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-coot-train}
+wandb_mode: ${oc.env:WANDB_MODE,online}
+WANDB_GROUP: null
+WANDB_TAGS: [CooT]
+RUN_NAME: null

@@ -1,0 +1,96 @@
+defaults:
+  - _self_
+  - recording: disabled
+  - scenario: dynamic_00
+
+ENV_NAME: overcooked_v3
+ALGORITHM: HSP
+ARCHITECTURE: rnn
+ENV_KWARGS:
+  layout: dynamic_00
+  max_steps: 450
+  random_agent_positions: false
+  include_transition_countdown: true
+  include_layout_change_mask: true
+  include_event_vector: true
+  transition_warning_steps: 20
+
+# ZSC-Eval HSP stage-1 optimizer/rollout scale where the existing V3 IPPO has
+# a direct analogue.
+LR: 0.0005
+ANNEAL_LR: false
+LR_WARMUP: 0.0
+NUM_ENVS: 100
+NUM_STEPS: 150
+UPDATE_EPOCHS: 20
+NUM_MINIBATCHES: 1
+TOTAL_TIMESTEPS: 5000000
+REW_SHAPING_HORIZON: 5000000  # Bypassed when HSP.ENABLED=true.
+
+FC_DIM_SIZE: 64
+GRU_HIDDEN_DIM: 64
+CLIP_EPS: 0.2
+# Supplementary train_bias_agents.sh piecewise-linear entropy schedule. The
+# scalar remains as a backward-compatible fallback for configs without the
+# two schedule fields; ENT_COEFS takes precedence here.
+ENT_COEF: 0.01
+ENT_COEFS: [0.2, 0.05, 0.001]
+ENT_COEF_HORIZONS: [0, 600000, 1000000]
+GAMMA: 0.99
+GAE_LAMBDA: 0.95
+SCALE_CLIP_EPS: false
+VF_COEF: 1.0
+MAX_GRAD_NORM: 10.0
+ACTIVATION: relu
+
+SEED: 0
+NUM_SEEDS: 1
+LOG_INTERVAL: 10
+CHECKPOINT_INTERVAL: 0
+# CooT collection needs both skill levels. PORTING NOTE: legacy extraction
+# chooses intermediate skill from evaluation-return targets; those mappings are
+# unavailable for V3, so 0.5 of training updates is the explicit mid proxy.
+# Final is saved by the trainer even though 1.0 is not emitted as an
+# intermediate update.
+CHECKPOINT_FRACTIONS: [0.5, 1.0]
+upload_final_checkpoint: true
+
+SAVES_DIR: ${oc.env:COOT_POPULATION_SAVES_DIR,saves/coot_population}
+EXPERIMENT_FOLDER: hsp_population
+
+HSP:
+  ENABLED: true
+  # auto maps recipe_switch_* -> multi_recipe and every other V3 scenario ->
+  # other. split_* is deliberately not treated as Bothway Coordination.
+  PROFILE: auto
+  CANDIDATE_ID: 0
+  MAX_ACTIVE_BIAS_TERMS: 3
+  BIASED_AGENT: agent_0
+  RESPONSE_AGENT: agent_1
+  # Match supplementary --random_index: these are logical roles whose
+  # physical seats are sampled independently for each vectorized episode.
+  RANDOMIZE_ROLE: true
+  MID_CHECKPOINT_FRACTION: 0.5
+  FINAL_CHECKPOINT_FRACTION: 1.0
+  SHARED_POLICY_APPROXIMATION: true
+
+# PORTING NOTE: supplementary `--share_policy` is a store_false flag, so the
+# released run uses separated MAPPO actors and saves them independently. This
+# V3 port reuses the repository's shared IPPO trainer: logical agent 0 receives
+# the Table-5 candidate utility, logical agent 1 receives task sparse reward,
+# and --random_index is reproduced by per-episode physical-seat swaps. Both
+# roles still update one shared parameter tree. The candidate sidecar and W&B
+# artifact mark this approximation explicitly.
+NOTES: >-
+  CooT HSP stage-1 population port. Shared-IPPO approximation; logical agent_0
+  uses resolved Table-5 utility, logical agent_1 uses sparse task reward, and
+  physical seats swap per episode. Entropy follows the supplementary
+  piecewise-linear 0.2/0.05/0.001 schedule and remains 0.001 after one million
+  steps. Mid/final checkpoints are bundled into one run artifact.
+
+ENTITY: ${oc.env:WANDB_ENTITY,cilab-overcooked}
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-coot-population}
+wandb_mode: ${oc.env:WANDB_MODE,online}
+WANDB_GROUP: null
+WANDB_TAGS: [CooT, HSP, Population]
+RUN_NAME: null

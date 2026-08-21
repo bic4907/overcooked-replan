@@ -31,6 +31,10 @@ from jaxmarl.environments.overcooked_v3.common import (
     Position,
     StaticObject,
 )
+from jaxmarl.environments.overcooked_v3.events import (
+    OvercookedV3Event,
+    empty_event_vector,
+)
 from jaxmarl.environments.overcooked_v3.layouts import (
     Layout,
     overcooked_v3_base_layouts,
@@ -126,6 +130,7 @@ class OvercookedV3Base(MultiAgentEnv):
         op_ingredient_permutations: Optional[List[int]] = None,
         initial_state_buffer: Optional[State] = None,
         force_path_planning: bool = False,
+        include_event_vector: bool = False,
     ):
         """
         Initializes the OvercookedV3Base environment.
@@ -144,6 +149,9 @@ class OvercookedV3Base(MultiAgentEnv):
             op_ingredient_permutations (list): List of ingredient indices to permute in the observation (Fixed per agent in one episode).
             initial_state_buffer (State): Initial state buffer to be used to reset the environment. On each reset, a state from this buffer will be used.
             force_path_planning (bool): Whether to force path planning in the environment. Used to access featurized obs manually.
+            include_event_vector (bool): Whether info exposes each agent's
+                29-dimensional CooT/HSP event vector. Disabled by default to
+                preserve the existing Overcooked V3 info API.
         """
 
         if isinstance(layout, str):
@@ -196,6 +204,7 @@ class OvercookedV3Base(MultiAgentEnv):
         self.sample_recipe_on_delivery = jnp.array(
             sample_recipe_on_delivery, dtype=jnp.bool_
         )
+        self.include_event_vector = bool(include_event_vector)
 
         self.enclosed_spaces = compute_enclosed_spaces(
             layout.static_objects == StaticObject.EMPTY,
@@ -226,7 +235,9 @@ class OvercookedV3Base(MultiAgentEnv):
             indices=jnp.array([actions[f"agent_{i}"] for i in range(self.num_agents)])
         )
 
-        state, reward, shaped_rewards = self.step_agents(key, state, acts)
+        state, reward, shaped_rewards, event_vectors = self.step_agents(
+            key, state, acts
+        )
 
         state = state.replace(step=state.step + 1)
 
@@ -240,16 +251,23 @@ class OvercookedV3Base(MultiAgentEnv):
             f"agent_{i}": shaped_reward
             for i, shaped_reward in enumerate(shaped_rewards)
         }
+        event_vectors = {
+            f"agent_{i}": event_vector for i, event_vector in enumerate(event_vectors)
+        }
 
         dones = {f"agent_{i}": done for i in range(self.num_agents)}
         dones["__all__"] = done
+
+        info = {"shaped_reward": shaped_rewards}
+        if self.include_event_vector:
+            info["event_vector"] = event_vectors
 
         return (
             lax.stop_gradient(obs),
             lax.stop_gradient(state),
             rewards,
             dones,
-            {"shaped_reward": shaped_rewards},
+            info,
         )
 
     @partial(jax.jit, static_argnums=(0,))
@@ -657,8 +675,7 @@ class OvercookedV3Base(MultiAgentEnv):
         )
         static_layers = static_objects[..., None] == static_encoding
         static_layers = static_layers.at[..., 0].set(
-            static_layers[..., 0]
-            | (static_objects == StaticObject.BLOCKER)
+            static_layers[..., 0] | (static_objects == StaticObject.BLOCKER)
         )
         # print("static_layers: ", static_layers.shape)
 
@@ -731,9 +748,7 @@ class OvercookedV3Base(MultiAgentEnv):
         def _agent_obs(agent_id):
             ingredient_mapping = None
             if self.op_ingredient_permutations:
-                ingredient_mapping = state.ingredient_permutations[
-                    agent_id
-                ]  # pyright: ignore[reportOptionalSubscript]
+                ingredient_mapping = state.ingredient_permutations[agent_id]  # pyright: ignore[reportOptionalSubscript]
 
             agent_layers = jax.vmap(
                 partial(_agent_layers, ingredient_mapping=ingredient_mapping)
@@ -924,9 +939,7 @@ class OvercookedV3Base(MultiAgentEnv):
 
                 # pi_closest_pot_{j}_{is_empty|is_full|is_cooking|is_ready}
                 pot_empty = pot_ing == DynamicObject.EMPTY
-                pot_full = (
-                    DynamicObject.ingredient_count(pot_ing) >= self.recipe_size
-                )
+                pot_full = DynamicObject.ingredient_count(pot_ing) >= self.recipe_size
                 pot_cooking = pot_timer > 0
                 pot_ready = (pot_ing & DynamicObject.COOKED) == DynamicObject.COOKED
 
@@ -1064,7 +1077,12 @@ class OvercookedV3Base(MultiAgentEnv):
         key: PRNGKeyArray,
         state: State,
         actions: jax.Array,
-    ) -> Tuple[State, Float[Array, ""], Float[Array, " num_agents"]]:
+    ) -> Tuple[
+        State,
+        Float[Array, ""],
+        Float[Array, " num_agents"],
+        Float[Array, "num_agents event"],
+    ]:
         grid = state.grid
 
         # print("actions: ", actions)
@@ -1156,6 +1174,7 @@ class OvercookedV3Base(MultiAgentEnv):
                     new_correct_delivery,
                     interact_reward,
                     shaped_reward,
+                    event_vector,
                     new_legacy_deliveries,
                 ) = self.process_interact(
                     grid,
@@ -1172,10 +1191,14 @@ class OvercookedV3Base(MultiAgentEnv):
                     reward + interact_reward,
                     new_legacy_deliveries,
                 )
-                return carry, (new_agent, shaped_reward)
+                return carry, (new_agent, shaped_reward, event_vector)
 
             return jax.lax.cond(
-                is_interact, _interact, lambda c, a: (c, (a, 0.0)), carry, agent
+                is_interact,
+                _interact,
+                lambda c, a: (c, (a, 0.0, empty_event_vector())),
+                carry,
+                agent,
             )
 
         carry = (
@@ -1186,11 +1209,35 @@ class OvercookedV3Base(MultiAgentEnv):
         )
         xs = (new_agents, actions)
         (
-            new_grid,
-            new_correct_delivery,
-            reward,
-            new_legacy_deliveries,
-        ), (new_agents, shaped_rewards) = jax.lax.scan(_interact_wrapper, carry, xs)
+            (
+                new_grid,
+                new_correct_delivery,
+                reward,
+                new_legacy_deliveries,
+            ),
+            (new_agents, shaped_rewards, event_vectors),
+        ) = jax.lax.scan(_interact_wrapper, carry, xs)
+
+        # The supplementary event vocabulary distinguishes an attempted move
+        # from a blocked move.  Movement/stay attribution therefore happens
+        # after collision and swap resolution, while all object attribution is
+        # produced atomically inside process_interact above.
+        is_movement = actions <= OvercookedActionsEnum.up
+        is_stay = actions == OvercookedActionsEnum.stay
+        position_unchanged = (state.agents.pos.x == new_agents.pos.x) & (
+            state.agents.pos.y == new_agents.pos.y
+        )
+        direction_unchanged = state.agents.dir == new_agents.dir
+        is_idle_movement = is_movement & position_unchanged & direction_unchanged
+        event_vectors = event_vectors.at[:, OvercookedV3Event.MOVEMENT].set(
+            is_movement.astype(jnp.float32)
+        )
+        event_vectors = event_vectors.at[:, OvercookedV3Event.STAY].set(
+            is_stay.astype(jnp.float32)
+        )
+        event_vectors = event_vectors.at[:, OvercookedV3Event.IDLE_MOVEMENT].set(
+            is_idle_movement.astype(jnp.float32)
+        )
 
         # Update extra info:
         def _timestep_wrapper(cell):
@@ -1222,9 +1269,7 @@ class OvercookedV3Base(MultiAgentEnv):
                 agents=new_agents,
                 grid=new_grid,
                 recipe=new_recipe,
-                next_recipe=jnp.where(
-                    sample_new_recipe, new_recipe, state.next_recipe
-                ),
+                next_recipe=jnp.where(sample_new_recipe, new_recipe, state.next_recipe),
                 previous_recipe=jnp.where(
                     sample_new_recipe, state.recipe, state.previous_recipe
                 ),
@@ -1235,6 +1280,7 @@ class OvercookedV3Base(MultiAgentEnv):
             ),
             reward,
             shaped_rewards,
+            event_vectors,
         )
 
     def process_interact(
@@ -1245,13 +1291,22 @@ class OvercookedV3Base(MultiAgentEnv):
         recipe: jax.Array,
         previous_recipe: jax.Array,
         legacy_recipe_deliveries_remaining: jax.Array,
-    ) -> Tuple[jax.Array, Agent, jax.Array, jax.Array, jax.Array, jax.Array]:
+    ) -> Tuple[
+        jax.Array,
+        Agent,
+        jax.Array,
+        jax.Array,
+        jax.Array,
+        jax.Array,
+        jax.Array,
+    ]:
         """Assume agent took interact actions. Result depends on what agent is facing and what it is holding."""
 
         inventory = agent.inventory
         fwd_pos = agent.get_fwd_pos()
 
         shaped_reward = jnp.array(0, dtype=float)
+        event_vector = empty_event_vector()
 
         interact_cell = grid[fwd_pos.y, fwd_pos.x]
 
@@ -1430,12 +1485,156 @@ class OvercookedV3Base(MultiAgentEnv):
         )
 
         correct_delivery = successful_delivery & is_correct_recipe
+
+        # CooT/HSP event attribution.  These predicates reuse the exact
+        # success conditions that mutate the grid and inventory above; no
+        # lossy pre/post-state inference is involved.
+        onion = DynamicObject.ingredient(0)
+        tomato = DynamicObject.ingredient(1)
+        inventory_is_onion = inventory == onion
+        inventory_is_tomato = inventory == tomato
+        counter_drop = object_is_wall & object_has_no_ingredients & ~inventory_is_empty
+        counter_pickup = (
+            object_is_wall & ~object_has_no_ingredients & inventory_is_empty
+        )
+        pickup_onion_from_dispenser = (
+            object_is_ingredient_pile & inventory_is_empty & (pile_ingredient == onion)
+        )
+        pickup_tomato_from_dispenser = (
+            object_is_ingredient_pile & inventory_is_empty & (pile_ingredient == tomato)
+        )
+        pickup_dish_from_dispenser = object_is_plate_pile & inventory_is_empty
+
+        # With one active V3 recipe, a placement is viable exactly when the
+        # resulting pot remains a prefix of that recipe.  Every viable prefix
+        # also preserves the highest attainable order value and is therefore
+        # optimal under the supplementary definitions.  This is the closest
+        # V3 analogue to the release's multi-order predicates.
+        pot_was_viable = jnp.array(True)
+        pot_is_viable = jnp.array(True)
+        for ingredient_index in range(self.layout.num_ingredients):
+            shift = 2 + 2 * ingredient_index
+            old_count = (interact_ingredients >> shift) & 0x3
+            new_count = (new_ingredients >> shift) & 0x3
+            recipe_count = (recipe >> shift) & 0x3
+            pot_was_viable &= old_count <= recipe_count
+            pot_is_viable &= new_count <= recipe_count
+
+        viable_placement = successful_pot_placement & pot_is_viable
+        optimal_placement = viable_placement
+        catastrophic_placement = (
+            successful_pot_placement & pot_was_viable & ~pot_is_viable
+        )
+        useless_placement = successful_pot_placement & ~pot_was_viable
+        delivered_ingredient_count = DynamicObject.ingredient_count(inventory)
+        successful_interact = (
+            successful_pickup
+            | successful_drop
+            | successful_delivery
+            | successful_pot_start_cooking
+        )
+
+        event_vector = event_vector.at[OvercookedV3Event.PUT_ONION_ON_COUNTER].set(
+            (counter_drop & inventory_is_onion).astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.PUT_TOMATO_ON_COUNTER].set(
+            (counter_drop & inventory_is_tomato).astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.PUT_DISH_ON_COUNTER].set(
+            (counter_drop & (inventory == DynamicObject.PLATE)).astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.PUT_SOUP_ON_COUNTER].set(
+            (counter_drop & inventory_is_dish).astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.PICKUP_ONION_FROM_COUNTER].set(
+            (counter_pickup & (interact_ingredients == onion)).astype(jnp.float32)
+        )
+        event_vector = event_vector.at[
+            OvercookedV3Event.PICKUP_ONION_FROM_DISPENSER
+        ].set(pickup_onion_from_dispenser.astype(jnp.float32))
+        event_vector = event_vector.at[
+            OvercookedV3Event.PICKUP_TOMATO_FROM_COUNTER
+        ].set((counter_pickup & (interact_ingredients == tomato)).astype(jnp.float32))
+        event_vector = event_vector.at[
+            OvercookedV3Event.PICKUP_TOMATO_FROM_DISPENSER
+        ].set(pickup_tomato_from_dispenser.astype(jnp.float32))
+        event_vector = event_vector.at[OvercookedV3Event.PICKUP_DISH_FROM_COUNTER].set(
+            (counter_pickup & (interact_ingredients == DynamicObject.PLATE)).astype(
+                jnp.float32
+            )
+        )
+        event_vector = event_vector.at[
+            OvercookedV3Event.PICKUP_DISH_FROM_DISPENSER
+        ].set(pickup_dish_from_dispenser.astype(jnp.float32))
+        event_vector = event_vector.at[OvercookedV3Event.PICKUP_SOUP_FROM_COUNTER].set(
+            (
+                counter_pickup & ((interact_ingredients & DynamicObject.COOKED) != 0)
+            ).astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.USEFUL_DISH_PICKUP].set(
+            (
+                pickup_dish_from_dispenser
+                & no_plates_on_counters
+                & is_plate_pickup_useful
+            ).astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.SOUP_PICKUP].set(
+            successful_dish_pickup.astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.PLACEMENT_IN_POT].set(
+            successful_pot_placement.astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.VIABLE_PLACEMENT].set(
+            viable_placement.astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.OPTIMAL_PLACEMENT].set(
+            optimal_placement.astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.CATASTROPHIC_PLACEMENT].set(
+            catastrophic_placement.astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.USELESS_PLACEMENT].set(
+            useless_placement.astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.POTTING_ONION].set(
+            (successful_pot_placement & inventory_is_onion).astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.POTTING_TOMATO].set(
+            (successful_pot_placement & inventory_is_tomato).astype(jnp.float32)
+        )
+        # The release's ``cook`` feature marks cooking start. Its new dynamics
+        # require an explicit interaction; V3 defaults to automatic start when
+        # the completing ingredient is placed, so attribute that equivalent
+        # transition to the interacting agent as well.
+        event_vector = event_vector.at[OvercookedV3Event.COOK].set(
+            (successful_pot_start_cooking | auto_cook).astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.DELIVERY].set(
+            successful_delivery.astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.DELIVER_SIZE_TWO_ORDER].set(
+            (successful_delivery & (delivered_ingredient_count == 2)).astype(
+                jnp.float32
+            )
+        )
+        event_vector = event_vector.at[OvercookedV3Event.DELIVER_SIZE_THREE_ORDER].set(
+            (successful_delivery & (delivered_ingredient_count == 3)).astype(
+                jnp.float32
+            )
+        )
+        event_vector = event_vector.at[OvercookedV3Event.DELIVER_USELESS_ORDER].set(
+            (successful_delivery & ~is_correct_recipe).astype(jnp.float32)
+        )
+        event_vector = event_vector.at[OvercookedV3Event.IDLE_INTERACT].set(
+            (~successful_interact).astype(jnp.float32)
+        )
         return (
             new_grid,
             new_agent,
             correct_delivery,
             reward,
             shaped_reward,
+            event_vector,
             new_legacy_recipe_deliveries_remaining,
         )
 

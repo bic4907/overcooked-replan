@@ -1,5 +1,7 @@
 import functools
+import json
 import os
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -18,8 +20,21 @@ from omegaconf import OmegaConf
 
 import jaxmarl
 import wandb
+
+try:
+    from baselines.CooT.hsp_population import (
+        apply_candidate_rewards,
+        resolve_hsp_config,
+    )
+except ModuleNotFoundError as error:  # Direct script execution from baselines/IPPO.
+    if error.name != "baselines":
+        raise
+    coot_dir = Path(__file__).resolve().parents[1] / "CooT"
+    sys.path.insert(0, str(coot_dir))
+    from hsp_population import apply_candidate_rewards, resolve_hsp_config
 from jaxmarl._env import load_project_env
 from jaxmarl._experiment import experiment_folder
+from jaxmarl._wandb import require_sweep_target
 from jaxmarl.wrappers.baselines import LogWrapper
 
 
@@ -30,11 +45,14 @@ TRAIN_METRIC_NAMES = {
     "original_reward": "sparse_reward",
     "shaped_reward": "shaped_reward",
     "combined_reward": "combined_reward",
+    "hsp_event_reward": "hsp_event_reward",
+    "hsp_training_reward": "hsp_training_reward",
     "anneal_factor": "reward_shaping_factor",
     "total_loss": "total_loss",
     "value_loss": "value_loss",
     "actor_loss": "actor_loss",
     "entropy": "entropy",
+    "entropy_coef": "entropy_coefficient",
     "learning_rate": "learning_rate",
     "update_step": "update",
     "env_step": "env_step",
@@ -113,8 +131,55 @@ def _architecture(config):
     return architecture
 
 
+def _resolve_entropy_schedule(config):
+    """Validate an optional piecewise-linear entropy schedule.
+
+    Existing IPPO configs only define ENT_COEF and retain their exact constant
+    behavior. ENT_COEFS and ENT_COEF_HORIZONS must be supplied together to opt
+    into the supplementary HSP schedule.
+    """
+
+    raw_coefs = config.get("ENT_COEFS")
+    raw_horizons = config.get("ENT_COEF_HORIZONS")
+    if raw_coefs is None and raw_horizons is None:
+        return None
+    if raw_coefs is None or raw_horizons is None:
+        raise ValueError("ENT_COEFS and ENT_COEF_HORIZONS must be configured together")
+    coefs = tuple(float(value) for value in raw_coefs)
+    horizons = tuple(int(value) for value in raw_horizons)
+    if len(coefs) < 2 or len(coefs) != len(horizons):
+        raise ValueError(
+            "ENT_COEFS and ENT_COEF_HORIZONS must have the same length >= 2"
+        )
+    if horizons[0] != 0 or any(
+        right <= left for left, right in zip(horizons, horizons[1:])
+    ):
+        raise ValueError("ENT_COEF_HORIZONS must start at 0 and be strictly increasing")
+    if any(not np.isfinite(coef) or coef < 0.0 for coef in coefs):
+        raise ValueError("ENT_COEFS values must be finite and non-negative")
+    return coefs, horizons
+
+
 def _checkpoint_prefix(config):
-    return f"ippo_{_architecture(config)}"
+    architecture = _architecture(config)
+    candidate = resolve_hsp_config(config)
+    if candidate is not None:
+        return (
+            f"hsp_{candidate.profile}_candidate{candidate.candidate_id:04d}_"
+            f"ippo_{architecture}"
+        )
+    return f"ippo_{architecture}"
+
+
+def _isolate_hsp_output(config, candidate):
+    """Give each HSP candidate a collision-free local experiment folder."""
+    if candidate is None:
+        return config
+    base_folder = str(config.get("EXPERIMENT_FOLDER") or "hsp_population")
+    candidate_suffix = f"hsp_{candidate.profile}_candidate{candidate.candidate_id:04d}"
+    if not base_folder.endswith(candidate_suffix):
+        config["EXPERIMENT_FOLDER"] = f"{base_folder}_{candidate_suffix}"
+    return config
 
 
 def _checkpoint_update_steps(config):
@@ -158,6 +223,21 @@ def _wandb_metadata(config):
     group = str(config.get("WANDB_GROUP") or experiment)
     default_name = f"{_checkpoint_prefix(config)}_{condition}_seed{config['SEED']}"
     name = str(config.get("RUN_NAME") or default_name)
+    candidate = resolve_hsp_config(config)
+    if candidate is not None:
+        tags = list(
+            dict.fromkeys(
+                [
+                    *tags,
+                    "CooT-Population",
+                    "HSP",
+                    f"HSP-{candidate.profile}",
+                    f"HSP-candidate-{candidate.candidate_id:04d}",
+                ]
+            )
+        )
+        scenario_group = str(config.get("WANDB_GROUP") or experiment)
+        group = f"coot-hsp-{candidate.profile}-{scenario_group}"
     saves_dir = Path(str(config.get("SAVES_DIR") or ""))
     if saves_dir.name.casefold().replace("-", "_") == "fcp_population":
         tags = list(dict.fromkeys([*tags, "FCP-Self-Play"]))
@@ -166,7 +246,9 @@ def _wandb_metadata(config):
     return name, group, tags
 
 
-def _log_final_checkpoint_artifact(config, checkpoint_paths, config_path):
+def _log_final_checkpoint_artifact(
+    config, checkpoint_paths, config_path, extra_files=()
+):
     """Log final checkpoints and their resolved config as one W&B artifact."""
     if not config.get("upload_final_checkpoint", False):
         return None
@@ -176,19 +258,34 @@ def _log_final_checkpoint_artifact(config, checkpoint_paths, config_path):
         raise RuntimeError("No final checkpoints were saved for artifact upload")
 
     artifact_name = f"overcooked-v3-{wandb.run.id}-final-checkpoint"
+    artifact_metadata = {
+        "run_id": wandb.run.id,
+        "algorithm": str(config.get("ALGORITHM", "IPPO")),
+        "architecture": _architecture(config),
+        "layout": config["ENV_KWARGS"]["layout"],
+        "seed": int(config["SEED"]),
+        "num_seeds": int(config["NUM_SEEDS"]),
+        "checkpoint_format": "safetensors",
+    }
+    candidate = resolve_hsp_config(config)
+    if candidate is not None:
+        artifact_metadata.update(
+            {
+                "hsp_profile": candidate.profile,
+                "hsp_candidate_id": candidate.candidate_id,
+                "hsp_resolved_utility": candidate.metadata(),
+                "hsp_checkpoint_fractions": list(
+                    config.get("CHECKPOINT_FRACTIONS") or ()
+                ),
+                "hsp_shared_policy_approximation": True,
+            }
+        )
+
     artifact = wandb.Artifact(
         artifact_name,
         type="checkpoint",
         description="Final Overcooked V3 IPPO checkpoint(s).",
-        metadata={
-            "run_id": wandb.run.id,
-            "algorithm": str(config.get("ALGORITHM", "IPPO")),
-            "architecture": _architecture(config),
-            "layout": config["ENV_KWARGS"]["layout"],
-            "seed": int(config["SEED"]),
-            "num_seeds": int(config["NUM_SEEDS"]),
-            "checkpoint_format": "safetensors",
-        },
+        metadata=artifact_metadata,
     )
     for checkpoint_path in checkpoint_paths:
         checkpoint_path = Path(checkpoint_path)
@@ -196,6 +293,9 @@ def _log_final_checkpoint_artifact(config, checkpoint_paths, config_path):
     if config_path is not None:
         config_path = Path(config_path)
         artifact.add_file(str(config_path), name=config_path.name)
+    for extra_file in extra_files:
+        extra_file = Path(extra_file)
+        artifact.add_file(str(extra_file), name=extra_file.name)
 
     logged_artifact = wandb.run.log_artifact(artifact, aliases=["final"])
     wandb.run.summary["checkpoint/artifact_name"] = artifact_name
@@ -205,6 +305,90 @@ def _log_final_checkpoint_artifact(config, checkpoint_paths, config_path):
         flush=True,
     )
     return logged_artifact
+
+
+def _write_hsp_candidate_result(config, save_dir, checkpoint_paths):
+    """Write one immutable, run-scoped population-candidate sidecar.
+
+    Selection features deliberately remain unresolved here: the training scan
+    does not run a frozen final response-policy scorer, and its shared-policy
+    on-policy event stream is not the BR event statistic used by CooT's greedy
+    selector.  A post-training two-seat rollout scorer must populate that
+    field before diversity selection.
+    """
+
+    candidate = resolve_hsp_config(config)
+    if candidate is None:
+        return None
+
+    mid_paths = []
+    final_paths = []
+    for checkpoint_path in checkpoint_paths:
+        # Checkpoints are placed beside the sidecar and uploaded at the W&B
+        # artifact root. Relative names therefore work both locally and after
+        # downloading a distributed sweep artifact on another machine.
+        portable_path = Path(checkpoint_path).name
+        if "_update" in Path(checkpoint_path).stem:
+            mid_paths.append(portable_path)
+        else:
+            final_paths.append(portable_path)
+
+    run_id = getattr(wandb.run, "id", None) or datetime.now().strftime(
+        "%Y%m%d-%H%M%S-%f"
+    )
+    sidecar_path = Path(save_dir) / (
+        f"{_checkpoint_prefix(config)}_seed{config['SEED']}_"
+        f"candidate_result_{run_id}.json"
+    )
+    policy_metadata = {
+        "architecture": _architecture(config),
+        "activation": str(config["ACTIVATION"]),
+        "fc_dim_size": int(config["FC_DIM_SIZE"]),
+        "gru_hidden_dim": int(config["GRU_HIDDEN_DIM"]),
+        # Supplementary runner.rollout uses deterministic=False for the
+        # population trajectories and event-diversity scoring rollouts.
+        "stochastic": True,
+    }
+    mid_policy = {"checkpoint": mid_paths[0], **policy_metadata} if mid_paths else None
+    final_policy = (
+        {"checkpoint": final_paths[0], **policy_metadata} if final_paths else None
+    )
+    payload = {
+        "schema_version": 1,
+        "id": f"hsp_{candidate.candidate_id:04d}",
+        "candidate_id": candidate.candidate_id,
+        "population_type": "hsp",
+        "immutable_run_id": run_id,
+        "algorithm": str(config.get("ALGORITHM", "HSP")),
+        "layout": config["ENV_KWARGS"]["layout"],
+        "scenario": config.get("CONDITION") or config["ENV_KWARGS"]["layout"],
+        "seed": int(config["SEED"]),
+        "num_seeds": int(config["NUM_SEEDS"]),
+        "resolved_utility": candidate.metadata(),
+        "partner": {
+            "mid": mid_policy,
+            "final": final_policy,
+        },
+        "checkpoints": {
+            "mid_fraction": float(config["HSP"].get("MID_CHECKPOINT_FRACTION", 0.5)),
+            "mid": mid_paths,
+            "final": final_paths,
+            "shared_policy_approximation": True,
+        },
+        "selection_features": None,
+        "selection_feature_status": (
+            "requires_post_training_two_seat_response_rollout_scorer"
+        ),
+        "selection_feature_note": (
+            "CooT selection uses final response/BR episode event counts; "
+            "shared on-policy HSP training events are not that statistic."
+        ),
+        "porting_note": config["HSP"]["PORTING_NOTE"],
+    }
+    with sidecar_path.open("x", encoding="utf-8") as sidecar_file:
+        json.dump(payload, sidecar_file, indent=2, sort_keys=True)
+        sidecar_file.write("\n")
+    return sidecar_path
 
 
 def _record_final_episode(config, params, video_path):
@@ -564,8 +748,15 @@ def unbatchify(x: jnp.ndarray, agent_list, num_envs, num_actors):
 
 
 def make_train(config):
+    hsp_candidate = resolve_hsp_config(config)
+    entropy_schedule = _resolve_entropy_schedule(config)
+    hsp_randomize_roles = bool(
+        hsp_candidate is not None and config["HSP"].get("RANDOMIZE_ROLE", True)
+    )
     env_kwargs = dict(config["ENV_KWARGS"])
     env = jaxmarl.make(config["ENV_NAME"], **env_kwargs)
+    if hsp_candidate is not None and env.num_agents != 2:
+        raise ValueError("HSP population training requires exactly two agents")
     architecture = _architecture(config)
     checkpoint_prefix = _checkpoint_prefix(config)
 
@@ -638,6 +829,23 @@ def make_train(config):
         init_value=1.0, end_value=0.0, transition_steps=config["REW_SHAPING_HORIZON"]
     )
 
+    def entropy_coefficient_at_step(env_step):
+        if entropy_schedule is None:
+            return jnp.asarray(config["ENT_COEF"], dtype=jnp.float32)
+
+        coefs, horizons = entropy_schedule
+        step = jnp.asarray(env_step, dtype=jnp.float32)
+        coefficient = jnp.asarray(coefs[-1], dtype=jnp.float32)
+        for interval_index in range(len(coefs) - 2, -1, -1):
+            start_step = float(horizons[interval_index])
+            end_step = float(horizons[interval_index + 1])
+            fraction = jnp.clip((step - start_step) / (end_step - start_step), 0.0, 1.0)
+            interpolated = (1.0 - fraction) * coefs[interval_index] + fraction * coefs[
+                interval_index + 1
+            ]
+            coefficient = jnp.where(step < end_step, interpolated, coefficient)
+        return coefficient
+
     def train(rng, seed_index):
         # INIT NETWORK
         network_class = ActorCriticRNN if architecture == "rnn" else ActorCriticCNN
@@ -684,20 +892,45 @@ def make_train(config):
         init_hstate = ScannedRNN.initialize_carry(
             config["NUM_ACTORS"], config["GRU_HIDDEN_DIM"]
         )
+        if hsp_candidate is not None:
+            rng, role_rng = jax.random.split(rng)
+            if hsp_randomize_roles:
+                biased_agent_indices = jax.random.randint(
+                    role_rng,
+                    (config["NUM_ENVS"],),
+                    minval=0,
+                    maxval=2,
+                    dtype=jnp.int32,
+                )
+            else:
+                biased_agent_indices = jnp.zeros((config["NUM_ENVS"],), dtype=jnp.int32)
 
         # TRAIN LOOP
         def _update_step(runner_state, unused):
             # COLLECT TRAJECTORIES
             def _env_step(runner_state, unused):
-                (
-                    train_state,
-                    env_state,
-                    last_obs,
-                    last_done,
-                    update_step,
-                    hstate,
-                    rng,
-                ) = runner_state
+                if hsp_candidate is None:
+                    (
+                        train_state,
+                        env_state,
+                        last_obs,
+                        last_done,
+                        update_step,
+                        hstate,
+                        rng,
+                    ) = runner_state
+                    current_biased_agent_indices = None
+                else:
+                    (
+                        train_state,
+                        env_state,
+                        last_obs,
+                        last_done,
+                        update_step,
+                        current_biased_agent_indices,
+                        hstate,
+                        rng,
+                    ) = runner_state
 
                 # SELECT ACTION
                 rng, _rng = jax.random.split(rng)
@@ -729,13 +962,44 @@ def make_train(config):
                 )(rng_step, env_state, env_act)
                 original_reward = jnp.array([reward[a] for a in env.agents])
 
+                # event_vector has a trailing event dimension and therefore
+                # cannot enter the scalar-info reshape below.  Consume it for
+                # HSP reward routing, then keep the existing IPPO info shapes
+                # unchanged for both HSP and all default runs.
+                event_vectors = info.get("event_vector")
+                info = {
+                    key: value for key, value in info.items() if key != "event_vector"
+                }
+
                 current_timestep = (
                     update_step * config["NUM_STEPS"] * config["NUM_ENVS"]
                 )
-                anneal_factor = rew_shaping_anneal(current_timestep)
-                reward = jax.tree.map(
-                    lambda x, y: x + y * anneal_factor, reward, info["shaped_reward"]
-                )
+                if hsp_candidate is None:
+                    anneal_factor = rew_shaping_anneal(current_timestep)
+                    reward = jax.tree.map(
+                        lambda x, y: x + y * anneal_factor,
+                        reward,
+                        info["shaped_reward"],
+                    )
+                    hsp_event_reward = None
+                else:
+                    if event_vectors is None:
+                        raise ValueError(
+                            "HSP requires Overcooked V3 info['event_vector']"
+                        )
+                    reward, event_components = apply_candidate_rewards(
+                        reward,
+                        event_vectors,
+                        hsp_candidate,
+                        current_biased_agent_indices,
+                    )
+                    hsp_event_reward = jnp.array(
+                        [event_components[a] for a in env.agents]
+                    )
+                    # Built-in V3 shaping is not part of either HSP role's
+                    # objective. Table-5 fixed weights are already represented
+                    # in the candidate event vector.
+                    anneal_factor = jnp.array(0.0, dtype=jnp.float32)
 
                 shaped_reward = jnp.array(
                     [info["shaped_reward"][a] for a in env.agents]
@@ -746,6 +1010,9 @@ def make_train(config):
                 info["original_reward"] = original_reward
                 info["anneal_factor"] = jnp.full_like(shaped_reward, anneal_factor)
                 info["combined_reward"] = combined_reward
+                if hsp_event_reward is not None:
+                    info["hsp_event_reward"] = hsp_event_reward
+                    info["hsp_training_reward"] = combined_reward
 
                 info = jax.tree.map(lambda x: x.reshape((config["NUM_ACTORS"])), info)
                 done_batch = batchify(done, env.agents, config["NUM_ACTORS"]).squeeze()
@@ -759,15 +1026,43 @@ def make_train(config):
                     obs_batch,
                     info,
                 )
-                runner_state = (
-                    train_state,
-                    env_state,
-                    obsv,
-                    done_batch,
-                    update_step,
-                    hstate,
-                    rng,
-                )
+                if hsp_candidate is None:
+                    runner_state = (
+                        train_state,
+                        env_state,
+                        obsv,
+                        done_batch,
+                        update_step,
+                        hstate,
+                        rng,
+                    )
+                else:
+                    if hsp_randomize_roles:
+                        rng, role_rng = jax.random.split(rng)
+                        sampled_biased_agent_indices = jax.random.randint(
+                            role_rng,
+                            (config["NUM_ENVS"],),
+                            minval=0,
+                            maxval=2,
+                            dtype=jnp.int32,
+                        )
+                        next_biased_agent_indices = jnp.where(
+                            done["__all__"],
+                            sampled_biased_agent_indices,
+                            current_biased_agent_indices,
+                        )
+                    else:
+                        next_biased_agent_indices = current_biased_agent_indices
+                    runner_state = (
+                        train_state,
+                        env_state,
+                        obsv,
+                        done_batch,
+                        update_step,
+                        next_biased_agent_indices,
+                        hstate,
+                        rng,
+                    )
                 return runner_state, transition
 
             initial_hstate = runner_state[-2]
@@ -776,8 +1071,31 @@ def make_train(config):
             )
 
             # CALCULATE ADVANTAGE
-            train_state, env_state, last_obs, last_done, update_step, hstate, rng = (
-                runner_state
+            if hsp_candidate is None:
+                (
+                    train_state,
+                    env_state,
+                    last_obs,
+                    last_done,
+                    update_step,
+                    hstate,
+                    rng,
+                ) = runner_state
+            else:
+                (
+                    train_state,
+                    env_state,
+                    last_obs,
+                    last_done,
+                    update_step,
+                    biased_agent_indices,
+                    hstate,
+                    rng,
+                ) = runner_state
+            # ZSC-Eval updates entropy after collecting a rollout, using the
+            # completed environment-step count.
+            entropy_coefficient = entropy_coefficient_at_step(
+                (update_step + 1) * config["NUM_STEPS"] * config["NUM_ENVS"]
             )
             last_obs_batch = jnp.stack([last_obs[a] for a in env.agents]).reshape(
                 -1, *env.observation_space(env.agents[0]).shape
@@ -859,7 +1177,7 @@ def make_train(config):
                         total_loss = (
                             loss_actor
                             + config["VF_COEF"] * value_loss
-                            - config["ENT_COEF"] * entropy
+                            - entropy_coefficient * entropy
                         )
                         return total_loss, (value_loss, loss_actor, entropy)
 
@@ -879,8 +1197,10 @@ def make_train(config):
                 batch = (
                     init_hstate,
                     traj_batch,
-                    advantages.squeeze(),
-                    targets.squeeze(),
+                    # GAE already returns [rollout, actor]. Preserve both axes
+                    # when either dimension is one in a smoke run.
+                    advantages,
+                    targets,
                 )
                 permutation = jax.random.permutation(_rng, config["NUM_ACTORS"])
 
@@ -961,6 +1281,7 @@ def make_train(config):
                 "value_loss": value_loss,
                 "actor_loss": actor_loss,
                 "entropy": entropy,
+                "entropy_coef": entropy_coefficient,
                 "learning_rate": learning_rate_fn(
                     update_step * config["NUM_MINIBATCHES"] * config["UPDATE_EPOCHS"]
                 ),
@@ -996,7 +1317,7 @@ def make_train(config):
                     )
 
             update_step = update_step + 1
-            metric = jax.tree.map(lambda x: x.mean(), metric)
+            metric = jax.tree.map(lambda x: jnp.asarray(x).mean(), metric)
             metric["update_step"] = update_step
             metric["env_step"] = update_step * config["NUM_STEPS"] * config["NUM_ENVS"]
             jax.debug.callback(callback, metric)
@@ -1034,27 +1355,51 @@ def make_train(config):
                     operand=None,
                 )
 
-            runner_state = (
-                train_state,
-                env_state,
-                last_obs,
-                last_done,
-                update_step,
-                hstate,
-                rng,
-            )
+            if hsp_candidate is None:
+                runner_state = (
+                    train_state,
+                    env_state,
+                    last_obs,
+                    last_done,
+                    update_step,
+                    hstate,
+                    rng,
+                )
+            else:
+                runner_state = (
+                    train_state,
+                    env_state,
+                    last_obs,
+                    last_done,
+                    update_step,
+                    biased_agent_indices,
+                    hstate,
+                    rng,
+                )
             return runner_state, metric
 
         rng, _rng = jax.random.split(rng)
-        runner_state = (
-            train_state,
-            env_state,
-            obsv,
-            jnp.zeros((config["NUM_ACTORS"]), dtype=bool),
-            0,
-            init_hstate,
-            _rng,
-        )
+        if hsp_candidate is None:
+            runner_state = (
+                train_state,
+                env_state,
+                obsv,
+                jnp.zeros((config["NUM_ACTORS"]), dtype=bool),
+                0,
+                init_hstate,
+                _rng,
+            )
+        else:
+            runner_state = (
+                train_state,
+                env_state,
+                obsv,
+                jnp.zeros((config["NUM_ACTORS"]), dtype=bool),
+                0,
+                biased_agent_indices,
+                init_hstate,
+                _rng,
+            )
         runner_state, metric = jax.lax.scan(
             _update_step, runner_state, None, config["NUM_UPDATES"]
         )
@@ -1065,6 +1410,13 @@ def make_train(config):
 
 def run(config):
     config = OmegaConf.to_container(config, resolve=True)
+    hsp_candidate = resolve_hsp_config(config)
+    if hsp_candidate is not None:
+        # PORTING NOTE: a production sweep runs every utility candidate with the
+        # same layout/seed. Keep each candidate in its own directory so retries
+        # and concurrent W&B agents cannot overwrite another candidate's
+        # checkpoint/config while preserving the established filename schema.
+        _isolate_hsp_output(config, hsp_candidate)
     requested_wandb_mode = str(config.get("wandb_mode", "online")).lower()
     config["wandb_mode"] = _resolve_wandb_mode(config)
     if requested_wandb_mode == "online" and config["wandb_mode"] == "offline":
@@ -1096,7 +1448,7 @@ def run(config):
         OmegaConf.save(OmegaConf.create(config), config_path)
 
     wandb_name, wandb_group, wandb_tags = _wandb_metadata(config)
-    wandb.init(
+    wandb_run = wandb.init(
         **_wandb_target(config),
         tags=wandb_tags,
         config=config,
@@ -1106,10 +1458,21 @@ def run(config):
         job_type="train",
         notes=config.get("NOTES"),
     )
+    if hsp_candidate is not None:
+        require_sweep_target(wandb_run, config)
     wandb.define_metric("train/env_step")
     wandb.define_metric("train/*", step_metric="train/env_step")
     wandb.define_metric("debug/*", step_metric="train/env_step")
     wandb.define_metric("eval/*")
+    if hsp_candidate is not None and wandb.run is not None:
+        wandb.run.summary["hsp/profile"] = hsp_candidate.profile
+        wandb.run.summary["hsp/candidate_id"] = hsp_candidate.candidate_id
+        wandb.run.summary["hsp/candidate_count"] = config["HSP"][
+            "RESOLVED_CANDIDATE_COUNT"
+        ]
+        wandb.run.summary["hsp/sparse_reward_weight"] = (
+            hsp_candidate.sparse_reward_weight
+        )
 
     with jax.disable_jit(False):
         rng = jax.random.PRNGKey(config["SEED"])
@@ -1123,6 +1486,21 @@ def run(config):
     if save_dir is not None:
         from jaxmarl.wrappers.baselines import save_params
 
+        if hsp_candidate is not None:
+            for update in _checkpoint_update_steps(config):
+                for i in range(num_seeds):
+                    intermediate_path = Path(save_dir) / (
+                        f"{checkpoint_prefix}_{experiment_name}_"
+                        f"seed{config['SEED']}_vmap{i}_"
+                        f"update{update:06d}.safetensors"
+                    )
+                    if not intermediate_path.is_file():
+                        raise RuntimeError(
+                            "Expected HSP intermediate checkpoint was not saved: "
+                            f"{intermediate_path}"
+                        )
+                    checkpoint_paths.append(intermediate_path)
+
         for i in range(num_seeds):
             params = jax.tree.map(lambda x: x[i], model_state.params)
             checkpoint_path = os.path.join(
@@ -1134,8 +1512,24 @@ def run(config):
             checkpoint_paths.append(Path(checkpoint_path))
             print(f"[{_timestamp()}] Saved checkpoint: {checkpoint_path}")
 
+    candidate_result_path = None
+    if hsp_candidate is not None and save_dir is not None:
+        candidate_result_path = _write_hsp_candidate_result(
+            config, save_dir, checkpoint_paths
+        )
+        if wandb.run is not None:
+            wandb.run.summary["hsp/candidate_result"] = str(candidate_result_path)
+
     if upload_final_checkpoint:
-        _log_final_checkpoint_artifact(config, checkpoint_paths, config_path)
+        extra_files = (
+            (candidate_result_path,) if candidate_result_path is not None else ()
+        )
+        _log_final_checkpoint_artifact(
+            config,
+            checkpoint_paths,
+            config_path,
+            extra_files=extra_files,
+        )
 
     recording_enabled = bool(config.get("RECORD_FINAL_EPISODE", True))
     if recording_enabled and wandb_enabled:

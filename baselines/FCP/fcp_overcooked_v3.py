@@ -26,6 +26,7 @@ import jaxmarl
 import wandb
 from jaxmarl._env import load_project_env
 from jaxmarl._experiment import experiment_folder
+from jaxmarl._wandb import require_sweep_target
 from jaxmarl.wrappers.baselines import LogWrapper
 
 
@@ -41,6 +42,7 @@ TRAIN_METRIC_NAMES = {
     "value_loss": "value_loss",
     "actor_loss": "actor_loss",
     "entropy": "entropy",
+    "entropy_coef": "entropy_coefficient",
     "learning_rate": "learning_rate",
     "update_step": "update",
     "env_step": "env_step",
@@ -126,8 +128,68 @@ def _architecture(config):
     return architecture
 
 
+def _name_template_context(config):
+    """Expose stable identifiers to configurable output-name templates."""
+    fcp_config = dict(config.get("FCP") or {})
+    return {
+        "architecture": _architecture(config),
+        "layout": str(config["ENV_KWARGS"]["layout"]),
+        "partner_id": str(fcp_config.get("partner_id") or "population"),
+        "partner_slug": str(fcp_config.get("partner_slug") or "population"),
+        "partner_skill": str(fcp_config.get("partner_skill") or "final"),
+        "partner_skill_slug": str(fcp_config.get("partner_skill_slug") or "final"),
+        "seed": int(config["SEED"]),
+    }
+
+
+def _format_name_setting(config, key, default):
+    """Format an optional naming setting without changing FCP defaults."""
+    template = str(config.get(key) or default)
+    try:
+        return template.format(**_name_template_context(config))
+    except (KeyError, ValueError) as error:
+        raise ValueError(f"Invalid {key} template {template!r}: {error}") from error
+
+
 def _checkpoint_prefix(config):
+    configured = config.get("CHECKPOINT_PREFIX")
+    if configured:
+        return _format_name_setting(config, "CHECKPOINT_PREFIX", configured)
     return f"fcp_{_architecture(config)}"
+
+
+def _checkpoint_update_steps(config):
+    """Resolve optional fractional milestones before the final checkpoint."""
+    num_updates = int(config["NUM_UPDATES"])
+    fractions = config.get("CHECKPOINT_FRACTIONS") or ()
+    updates = set()
+    for raw_fraction in fractions:
+        fraction = float(raw_fraction)
+        if not 0.0 < fraction <= 1.0:
+            raise ValueError(
+                "CHECKPOINT_FRACTIONS values must be greater than 0 and at most 1"
+            )
+        update = max(1, min(num_updates, int(num_updates * fraction + 0.5)))
+        if update < num_updates:
+            updates.add(update)
+    return tuple(sorted(updates))
+
+
+def _checkpoint_path(
+    config,
+    save_dir,
+    checkpoint_prefix,
+    experiment_name,
+    seed_index,
+    update_step=None,
+):
+    suffix = ""
+    if update_step is not None:
+        suffix = f"_update{int(update_step):06d}"
+    return Path(save_dir) / (
+        f"{checkpoint_prefix}_{experiment_name}_seed{config['SEED']}_"
+        f"vmap{int(seed_index)}{suffix}.safetensors"
+    )
 
 
 def _snapshot_sort_key(path):
@@ -144,16 +206,24 @@ def _evenly_spaced(items, count):
         return list(items)
     if count == 1:
         return [items[-1]]
-    indices = [
-        i * (len(items) - 1) // (count - 1)
-        for i in range(count)
-    ]
+    indices = [i * (len(items) - 1) // (count - 1) for i in range(count)]
     return [items[index] for index in dict.fromkeys(indices)]
 
 
 def discover_population_checkpoints(config):
     """Find compatible SP snapshots and select a balanced FCP population."""
     fcp_config = dict(config.get("FCP") or {})
+    partner_checkpoint = fcp_config.get("partner_checkpoint")
+    if partner_checkpoint:
+        # PORTING NOTE: CooT trains one response against one explicit HSP/MEP
+        # checkpoint. Its filenames do not follow the IPPO snapshot convention.
+        checkpoint_path = Path(partner_checkpoint).expanduser().resolve()
+        if not checkpoint_path.is_file():
+            raise FileNotFoundError(
+                f"FCP partner checkpoint not found: {checkpoint_path}"
+            )
+        return [checkpoint_path]
+
     population_dir = fcp_config.get("population_dir")
     if not population_dir:
         raise ValueError("FCP.population_dir must point to SP checkpoints")
@@ -202,9 +272,7 @@ def load_fcp_population(config):
     checkpoint_paths = discover_population_checkpoints(config)
     policies = [load_params(path) for path in checkpoint_paths]
     reference_structure = jax.tree_util.tree_structure(policies[0])
-    reference_shapes = [
-        value.shape for value in jax.tree_util.tree_leaves(policies[0])
-    ]
+    reference_shapes = [value.shape for value in jax.tree_util.tree_leaves(policies[0])]
     for path, policy in zip(checkpoint_paths[1:], policies[1:]):
         if jax.tree_util.tree_structure(policy) != reference_structure:
             raise ValueError(f"Incompatible parameter tree in {path}")
@@ -237,13 +305,15 @@ def _wandb_metadata(config):
     tags = list(dict.fromkeys(tags))
 
     group = str(config.get("WANDB_GROUP") or experiment)
-    if not group.casefold().startswith("fcp"):
-        group = f"fcp-{group}"
+    group_prefix = str(config.get("WANDB_GROUP_PREFIX") or "fcp").strip("- ")
+    if group_prefix and not group.casefold().startswith(group_prefix.casefold()):
+        group = f"{group_prefix}-{group}"
 
     default_name = f"{_checkpoint_prefix(config)}_{condition}_seed{config['SEED']}"
     name = str(config.get("RUN_NAME") or default_name)
-    if not name.casefold().startswith("fcp"):
-        name = f"fcp-{name}"
+    run_prefix = str(config.get("RUN_NAME_PREFIX") or "fcp").strip("- ")
+    if run_prefix and not name.casefold().startswith(run_prefix.casefold()):
+        name = f"{run_prefix}-{name}"
     return name, group, tags
 
 
@@ -256,22 +326,50 @@ def _log_final_checkpoint_artifact(config, checkpoint_paths, config_path):
     if not checkpoint_paths:
         raise RuntimeError("No final checkpoints were saved for artifact upload")
 
-    artifact_name = f"fcp-overcooked-v3-{wandb.run.id}-final-checkpoint"
+    artifact_prefix = _format_name_setting(
+        config,
+        "CHECKPOINT_ARTIFACT_PREFIX",
+        "fcp-overcooked-v3",
+    ).strip("- ")
+    artifact_name = f"{artifact_prefix}-{wandb.run.id}-final-checkpoint"
+    fcp_config = dict(config.get("FCP") or {})
+    artifact_metadata = {
+        "run_id": wandb.run.id,
+        "algorithm": str(config.get("ALGORITHM", "IPPO")),
+        "architecture": _architecture(config),
+        "layout": config["ENV_KWARGS"]["layout"],
+        "seed": int(config["SEED"]),
+        "num_seeds": int(config["NUM_SEEDS"]),
+        "checkpoint_format": "safetensors",
+        "fcp_population_size": int(fcp_config["population_size"]),
+        "fcp_population_dir": str(fcp_config.get("population_dir") or ""),
+    }
+    if fcp_config.get("partner_checkpoint"):
+        artifact_metadata.update(
+            {
+                "partner_checkpoint": str(fcp_config["partner_checkpoint"]),
+                "partner_sha256": str(fcp_config.get("partner_sha256") or ""),
+                "partner_id": str(fcp_config.get("partner_id") or ""),
+                "partner_skill": str(fcp_config.get("partner_skill") or ""),
+                "partner_population_type": str(fcp_config.get("population_type") or ""),
+                "partner_population_split": str(
+                    fcp_config.get("population_split") or ""
+                ),
+                "train_agent_index": (
+                    int(fcp_config["train_agent_index"])
+                    if fcp_config.get("train_agent_index") is not None
+                    else None
+                ),
+            }
+        )
     artifact = wandb.Artifact(
         artifact_name,
         type="checkpoint",
-        description="Final Overcooked V3 FCP best-response checkpoint(s).",
-        metadata={
-            "run_id": wandb.run.id,
-            "algorithm": str(config.get("ALGORITHM", "IPPO")),
-            "architecture": _architecture(config),
-            "layout": config["ENV_KWARGS"]["layout"],
-            "seed": int(config["SEED"]),
-            "num_seeds": int(config["NUM_SEEDS"]),
-            "checkpoint_format": "safetensors",
-            "fcp_population_size": int(config["FCP"]["population_size"]),
-            "fcp_population_dir": str(config["FCP"]["population_dir"]),
-        },
+        description=str(
+            config.get("CHECKPOINT_ARTIFACT_DESCRIPTION")
+            or "Final Overcooked V3 FCP best-response checkpoint(s)."
+        ),
+        metadata=artifact_metadata,
     )
     for checkpoint_path in checkpoint_paths:
         checkpoint_path = Path(checkpoint_path)
@@ -664,31 +762,74 @@ def make_train(config):
     env = jaxmarl.make(config["ENV_NAME"], **env_kwargs)
     architecture = _architecture(config)
     checkpoint_prefix = _checkpoint_prefix(config)
-    population_size = int(config["FCP"]["population_size"])
+    fcp_config = dict(config.get("FCP") or {})
+    population_size = int(fcp_config["population_size"])
     if population_size < 1:
         raise ValueError("FCP.population_size must be positive")
 
-    checkpoint_interval = int(config.get("CHECKPOINT_INTERVAL", 0))
-    if checkpoint_interval < 0:
-        raise ValueError("CHECKPOINT_INTERVAL must be greater than or equal to 0")
-    checkpoint_enabled = checkpoint_interval > 0 and config.get("SAVES_DIR") is not None
-    if checkpoint_enabled:
-        experiment_name, save_dir = _checkpoint_metadata(config)
-
-        def save_intermediate_checkpoint(params, update_step, seed_index):
-            from jaxmarl.wrappers.baselines import save_params
-
-            update = int(update_step)
-            vmap_index = int(seed_index)
-            checkpoint_path = os.path.join(
-                save_dir,
-                f"{checkpoint_prefix}_{experiment_name}_seed{config['SEED']}_"
-                f"vmap{vmap_index}_update{update:06d}.safetensors",
+    fixed_train_agent = fcp_config.get("train_agent_index")
+    if fixed_train_agent is not None:
+        fixed_train_agent = int(fixed_train_agent)
+        if not 0 <= fixed_train_agent < env.num_agents:
+            raise ValueError(
+                "FCP.train_agent_index must be null or a valid environment agent index"
             )
-            save_params(params, checkpoint_path)
-            print(
-                f"[{_timestamp()}] Saved intermediate checkpoint: {checkpoint_path}",
-                flush=True,
+
+    value_loss_type = str(config.get("VALUE_LOSS", "mse")).lower()
+    if value_loss_type not in {"mse", "huber"}:
+        raise ValueError("VALUE_LOSS must be either 'mse' or 'huber'")
+    value_normalization = str(config.get("VALUE_NORMALIZATION", "none")).lower()
+    if value_normalization != "none":
+        raise ValueError(
+            "This V3 FCP trainer currently supports VALUE_NORMALIZATION=none only"
+        )
+    # PORTING NOTE: ZSC-Eval's adaptive BR runner enables a running ValueNorm
+    # module by default. The existing V3 actor-critic TrainState has no
+    # corresponding mutable normalization state, so CooT-BR explicitly uses
+    # raw sparse-return targets and records this deviation in its config/result.
+    huber_delta = float(config.get("HUBER_DELTA", 10.0))
+    if huber_delta <= 0:
+        raise ValueError("HUBER_DELTA must be positive")
+
+    entropy_coefs_config = config.get("ENT_COEFS")
+    entropy_horizons_config = config.get("ENT_COEF_HORIZONS")
+    if (entropy_coefs_config is None) != (entropy_horizons_config is None):
+        raise ValueError(
+            "ENT_COEFS and ENT_COEF_HORIZONS must either both be set or both be omitted"
+        )
+    if entropy_coefs_config is None:
+        constant_entropy_coef = float(config["ENT_COEF"])
+
+        def entropy_coef_at(_timestep):
+            return jnp.asarray(constant_entropy_coef, dtype=jnp.float32)
+
+    else:
+        entropy_coefs = tuple(float(value) for value in entropy_coefs_config)
+        entropy_horizons = tuple(float(value) for value in entropy_horizons_config)
+        if not entropy_coefs:
+            raise ValueError("ENT_COEFS must contain at least one coefficient")
+        if len(entropy_coefs) != len(entropy_horizons):
+            raise ValueError(
+                "ENT_COEFS and ENT_COEF_HORIZONS must have the same length"
+            )
+        if not all(np.isfinite(value) and value >= 0 for value in entropy_coefs):
+            raise ValueError("ENT_COEFS values must be finite and non-negative")
+        if not all(np.isfinite(value) and value >= 0 for value in entropy_horizons):
+            raise ValueError("ENT_COEF_HORIZONS values must be finite and non-negative")
+        if any(
+            right <= left for left, right in zip(entropy_horizons, entropy_horizons[1:])
+        ):
+            raise ValueError("ENT_COEF_HORIZONS values must be strictly increasing")
+        entropy_coef_points = jnp.asarray(entropy_coefs, dtype=jnp.float32)
+        entropy_horizon_points = jnp.asarray(entropy_horizons, dtype=jnp.float32)
+
+        def entropy_coef_at(timestep):
+            # The supplementary BR trainer linearly interpolates coefficients
+            # at environment-step anchors and holds the endpoint values outside.
+            return jnp.interp(
+                timestep,
+                entropy_horizon_points,
+                entropy_coef_points,
             )
 
     config["NUM_ACTORS"] = env.num_agents * config["NUM_ENVS"]
@@ -698,6 +839,33 @@ def make_train(config):
     config["MINIBATCH_SIZE"] = (
         config["NUM_ACTORS"] * config["NUM_STEPS"] // config["NUM_MINIBATCHES"]
     )
+
+    checkpoint_interval = int(config.get("CHECKPOINT_INTERVAL", 0))
+    if checkpoint_interval < 0:
+        raise ValueError("CHECKPOINT_INTERVAL must be greater than or equal to 0")
+    checkpoint_updates = _checkpoint_update_steps(config)
+    checkpoint_enabled = bool(checkpoint_interval or checkpoint_updates) and (
+        config.get("SAVES_DIR") is not None
+    )
+    if checkpoint_enabled:
+        experiment_name, save_dir = _checkpoint_metadata(config)
+
+        def save_intermediate_checkpoint(params, update_step, seed_index):
+            from jaxmarl.wrappers.baselines import save_params
+
+            checkpoint_path = _checkpoint_path(
+                config,
+                save_dir,
+                checkpoint_prefix,
+                experiment_name,
+                int(seed_index),
+                int(update_step),
+            )
+            save_params(params, checkpoint_path)
+            print(
+                f"[{_timestamp()}] Saved intermediate checkpoint: {checkpoint_path}",
+                flush=True,
+            )
 
     env = LogWrapper(env, replace_info=False)
 
@@ -730,12 +898,25 @@ def make_train(config):
         )
         return schedule_fn
 
-    rew_shaping_anneal = optax.linear_schedule(
-        init_value=1.0, end_value=0.0, transition_steps=config["REW_SHAPING_HORIZON"]
-    )
+    rew_shaping_horizon = int(config["REW_SHAPING_HORIZON"])
+    if rew_shaping_horizon < 0:
+        raise ValueError("REW_SHAPING_HORIZON must be greater than or equal to 0")
+    if rew_shaping_horizon == 0:
+        # PORTING NOTE: the released partner-specific BR uses sparse reward only.
+        # Avoid passing transition_steps=0 to Optax, and make that intent explicit.
+        def rew_shaping_anneal(_timestep):
+            return jnp.asarray(0.0, dtype=jnp.float32)
+
+    else:
+        rew_shaping_anneal = optax.linear_schedule(
+            init_value=1.0,
+            end_value=0.0,
+            transition_steps=rew_shaping_horizon,
+        )
 
     def train(rng, seed_index, population_params):
         # INIT NETWORK
+        population_params = jax.tree.map(jax.lax.stop_gradient, population_params)
         network_class = ActorCriticRNN if architecture == "rnn" else ActorCriticCNN
         network = network_class(env.action_space(env.agents[0]).n, config=config)
 
@@ -793,12 +974,19 @@ def make_train(config):
             config["NUM_ACTORS"], config["GRU_HIDDEN_DIM"]
         )
         rng, train_agent_rng, population_rng = jax.random.split(rng, 3)
-        init_train_agent_indices = jax.random.randint(
-            train_agent_rng,
-            (config["NUM_ENVS"],),
-            0,
-            env.num_agents,
-        )
+        if fixed_train_agent is None:
+            init_train_agent_indices = jax.random.randint(
+                train_agent_rng,
+                (config["NUM_ENVS"],),
+                0,
+                env.num_agents,
+            )
+        else:
+            init_train_agent_indices = jnp.full(
+                (config["NUM_ENVS"],),
+                fixed_train_agent,
+                dtype=jnp.int32,
+            )
         init_population_indices = jax.random.randint(
             population_rng,
             (config["NUM_ENVS"],),
@@ -922,15 +1110,26 @@ def make_train(config):
                     train_agent_indices, (env.num_agents, 1)
                 )
 
+                # HSP population training exposes a structured event vector.
+                # The standard FCP/BR logger only consumes scalar diagnostics,
+                # and cannot flatten that extra feature into one actor axis.
+                info.pop("event_vector", None)
                 info = jax.tree.map(lambda x: x.reshape((config["NUM_ACTORS"])), info)
                 done_batch = batchify(done, env.agents, config["NUM_ACTORS"]).squeeze()
                 rng, train_agent_rng, population_rng = jax.random.split(rng, 3)
-                sampled_train_agents = jax.random.randint(
-                    train_agent_rng,
-                    (config["NUM_ENVS"],),
-                    0,
-                    env.num_agents,
-                )
+                if fixed_train_agent is None:
+                    sampled_train_agents = jax.random.randint(
+                        train_agent_rng,
+                        (config["NUM_ENVS"],),
+                        0,
+                        env.num_agents,
+                    )
+                else:
+                    sampled_train_agents = jnp.full(
+                        (config["NUM_ENVS"],),
+                        fixed_train_agent,
+                        dtype=jnp.int32,
+                    )
                 sampled_population = jax.random.randint(
                     population_rng,
                     (config["NUM_ENVS"],),
@@ -1022,6 +1221,14 @@ def make_train(config):
 
             advantages, targets = _calculate_gae(traj_batch, last_val)
 
+            # Match ZSC-Eval's partner-specific BR runner: it updates entropy
+            # after collecting a rollout, using the completed environment-step
+            # count rather than the optimizer/minibatch step.
+            entropy_env_step = (
+                (update_step + 1) * config["NUM_STEPS"] * config["NUM_ENVS"]
+            )
+            entropy_coef = entropy_coef_at(entropy_env_step)
+
             # UPDATE NETWORK
             def _update_epoch(update_state, unused):
                 def _update_minbatch(train_state, batch_info):
@@ -1042,9 +1249,25 @@ def make_train(config):
                         value_pred_clipped = traj_batch.value + (
                             value - traj_batch.value
                         ).clip(-config["CLIP_EPS"], config["CLIP_EPS"])
-                        value_losses = jnp.square(value - targets)
-                        value_losses_clipped = jnp.square(value_pred_clipped - targets)
-                        value_loss = 0.5 * _masked_mean(
+                        if value_loss_type == "huber":
+                            value_losses = optax.huber_loss(
+                                value,
+                                targets,
+                                delta=huber_delta,
+                            )
+                            value_losses_clipped = optax.huber_loss(
+                                value_pred_clipped,
+                                targets,
+                                delta=huber_delta,
+                            )
+                            value_loss_scale = 1.0
+                        else:
+                            value_losses = jnp.square(value - targets)
+                            value_losses_clipped = jnp.square(
+                                value_pred_clipped - targets
+                            )
+                            value_loss_scale = 0.5
+                        value_loss = value_loss_scale * _masked_mean(
                             jnp.maximum(value_losses, value_losses_clipped),
                             train_mask,
                         )
@@ -1068,7 +1291,7 @@ def make_train(config):
                         total_loss = (
                             loss_actor
                             + config["VF_COEF"] * value_loss
-                            - config["ENT_COEF"] * entropy
+                            - entropy_coef * entropy
                         )
                         return total_loss, (value_loss, loss_actor, entropy)
 
@@ -1088,8 +1311,10 @@ def make_train(config):
                 batch = (
                     init_hstate,
                     traj_batch,
-                    advantages.squeeze(),
-                    targets.squeeze(),
+                    # GAE already returns [rollout, actor]. Preserve both axes
+                    # when either dimension is one in a smoke run.
+                    advantages,
+                    targets,
                 )
                 permutation = jax.random.permutation(_rng, config["NUM_ACTORS"])
 
@@ -1170,6 +1395,7 @@ def make_train(config):
                 "value_loss": value_loss,
                 "actor_loss": actor_loss,
                 "entropy": entropy,
+                "entropy_coef": entropy_coef,
                 "learning_rate": learning_rate_fn(
                     update_step * config["NUM_MINIBATCHES"] * config["UPDATE_EPOCHS"]
                 ),
@@ -1199,20 +1425,31 @@ def make_train(config):
                         f"[{_timestamp()}] "
                         f"update={update}/{config['NUM_UPDATES']} "
                         f"env_step={env_step} progress={progress:.1f}% "
+                        f"entropy_coef={float(metric['entropy_coef']):.5f} "
                         f"sparse_episode_return={sparse_episode_return:.2f} "
                         f"sparse_step_reward={sparse_step_reward:.4f}",
                         flush=True,
                     )
 
             update_step = update_step + 1
-            metric = jax.tree.map(lambda x: x.mean(), metric)
+            metric = jax.tree.map(lambda x: jnp.asarray(x).mean(), metric)
             metric["update_step"] = update_step
             metric["env_step"] = update_step * config["NUM_STEPS"] * config["NUM_ENVS"]
             jax.debug.callback(callback, metric)
 
             if checkpoint_enabled:
+                interval_due = (
+                    update_step % checkpoint_interval == 0
+                    if checkpoint_interval
+                    else jnp.bool_(False)
+                )
+                fraction_due = (
+                    jnp.any(update_step == jnp.asarray(checkpoint_updates))
+                    if checkpoint_updates
+                    else jnp.bool_(False)
+                )
                 should_save = jnp.logical_and(
-                    update_step % checkpoint_interval == 0,
+                    jnp.logical_or(interval_due, fraction_due),
                     update_step < config["NUM_UPDATES"],
                 )
 
@@ -1311,7 +1548,7 @@ def run(config):
         OmegaConf.save(OmegaConf.create(config), config_path)
 
     wandb_name, wandb_group, wandb_tags = _wandb_metadata(config)
-    wandb.init(
+    wandb_run = wandb.init(
         **_wandb_target(config),
         tags=wandb_tags,
         config=config,
@@ -1321,6 +1558,8 @@ def run(config):
         job_type="train",
         notes=config.get("NOTES"),
     )
+    if str(config.get("ALGORITHM")) == "CooT-BR":
+        require_sweep_target(wandb_run, config)
     wandb.define_metric("train/env_step")
     wandb.define_metric("train/*", step_metric="train/env_step")
     wandb.define_metric("debug/*", step_metric="train/env_step")
@@ -1332,9 +1571,7 @@ def run(config):
         seed_indices = jnp.arange(num_seeds)
         train_jit = jax.jit(make_train(config))
         train_vmap = jax.vmap(train_jit, in_axes=(0, 0, None))
-        out = jax.block_until_ready(
-            train_vmap(rngs, seed_indices, population_params)
-        )
+        out = jax.block_until_ready(train_vmap(rngs, seed_indices, population_params))
 
     model_state = out["runner_state"][0]
     checkpoint_paths = []
@@ -1343,17 +1580,49 @@ def run(config):
 
         for i in range(num_seeds):
             params = jax.tree.map(lambda x: x[i], model_state.params)
-            checkpoint_path = os.path.join(
+            checkpoint_path = _checkpoint_path(
+                config,
                 save_dir,
-                f"{checkpoint_prefix}_{experiment_name}_seed{config['SEED']}_"
-                f"vmap{i}.safetensors",
+                checkpoint_prefix,
+                experiment_name,
+                i,
             )
             save_params(params, checkpoint_path)
-            checkpoint_paths.append(Path(checkpoint_path))
+            checkpoint_paths.append(checkpoint_path)
             print(f"[{_timestamp()}] Saved checkpoint: {checkpoint_path}")
 
     if upload_final_checkpoint:
-        _log_final_checkpoint_artifact(config, checkpoint_paths, config_path)
+        artifact_checkpoint_paths = list(checkpoint_paths)
+        if save_dir is not None and config.get(
+            "UPLOAD_INTERMEDIATE_CHECKPOINTS", False
+        ):
+            intermediate_paths = [
+                _checkpoint_path(
+                    config,
+                    save_dir,
+                    checkpoint_prefix,
+                    experiment_name,
+                    seed_index,
+                    update_step,
+                )
+                for seed_index in range(num_seeds)
+                for update_step in _checkpoint_update_steps(config)
+            ]
+            missing_paths = [path for path in intermediate_paths if not path.is_file()]
+            if missing_paths:
+                raise FileNotFoundError(
+                    "Expected intermediate checkpoint(s) were not saved: "
+                    + ", ".join(str(path) for path in missing_paths)
+                )
+            artifact_checkpoint_paths = [
+                *intermediate_paths,
+                *artifact_checkpoint_paths,
+            ]
+        _log_final_checkpoint_artifact(
+            config,
+            artifact_checkpoint_paths,
+            config_path,
+        )
 
     recording_enabled = bool(config.get("RECORD_FINAL_EPISODE", True))
     if recording_enabled and wandb_enabled:
@@ -1387,7 +1656,19 @@ def run(config):
             if wandb.run is not None:
                 wandb.run.summary["visualization/final_episode_error"] = str(error)
 
-    wandb.finish()
+    run_result = {
+        "run_id": str(getattr(wandb_run, "id", "local")),
+        "save_dir": str(save_dir) if save_dir is not None else None,
+        "config_path": str(config_path) if config_path is not None else None,
+        "checkpoint_paths": [str(path) for path in checkpoint_paths],
+        "population_checkpoints": [str(path) for path in population_checkpoints],
+    }
+    # CooT's thin response wrapper writes and uploads an immutable job-result
+    # sidecar after the generic trainer has saved its checkpoint. Generic FCP
+    # runs retain the original ownership/lifecycle by default.
+    if not config.get("DEFER_WANDB_FINISH", False):
+        wandb.finish()
+    return run_result
 
 
 @hydra.main(

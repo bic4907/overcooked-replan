@@ -1,0 +1,117 @@
+defaults:
+  - _self_
+  - recording: disabled
+  - scenario: dynamic_00
+
+# One entry in this JSON manifest is selected atomically by JOB_INDEX. Relative
+# partner checkpoint paths are resolved from the manifest's directory. Stages
+# deliberately have separate roots: exact HSP+MEP and HSP-only manifests can
+# contain the same HSP-mid jobs and must never overwrite each other.
+RESPONSE_JOB_STAGE: exact
+RESPONSE_JOB_ROOT: null  # Optional explicit override for any stage.
+RESPONSE_JOB_ROOTS:
+  candidates: ${oc.env:COOT_RESPONSE_CANDIDATE_JOB_ROOT,manifests/coot/response_candidates}
+  exact: ${oc.env:COOT_RESPONSE_JOB_ROOT,manifests/coot/response_jobs}
+  hsp_only: ${oc.env:COOT_RESPONSE_HSP_ONLY_JOB_ROOT,manifests/coot/response_jobs_hsp_only}
+  smoke: ${oc.env:COOT_SMOKE_RESPONSE_JOB_ROOT,manifests/coot/smoke/response_jobs}
+RESPONSE_JOB_MANIFEST: null  # Optional exact manifest override.
+JOB_INDEX: 0
+
+ENV_NAME: overcooked_v3
+ALGORITHM: CooT-BR
+ARCHITECTURE: rnn
+ENV_KWARGS:
+  layout: dynamic_00
+  max_steps: 450
+  random_agent_positions: false
+  include_transition_countdown: true
+  include_layout_change_mask: true
+  transition_warning_steps: 20
+
+# PORTING NOTE: these are the released supplementary partner-specific BR
+# settings from train_bias_agents_br.sh, not Table 12's 10M-step HSP/MEP
+# Stage2 baseline. V3 keeps its environment semantics while matching the
+# released BR rollout/update budget and environment-step entropy schedule.
+LR: 0.0005
+# train_bias_agents_br.sh does not enable ZSC-Eval's optional linear LR decay.
+ANNEAL_LR: false
+LR_WARMUP: 0.0
+
+NUM_ENVS: 125
+NUM_STEPS: 200
+UPDATE_EPOCHS: 15
+NUM_MINIBATCHES: 1
+
+TOTAL_TIMESTEPS: 1000000
+REW_SHAPING_HORIZON: 0
+
+FC_DIM_SIZE: 128
+GRU_HIDDEN_DIM: 128
+
+CLIP_EPS: 0.2
+# ENT_COEF remains the backward-compatible constant fallback for generic FCP.
+# CooT BR uses the supplementary script's piecewise-linear schedule below.
+ENT_COEF: 0.01
+ENT_COEFS: [0.2, 0.05, 0.01]
+ENT_COEF_HORIZONS: [0, 500000, 1000000]
+GAMMA: 0.99
+GAE_LAMBDA: 0.95
+SCALE_CLIP_EPS: false
+# The released recurrent MAPPO trainer optimizes its value objective with
+# coefficient 1.0. V3 shares actor/critic parameters, which remains a porting
+# difference, but keeps the same coefficient.
+VF_COEF: 1.0
+MAX_GRAD_NORM: 10.0
+ACTIVATION: relu
+VALUE_LOSS: huber
+HUBER_DELTA: 10.0
+# PORTING NOTE: the released adaptive runner enables running ValueNorm by
+# default. The repository's V3 FCP/IPPO value head has no ValueNorm state, so
+# response targets remain on their raw sparse-return scale.
+VALUE_NORMALIZATION: none
+
+# Generated atomic jobs override this fallback with the supplementary
+# 1-based job seed. A 50%-of-training snapshot is retained for diagnostics; it
+# is not the paper's "mid-skill partner" checkpoint.
+SEED: 0
+NUM_SEEDS: 1
+LOG_INTERVAL: 1
+CHECKPOINT_INTERVAL: 0
+CHECKPOINT_FRACTIONS: [0.5]
+UPLOAD_INTERMEDIATE_CHECKPOINTS: true
+upload_final_checkpoint: true
+# Keep the run alive until train_best_response_overcooked_v3.py uploads the
+# portable response-result sidecar together with its actual checkpoint.
+DEFER_WANDB_FINISH: true
+
+SAVES_DIR: ${oc.env:COOT_RESPONSE_SAVES_DIR,saves/coot_responses}
+EXPERIMENT_FOLDER: coot_br_unresolved
+CHECKPOINT_PREFIX: coot_br_{architecture}_{partner_slug}_{partner_skill_slug}
+CHECKPOINT_ARTIFACT_PREFIX: coot-br-overcooked-v3-{partner_slug}-{partner_skill_slug}
+CHECKPOINT_ARTIFACT_DESCRIPTION: CooT partner-specific Overcooked V3 best-response checkpoints.
+
+FCP:
+  # Filled from RESPONSE_JOB_MANIFEST before FCP.run is called.
+  partner_checkpoint: null
+  partner_id: null
+  partner_slug: null
+  partner_skill: null
+  partner_skill_slug: null
+  population_type: null
+  population_split: null
+  train_agent_index: 1
+  population_size: 1
+  population_dir: null
+  snapshots_per_policy: 1
+  minimum_population_size: 1
+  max_population_size: 1
+
+ENTITY: ${oc.env:WANDB_ENTITY,cilab-overcooked}
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-coot-response}
+wandb_mode: ${oc.env:WANDB_MODE,online}
+WANDB_GROUP: null
+WANDB_GROUP_PREFIX: coot-br
+RUN_NAME: null
+RUN_NAME_PREFIX: coot-br
+WANDB_TAGS: [CooT, BR, Fixed-Partner, OvercookedV3]
+NOTES: null

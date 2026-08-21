@@ -1,0 +1,56 @@
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: coot-smoke-population
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+# Immediately runnable plumbing check. Two one-step PPO updates exercise both
+# the 50% mid checkpoint and final checkpoint without consuming production
+# budget. Results are diagnostics only, never population candidates.
+parameters:
+  scenario:
+    value: split_0
+  HSP.PROFILE:
+    value: other
+  HSP.CANDIDATE_ID:
+    value: 0
+  ENV_KWARGS.max_steps:
+    value: 1
+  NUM_ENVS:
+    value: 1
+  NUM_STEPS:
+    value: 1
+  TOTAL_TIMESTEPS:
+    value: 2
+  UPDATE_EPOCHS:
+    value: 1
+  NUM_MINIBATCHES:
+    value: 1
+  LOG_INTERVAL:
+    value: 1
+  CHECKPOINT_FRACTIONS:
+    value: [0.5, 1.0]
+  SEED:
+    value: 0
+  NUM_SEEDS:
+    value: 1
+  SAVES_DIR:
+    value: saves/coot_smoke/population
+  EXPERIMENT_FOLDER:
+    value: hsp_population_smoke
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-coot-smoke
+  WANDB_GROUP:
+    value: coot-smoke-population
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - --config-name=coot_population_overcooked_v3
+  - ${args_no_hyphens}

@@ -1,0 +1,76 @@
+program: baselines/CooT/train_best_response_overcooked_v3.py
+name: coot-partner-specific-best-responses
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+# Postselection exact-population stage. Generate each layout manifest with
+# `response-jobs --hsp-skill mid`: selected final HSP BRs already came from the
+# candidate-response stage, so this trains 21 mid HSP BRs plus 15 final MEP
+# BRs, for 36 atomic jobs. For HSP-only use response_hsp_only.yaml instead.
+parameters:
+  RESPONSE_JOB_STAGE:
+    value: exact
+  scenario:
+    values:
+      - split_0
+      - split_1
+      - split_2
+      - outage_0
+      - outage_1
+      - outage_2
+      - recipe_switch_0
+      - recipe_switch_1
+      - recipe_switch_2
+      - distance_switch_0
+      - distance_switch_1
+      - distance_switch_2
+  JOB_INDEX:
+    values:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      - 10
+      - 11
+      - 12
+      - 13
+      - 14
+      - 15
+      - 16
+      - 17
+      - 18
+      - 19
+      - 20
+      - 21
+      - 22
+      - 23
+      - 24
+      - 25
+      - 26
+      - 27
+      - 28
+      - 29
+      - 30
+      - 31
+      - 32
+      - 33
+      - 34
+      - 35
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-coot-response
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

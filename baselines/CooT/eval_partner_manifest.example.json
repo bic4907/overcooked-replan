@@ -1,0 +1,35 @@
+{
+  "layout": "split_0",
+  "pairs": [
+    {
+      "id": "test_partner_00",
+      "split": "test",
+      "partner": {
+        "checkpoint": "../../saves/test_partners/test_partner_00.safetensors",
+        "architecture": "rnn",
+        "activation": "relu",
+        "fc_dim_size": 128,
+        "gru_hidden_dim": 128,
+        "stochastic": false
+      },
+      "reference_return": 80.0
+    },
+    {
+      "id": "test_partner_01",
+      "split": "test",
+      "partner": {
+        "checkpoint": "../../saves/test_partners/test_partner_01.safetensors",
+        "architecture": "rnn",
+        "activation": "relu",
+        "fc_dim_size": 128,
+        "gru_hidden_dim": 128,
+        "stochastic": false
+      },
+      "reference_return": 60.0
+    }
+  ],
+  "switch_pairs": [
+    ["test_partner_00", "test_partner_01"],
+    ["test_partner_01", "test_partner_00"]
+  ]
+}

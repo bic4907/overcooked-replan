@@ -1,0 +1,40 @@
+program: baselines/CooT/eval_crossplay_overcooked_v3.py
+name: coot-smoke-seedwise-xp
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+# Requires the two horizon-1 checkpoints produced by smoke_train.yaml.
+parameters:
+  layout:
+    value: split_0
+  checkpoint-root:
+    value: saves/coot_smoke/train
+  episodes:
+    value: 1
+  max-steps:
+    value: 1
+  context-update-steps:
+    value: 1
+  evaluation-seed:
+    value: 0
+  output-root:
+    value: saves/coot_smoke/eval
+  entity:
+    value: cilab-overcooked
+  project:
+    value: overcooked-v3-coot-smoke
+  run-name:
+    value: xp-coot-smoke-split_0
+  group:
+    value: coot-smoke-eval
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - --seeds
+  - "0"
+  - "1"
+  - ${args_no_equals}

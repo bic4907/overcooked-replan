@@ -1,0 +1,40 @@
+program: baselines/CooT/eval_crossplay_overcooked_v3.py
+name: coot-role-scenarios-seedwise-xp
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+parameters:
+  layout:
+    values:
+      - split_0
+      - split_1
+      - split_2
+      - outage_0
+      - outage_1
+      - outage_2
+      - recipe_switch_0
+      - recipe_switch_1
+      - recipe_switch_2
+      - distance_switch_0
+      - distance_switch_1
+      - distance_switch_2
+  episodes:
+    value: 20
+  max-steps:
+    value: 450
+  context-update-steps:
+    value: 20
+  evaluation-seed:
+    value: 0
+  entity:
+    value: cilab-overcooked
+  project:
+    value: overcooked-v3-coot-eval
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_equals}

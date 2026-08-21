@@ -9,6 +9,7 @@ Overcooked V2에서 분리한 V3 동적 환경과 역할 형성 실험 문서다
 - [Cross-play 명령어 runbook](crossplay.md)
 - [4-map cross-play sweep 실행](crossplay.md#41-4개-맵-wb-sweep)
 - [Role-scenario W&B sweep 실행 runbook](../../experiment/role_scenarios.md)
+- [CooT HSP/response population, Transformer baseline, seed-wise SP/XP sweeps](coot.md)
 
 관련 실행기는 `scripts/overcooked_v3/`, Hydra 설정은 `conf/`, W&B sweep은
 `experiment/sweeps/`에서 관리한다.

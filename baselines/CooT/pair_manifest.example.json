@@ -1,0 +1,83 @@
+{
+  "layout": "split_0",
+  "pairs": [
+    {
+      "id": "hsp_00",
+      "split": "train",
+      "population_type": "hsp",
+      "num_rollouts": 250,
+      "partner": {
+        "checkpoint": "../../saves/partners/hsp_00_final.safetensors",
+        "architecture": "rnn",
+        "activation": "relu",
+        "fc_dim_size": 64,
+        "gru_hidden_dim": 64,
+        "stochastic": true
+      },
+      "best_response": {
+        "checkpoint": "../../saves/best_responses/hsp_00_final.safetensors",
+        "architecture": "rnn",
+        "activation": "relu",
+        "fc_dim_size": 64,
+        "gru_hidden_dim": 64,
+        "stochastic": true
+      },
+      "rollout_variants": [
+        {
+          "weight": 0.12,
+          "num_rollouts": 30,
+          "partner": {
+            "checkpoint": "../../saves/partners/hsp_00_mid.safetensors",
+            "architecture": "rnn"
+          },
+          "best_response": {
+            "checkpoint": "../../saves/best_responses/hsp_00_mid.safetensors",
+            "architecture": "rnn"
+          }
+        },
+        {
+          "weight": 0.88,
+          "num_rollouts": 220
+        }
+      ],
+      "reference_return": 80.0
+    },
+    {
+      "id": "mep_00",
+      "split": "train",
+      "population_type": "mep",
+      "num_rollouts": 200,
+      "partner": {
+        "checkpoint": "../../saves/partners/mep_00_final.safetensors",
+        "architecture": "rnn",
+        "stochastic": true
+      },
+      "best_response": {
+        "checkpoint": "../../saves/best_responses/mep_00_final.safetensors",
+        "architecture": "rnn",
+        "stochastic": true
+      },
+      "reference_return": 70.0
+    },
+    {
+      "id": "held_out_00",
+      "split": "validation",
+      "num_rollouts": 50,
+      "partner": {
+        "checkpoint": "../../saves/partners/held_out_00.safetensors",
+        "architecture": "rnn",
+        "stochastic": true
+      },
+      "best_response": {
+        "checkpoint": "../../saves/best_responses/held_out_00.safetensors",
+        "architecture": "rnn",
+        "stochastic": true
+      },
+      "reference_return": 60.0
+    }
+  ],
+  "switch_pairs": [
+    ["hsp_00", "held_out_00"],
+    ["held_out_00", "hsp_00"]
+  ]
+}
