@@ -19,10 +19,14 @@ parameters:
     value: 450
   workers-per-gpu:
     value: 8
+  entity:
+    value: cilab-overcooked
+  output-project:
+    value: cilab-overcooked/overcooked-v3-ippo_eval
 
 command:
   - ${env}
   - ${interpreter}
   - ${program}
-  - inchangbaek4907/overcooked-v3-role-coordination
+  - cilab-overcooked/overcooked-v3-ippo_train
   - ${args_no_equals}

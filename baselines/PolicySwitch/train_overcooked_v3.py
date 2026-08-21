@@ -1,22 +1,26 @@
-"""Train one static IPPO policy per unique Overcooked V3 layout phase."""
+"""Train phase-gated IPPO policies on full dynamic Overcooked V3 episodes."""
 
-import copy
 import sys
 from contextlib import contextmanager
 from pathlib import Path
 
+import distrax
+import flax.linen as nn
 import hydra
 import jax
+import jax.numpy as jnp
 import wandb
 from omegaconf import OmegaConf
 
 from jaxmarl._env import load_project_env
 from jaxmarl._experiment import experiment_folder
+from jaxmarl.environments.spaces import Box
 from jaxmarl.environments.overcooked_v3 import (
     dynamic_layouts,
     phase_policy_layout_name,
     phase_policy_sequence,
 )
+from jaxmarl.wrappers.baselines import JaxMARLWrapper
 
 try:
     from baselines.IPPO import ippo_overcooked_v3 as ippo
@@ -41,6 +45,9 @@ except ImportError:  # Direct execution: python baselines/PolicySwitch/<script>.
     )
 
 
+_BASE_ACTOR_CRITIC_CNN = ippo.ActorCriticCNN
+
+
 def _checkpoint_prefix(config):
     return f"policy_switch_ippo_{ippo._architecture(config)}"
 
@@ -52,52 +59,137 @@ def _checkpoint_metadata(config):
     return experiment_name, save_dir
 
 
-def _policy_training_config(config, policy_index):
-    phase_config = copy.deepcopy(config)
-    base_layout = config["ENV_KWARGS"]["layout"]
-    phase_config["ENV_KWARGS"] = dict(config["ENV_KWARGS"])
-    phase_config["ENV_KWARGS"]["layout"] = phase_policy_layout_name(
-        base_layout, policy_index
-    )
-    phase_config["CHECKPOINT_INTERVAL"] = 0
-    return phase_config
+class PhasePolicyObservationWrapper(JaxMARLWrapper):
+    """Append an internal one-hot marker for the active policy head."""
+
+    def __init__(self, env, policy_sequence):
+        super().__init__(env)
+        self.policy_sequence = tuple(int(index) for index in policy_sequence)
+        self.policy_count = max(self.policy_sequence) + 1
+        self._phase_to_policy = jnp.asarray(self.policy_sequence, dtype=jnp.int32)
+
+    def _append_policy_marker(self, obs, state):
+        policy_index = self._phase_to_policy[state.layout_index]
+
+        def append(agent_obs):
+            marker = jax.nn.one_hot(
+                policy_index,
+                self.policy_count,
+                dtype=agent_obs.dtype,
+            )
+            marker = jnp.broadcast_to(
+                marker,
+                (*agent_obs.shape[:-1], self.policy_count),
+            )
+            return jnp.concatenate((agent_obs, marker), axis=-1)
+
+        return {agent: append(agent_obs) for agent, agent_obs in obs.items()}
+
+    def reset(self, key):
+        obs, state = self._env.reset(key)
+        return self._append_policy_marker(obs, state), state
+
+    def step(self, key, state, actions):
+        obs, state, reward, done, info = self._env.step(key, state, actions)
+        return self._append_policy_marker(obs, state), state, reward, done, info
+
+    def observation_space(self, agent_id=""):
+        base = self._env.observation_space(agent_id)
+        return Box(
+            base.low,
+            base.high,
+            (*base.shape[:-1], base.shape[-1] + self.policy_count),
+            dtype=base.dtype,
+        )
+
+
+class PhaseGatedActorCriticCNN(nn.Module):
+    """Route each transition through one independent ordinary IPPO CNN."""
+
+    action_dim: int
+    config: dict
+
+    @nn.compact
+    def __call__(self, hidden, x):
+        augmented_obs, dones = x
+        policy_count = int(self.config["POLICY_COUNT"])
+        obs = augmented_obs[..., :-policy_count]
+        marker = augmented_obs[..., -policy_count:]
+        marker = marker.reshape((*marker.shape[:2], -1, policy_count))[..., 0, :]
+
+        logits = []
+        values = []
+        for policy_index in range(policy_count):
+            _, distribution, value = _BASE_ACTOR_CRITIC_CNN(
+                self.action_dim,
+                config=self.config,
+                name=f"policy_{policy_index}",
+            )(hidden, (obs, dones))
+            logits.append(distribution.logits)
+            values.append(value)
+
+        selector = jax.nn.one_hot(
+            jnp.argmax(marker, axis=-1),
+            policy_count,
+            dtype=obs.dtype,
+        )
+        selected_logits = jnp.sum(
+            jnp.stack(logits, axis=2) * selector[..., None],
+            axis=2,
+        )
+        selected_value = jnp.sum(
+            jnp.stack(values, axis=2) * selector,
+            axis=2,
+        )
+        return hidden, distrax.Categorical(logits=selected_logits), selected_value
 
 
 @contextmanager
-def _ippo_metric_namespace(policy_index):
-    """Namespace the copied IPPO metrics without modifying the IPPO baseline."""
-    original_prefixer = ippo._prefixed_wandb_metrics
+def _phase_gated_ippo(config):
+    """Inject PolicySwitch-only env observations and network routing."""
+    original_make = ippo.jaxmarl.make
+    original_cnn = ippo.ActorCriticCNN
+    policy_sequence = tuple(config["POLICY_SEQUENCE"])
 
-    def namespaced_prefixer(metric):
-        metrics = original_prefixer(metric)
-        result = {}
-        for key, value in metrics.items():
-            namespace, name = key.split("/", 1)
-            result[f"{namespace}/policy_{policy_index}/{name}"] = value
-        return result
+    def make_phase_gated_env(name, **kwargs):
+        return PhasePolicyObservationWrapper(
+            original_make(name, **kwargs),
+            policy_sequence,
+        )
 
-    ippo._prefixed_wandb_metrics = namespaced_prefixer
+    ippo.jaxmarl.make = make_phase_gated_env
+    ippo.ActorCriticCNN = PhaseGatedActorCriticCNN
     try:
         yield
     finally:
-        ippo._prefixed_wandb_metrics = original_prefixer
+        ippo.ActorCriticCNN = original_cnn
+        ippo.jaxmarl.make = original_make
 
 
-def _train_policy(config, policy_index):
-    phase_config = _policy_training_config(config, policy_index)
+def _train_phase_gated_policies(config):
+    if ippo._architecture(config) != "cnn":
+        raise ValueError("Phase-gated PolicySwitch training currently requires CNN")
     num_seeds = int(config["NUM_SEEDS"])
-    rng = jax.random.fold_in(jax.random.PRNGKey(int(config["SEED"])), policy_index)
+    rng = jax.random.PRNGKey(int(config["SEED"]))
     rngs = jax.random.split(rng, num_seeds)
-    seed_indices = jax.numpy.arange(num_seeds)
+    seed_indices = jnp.arange(num_seeds)
     print(
-        f"[{ippo._timestamp()}] Training policy {policy_index} on "
-        f"{phase_config['ENV_KWARGS']['layout']}",
+        f"[{ippo._timestamp()}] Training {config['POLICY_COUNT']} phase-gated "
+        f"policies on dynamic layout {config['ENV_KWARGS']['layout']}",
         flush=True,
     )
-    train_jit = jax.jit(ippo.make_train(phase_config))
-    with _ippo_metric_namespace(policy_index), jax.disable_jit(False):
+    with _phase_gated_ippo(config), jax.disable_jit(False):
+        train_jit = jax.jit(ippo.make_train(config))
         output = jax.block_until_ready(jax.vmap(train_jit)(rngs, seed_indices))
     return output["runner_state"][0].params
+
+
+def _split_phase_gated_params(params, policy_count):
+    """Convert gated Flax params back to the existing combined format."""
+    return tuple(
+        {"params": params["params"][f"policy_{policy_index}"]}
+        for policy_index in range(policy_count)
+    )
 
 
 def _wandb_metadata(config):
@@ -127,8 +219,8 @@ def _log_final_checkpoint_artifact(config, checkpoint_paths, config_path):
         artifact_name,
         type="checkpoint",
         description=(
-            "One independently trained IPPO policy per unique Overcooked V3 "
-            "phase, packed into each safetensors checkpoint."
+            "Phase-gated IPPO policies jointly trained on full dynamic "
+            "Overcooked V3 episodes, packed into each safetensors checkpoint."
         ),
         metadata={
             "run_id": wandb.run.id,
@@ -138,6 +230,7 @@ def _log_final_checkpoint_artifact(config, checkpoint_paths, config_path):
             "seed": int(config["SEED"]),
             "num_seeds": int(config["NUM_SEEDS"]),
             "checkpoint_format": "combined_safetensors",
+            "training_mode": config["POLICY_SWITCH_TRAINING"],
             "phase_count": len(phases),
             "policy_count": len(config["POLICY_LAYOUTS"]),
             "policy_layouts": list(config["POLICY_LAYOUTS"]),
@@ -170,9 +263,12 @@ def run(config):
     config["ALGORITHM"] = ALGORITHM_NAME
     config["POLICY_SEQUENCE"] = list(phase_policy_sequence(base_layout))
     policy_count = max(config["POLICY_SEQUENCE"]) + 1
+    config["POLICY_COUNT"] = policy_count
     config["POLICY_LAYOUTS"] = [
-        phase_policy_layout_name(base_layout, index) for index in range(policy_count)
+        phase_policy_layout_name(base_layout, policy_index)
+        for policy_index in range(policy_count)
     ]
+    config["POLICY_SWITCH_TRAINING"] = "phase_gated_dynamic"
 
     requested_wandb_mode = str(config.get("wandb_mode", "online")).lower()
     config["wandb_mode"] = ippo._resolve_wandb_mode(config)
@@ -203,26 +299,19 @@ def run(config):
         job_type="train",
         notes=config.get("NOTES"),
     )
-    for policy_index in range(policy_count):
-        train_namespace = f"train/policy_{policy_index}"
-        debug_namespace = f"debug/policy_{policy_index}"
-        wandb.define_metric(f"{train_namespace}/env_step")
-        wandb.define_metric(
-            f"{train_namespace}/*", step_metric=f"{train_namespace}/env_step"
-        )
-        wandb.define_metric(f"{debug_namespace}/*")
+    wandb.define_metric("train/env_step")
+    wandb.define_metric("train/*", step_metric="train/env_step")
+    wandb.define_metric("debug/*")
 
     try:
-        policy_params = [
-            _train_policy(config, policy_index) for policy_index in range(policy_count)
-        ]
+        phase_gated_params = _train_phase_gated_policies(config)
 
         checkpoint_paths = []
         for vmap_index in range(int(config["NUM_SEEDS"])):
-            policies = [
-                jax.tree.map(lambda value: value[vmap_index], params)
-                for params in policy_params
-            ]
+            seed_params = jax.tree.map(
+                lambda value: value[vmap_index], phase_gated_params
+            )
+            policies = _split_phase_gated_params(seed_params, policy_count)
             checkpoint_path = save_dir / (
                 f"{checkpoint_prefix}_{experiment_name}_seed{config['SEED']}_"
                 f"vmap{vmap_index}.safetensors"

@@ -97,10 +97,10 @@ def parse_args(argv=None):
     parser.add_argument(
         "source_project",
         nargs="?",
-        default=os.getenv("WANDB_SOURCE_PROJECT") or os.getenv("WANDB_PROJECT"),
+        default=os.getenv("WANDB_SOURCE_PROJECT", "overcooked-v3-ippo_train"),
         help=(
             "Training project as PROJECT or ENTITY/PROJECT. Defaults to "
-            "WANDB_SOURCE_PROJECT, then WANDB_PROJECT."
+            "WANDB_SOURCE_PROJECT, then overcooked-v3-ippo_train."
         ),
     )
     parser.add_argument(
@@ -130,9 +130,10 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--output-project",
+        default=os.getenv("WANDB_EVAL_PROJECT", "overcooked-v3-ippo_eval"),
         help=(
             "Evaluation project as PROJECT or ENTITY/PROJECT. Defaults to "
-            "SOURCE_PROJECT-crossplay."
+            "WANDB_EVAL_PROJECT, then overcooked-v3-ippo_eval."
         ),
     )
     parser.add_argument("--output-entity", help="Entity for the evaluation project.")

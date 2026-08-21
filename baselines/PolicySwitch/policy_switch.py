@@ -56,7 +56,7 @@ def validate_combined_policy_params(
 
 
 def save_combined_policy_params(policies: Sequence, filename) -> Path:
-    """Store every independently trained phase policy in one safetensors file."""
+    """Store every phase policy head in one safetensors file."""
     if not policies:
         raise ValueError("At least one phase policy is required")
     path = Path(filename)

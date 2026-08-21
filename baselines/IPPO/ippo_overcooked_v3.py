@@ -117,6 +117,23 @@ def _checkpoint_prefix(config):
     return f"ippo_{_architecture(config)}"
 
 
+def _checkpoint_update_steps(config):
+    """Resolve fractional checkpoint milestones before the final checkpoint."""
+    num_updates = int(config["NUM_UPDATES"])
+    fractions = config.get("CHECKPOINT_FRACTIONS") or ()
+    updates = set()
+    for raw_fraction in fractions:
+        fraction = float(raw_fraction)
+        if not 0.0 < fraction <= 1.0:
+            raise ValueError(
+                "CHECKPOINT_FRACTIONS values must be greater than 0 and at most 1"
+            )
+        update = max(1, min(num_updates, int(num_updates * fraction + 0.5)))
+        if update < num_updates:
+            updates.add(update)
+    return tuple(sorted(updates))
+
+
 def _checkpoint_metadata(config):
     layout_name = config["ENV_KWARGS"]["layout"]
     layout_suffix = layout_name
@@ -552,10 +569,21 @@ def make_train(config):
     architecture = _architecture(config)
     checkpoint_prefix = _checkpoint_prefix(config)
 
+    config["NUM_ACTORS"] = env.num_agents * config["NUM_ENVS"]
+    config["NUM_UPDATES"] = (
+        config["TOTAL_TIMESTEPS"] // config["NUM_STEPS"] // config["NUM_ENVS"]
+    )
+    config["MINIBATCH_SIZE"] = (
+        config["NUM_ACTORS"] * config["NUM_STEPS"] // config["NUM_MINIBATCHES"]
+    )
+
     checkpoint_interval = int(config.get("CHECKPOINT_INTERVAL", 0))
     if checkpoint_interval < 0:
         raise ValueError("CHECKPOINT_INTERVAL must be greater than or equal to 0")
-    checkpoint_enabled = checkpoint_interval > 0 and config.get("SAVES_DIR") is not None
+    checkpoint_updates = _checkpoint_update_steps(config)
+    checkpoint_enabled = bool(checkpoint_interval or checkpoint_updates) and (
+        config.get("SAVES_DIR") is not None
+    )
     if checkpoint_enabled:
         experiment_name, save_dir = _checkpoint_metadata(config)
 
@@ -574,14 +602,6 @@ def make_train(config):
                 f"[{_timestamp()}] Saved intermediate checkpoint: {checkpoint_path}",
                 flush=True,
             )
-
-    config["NUM_ACTORS"] = env.num_agents * config["NUM_ENVS"]
-    config["NUM_UPDATES"] = (
-        config["TOTAL_TIMESTEPS"] // config["NUM_STEPS"] // config["NUM_ENVS"]
-    )
-    config["MINIBATCH_SIZE"] = (
-        config["NUM_ACTORS"] * config["NUM_STEPS"] // config["NUM_MINIBATCHES"]
-    )
 
     env = LogWrapper(env, replace_info=False)
 
@@ -982,8 +1002,18 @@ def make_train(config):
             jax.debug.callback(callback, metric)
 
             if checkpoint_enabled:
+                interval_due = (
+                    update_step % checkpoint_interval == 0
+                    if checkpoint_interval
+                    else jnp.bool_(False)
+                )
+                fraction_due = (
+                    jnp.any(update_step == jnp.asarray(checkpoint_updates))
+                    if checkpoint_updates
+                    else jnp.bool_(False)
+                )
                 should_save = jnp.logical_and(
-                    update_step % checkpoint_interval == 0,
+                    jnp.logical_or(interval_due, fraction_due),
                     update_step < config["NUM_UPDATES"],
                 )
 

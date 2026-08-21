@@ -106,9 +106,14 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--source-project",
-        default=os.getenv("WANDB_SOURCE_PROJECT", "overcooked-v3-role-coordination"),
+        default=os.getenv(
+            "WANDB_SOURCE_PROJECT", "overcooked-v3-policyswitch_train"
+        ),
     )
-    parser.add_argument("--project", default="overcooked-v3-crossplay")
+    parser.add_argument(
+        "--project",
+        default=os.getenv("WANDB_EVAL_PROJECT", "overcooked-v3-policyswitch_eval"),
+    )
     parser.add_argument(
         "--wandb-mode",
         choices=("online", "offline", "disabled"),

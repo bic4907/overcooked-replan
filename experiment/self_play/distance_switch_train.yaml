@@ -13,6 +13,10 @@ parameters:
       - distance_switch_2
   SEED:
     values: [0, 1, 2, 3, 4, 5]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-ippo_train
   recording:
     value: enabled
 

@@ -232,7 +232,8 @@ GPU 학습에는 CUDA 지원 JAX가 설치되어 있어야 한다. `jax.devices(
 | `LR` | 0.00025 |
 | `TOTAL_TIMESTEPS` | `3e7` |
 | `LOG_INTERVAL` | 10 update |
-| `CHECKPOINT_INTERVAL` | 50 update |
+| `CHECKPOINT_INTERVAL` | 0 (비활성) |
+| `CHECKPOINT_FRACTIONS` | `[]` (비활성) |
 | `random_agent_positions` | `False` |
 
 한 update는 `256 × 256 = 65,536` 환경 step이다. 따라서 `3e7`을 요청해도 완전한 update만 실행되어 실제 학습량은 다음과 같다.
@@ -240,6 +241,12 @@ GPU 학습에는 CUDA 지원 JAX가 설치되어 있어야 한다. `jax.devices(
 ```text
 457 updates × 65,536 = 29,949,952 environment steps
 ```
+
+`CHECKPOINT_INTERVAL`은 고정 update 간격, `CHECKPOINT_FRACTIONS`는 전체 학습
+진행률을 기준으로 중간 checkpoint를 저장한다. 예를 들어
+`CHECKPOINT_FRACTIONS=[0.1,0.5,1.0]`은 약 10%와 50%에서 중간 checkpoint를
+저장하고, 기존 final checkpoint 저장이 100%를 담당한다. 두 설정을 함께 쓰면 두
+schedule의 합집합을 저장한다.
 
 ### 6.2 전체 맵, seed 0/1 학습
 
@@ -410,21 +417,21 @@ GUI 창으로 직접 보려면 `--render --render-delay 0.2`를 추가한다. GU
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitnosig_0 \
+  scenario=split_0 \
   SEED=0
 ```
 
 두 학습 run ID를 사용해 checkpoint artifact를 자동으로 내려받고 cross-play를
-실행한다. 결과는 기본적으로 별도 `overcooked-v3-crossplay` project의 evaluation
+실행한다. 결과는 기본적으로 별도 `overcooked-v3-ippo_eval` project의 evaluation
 run으로 기록된다.
 
 ```bash
 python -u baselines/IPPO/eval_wandb_crossplay_overcooked_v3.py \
   --entity cilab-overcooked \
-  --source-project overcooked-v3-role-coordination \
-  --project overcooked-v3-crossplay \
+  --source-project overcooked-v3-ippo_train \
+  --project overcooked-v3-ippo_eval \
   --run-ids AGENT_0_RUN_ID AGENT_1_RUN_ID \
-  --layout splitnosig_0 \
+  --layout split_0 \
   --episodes 10 \
   --max-steps 400
 ```
@@ -452,7 +459,7 @@ artifact의 `vmap0` policy를 사용한다. 다른 vmap policy는
 스크립트를 사용한다.
 
 ```bash
-LAYOUT=splitnosig_0 \
+LAYOUT=split_0 \
 EPISODES=10 \
 bash scripts/overcooked_v3/eval_all_wandb_crossplay_overcooked_v3_cnn.sh \
   RUN_ID_SEED0 RUN_ID_SEED1
@@ -477,10 +484,10 @@ ordered matrix를 만들 수 있다. 알고리즘은 run config의 `ALGORITHM`�
 JAX_PLATFORMS=cuda \
 XLA_PYTHON_CLIENT_PREALLOCATE=false \
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  cilab-overcooked/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-ippo_train \
   --algorithms IPPO \
-  --layout splitnosig_0 \
-  --output-project cilab-overcooked/overcooked-v3-crossplay-matrix \
+  --layout split_0 \
+  --output-project cilab-overcooked/overcooked-v3-ippo_eval \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400

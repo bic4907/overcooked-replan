@@ -28,11 +28,11 @@ def parse_args(argv=None):
     parser.add_argument(
         "--entity", default=os.getenv("WANDB_ENTITY", "cilab-overcooked")
     )
-    parser.add_argument("--training-project", default="overcooked-v3-role-coordination")
-    parser.add_argument("--crossplay-project", default="overcooked-v3-crossplay")
+    parser.add_argument("--training-project", default="overcooked-v3-ippo_train")
+    parser.add_argument("--crossplay-project", default="overcooked-v3-ippo_eval")
     parser.add_argument(
         "--output-project",
-        default="overcooked-v3-crossplay",
+        default="overcooked-v3-ippo_eval",
         help="Project receiving the combined media table.",
     )
     parser.add_argument(

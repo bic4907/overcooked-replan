@@ -19,13 +19,14 @@ cp .env.example .env
 ```dotenv
 WANDB_API_KEY=your-api-key
 WANDB_ENTITY=cilab-overcooked
-WANDB_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
 ```
 
 `WANDB_ENTITY`에는 organization slug가 아니라 run을 기록할 team slug 또는 개인
 username을 넣는다. W&B workspace URL이 `https://wandb.ai/<entity>/<project>`라면
 `<entity>` 부분을 사용한다.
+project는 algorithm별 config와 sweep이 `_train`/`_eval`로 선택하므로
+six-project 구성에서는 global `WANDB_PROJECT`를 설정하지 않는다.
 
 학습 entrypoint는 `.env`를 자동으로 읽는다. W&B 설정의 적용 우선순위는 Hydra
 명령줄 override, 기존 shell 환경변수, `.env`, Hydra 기본값 순서다. `SAVES_DIR`는
@@ -41,8 +42,8 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 
 | Hydra option | Scenario |
 | --- | --- |
-| `scenario=splitnosig_<0-2>` | Kitchen Split |
-| `scenario=outagenosig_<0-2>` | Resource Outage |
+| `scenario=split_<0-2>` | Kitchen Split |
+| `scenario=outage_<0-2>` | Resource Outage |
 | `scenario=recipe_switch_<0-2>` | Mixed Recipe Relay |
 | `scenario=distance_switch_<0-2>` | Distance-Driven Role Switch |
 
@@ -71,7 +72,7 @@ blocker는 중앙열 아래쪽에 두고, 그 위의 인접한 counter 2칸에 o
 Split은 기존의 양파 3개 레시피를 유지하고, Outage는 양파 2개를 pot에 넣으면
 바로 조리를 시작한다. 모든 scenario의 pot 조리시간은 기존과 동일한 20 step이다.
 모든 Outage variant는 outage phase에서 오른쪽 onion을 전부 제거한다. 예를 들어
-`_2`는 `scenario=splitnosig_2` 또는 `scenario=outagenosig_2`처럼 바로 선택할 수
+`_2`는 `scenario=split_2` 또는 `scenario=outage_2`처럼 바로 선택할 수
 있다. 기본 sweep에는 6개 layout이 등록되어 있다.
 
 기존 dynamic map 기본값은 `scenario=dynamic_00`이다.
@@ -112,7 +113,7 @@ checkpoint는 첫 CNN layer shape이 달라 서로 호환되지 않는다.
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitnosig_0 \
+  scenario=split_0 \
   SEED=0 \
   NUM_SEEDS=1
 ```
@@ -130,7 +131,7 @@ saves/<experiment-folder>/
 파라미터는 이름에 넣지 않는다.
 
 ```text
-splitnosig_0_cnn_seed0
+split_0_cnn_seed0
 ```
 
 사람이 읽기 쉬운 prefix를 지정할 수도 있다. LR ablation처럼 평소 고정된
@@ -138,14 +139,14 @@ splitnosig_0_cnn_seed0
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitnosig_0 \
+  scenario=split_0 \
   EXPERIMENT_FOLDER=lr-1e-4 \
   LR=0.0001 \
   SEED=0
 ```
 
-결과 폴더는 `saves/splitnosig_0_cnn_lr-1e-4_seed0`이다. W&B 기본 run 이름은
-`ippo_cnn_splitnosig_0_seed0`이다. 동일 layout, architecture, seed를 다시 실행하면
+결과 폴더는 `saves/split_0_cnn_lr-1e-4_seed0`이다. W&B 기본 run 이름은
+`ippo_cnn_split_0_seed0`이다. 동일 layout, architecture, seed를 다시 실행하면
 기존 결과를 덮어쓸 수 있으므로 별도 실행은 `SEED` 또는 `EXPERIMENT_FOLDER`로
 구분한다.
 
@@ -153,10 +154,10 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
 
 ```text
 saves/
-└── splitnosig_0_cnn_seed0/
-    ├── ippo_cnn_overcooked_v3_splitnosig_0_seed0_config.yaml
-    ├── ippo_cnn_overcooked_v3_splitnosig_0_seed0_vmap0.safetensors
-    └── ippo_cnn_splitnosig_0_seed0_vmap0_final_episode.mp4
+└── split_0_cnn_seed0/
+    ├── ippo_cnn_overcooked_v3_split_0_seed0_config.yaml
+    ├── ippo_cnn_overcooked_v3_split_0_seed0_vmap0.safetensors
+    └── ippo_cnn_split_0_seed0_vmap0_final_episode.mp4
 ```
 
 `saves/`에는 실험 config와 checkpoint만 저장한다. Hydra와 W&B는 별도 경로
@@ -181,7 +182,7 @@ NAS 등 다른 루트를 쓰려면 학습 명령에
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitnosig_0 \
+  scenario=split_0 \
   SEED=0
 ```
 
@@ -194,29 +195,29 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
 
 ```bash
 python baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=outagenosig_0 \
+  scenario=outage_0 \
   --cfg job --resolve
 ```
 
 ## W&B sweep
 
-`experiment/self_play/train.yaml`은 두 category의 layout 3개씩과
-seed 6개를 조합한 36-run grid다. Mac에서 W&B 로그인을 마친 뒤
+`experiment/self_play/train.yaml`은 네 category의 layout 3개씩과
+seed 6개를 조합한 72-run grid다. Mac에서 W&B 로그인을 마친 뒤
 다음 명령으로 sweep을 생성한다.
 
 ```bash
 wandb sweep \
   --entity cilab-overcooked \
-  --project overcooked-v3-role-coordination \
+  --project overcooked-v3-ippo_train \
   experiment/self_play/train.yaml
 ```
 
-출력된 전체 경로 `cilab-overcooked/overcooked-v3-role-coordination/SWEEP_ID`를 GPU
+출력된 전체 경로 `cilab-overcooked/overcooked-v3-ippo_train/SWEEP_ID`를 GPU
 서버로 복사한다. GPU당 agent 하나를 실행하려면 다음 명령을 사용한다.
 
 ```bash
 GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
-  cilab-overcooked/overcooked-v3-role-coordination/SWEEP_ID
+  cilab-overcooked/overcooked-v3-ippo_train/SWEEP_ID
 ```
 
 여러 sweep 경로를 인자로 주면 첫 sweep의 모든 GPU agent가 끝난 후 다음 sweep을
@@ -224,8 +225,8 @@ GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
 
 ```bash
 GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
-  cilab-overcooked/overcooked-v3-role-coordination/SWEEP_ID_A \
-  cilab-overcooked/overcooked-v3-role-coordination/SWEEP_ID_B
+  cilab-overcooked/overcooked-v3-ippo_train/SWEEP_ID_A \
+  cilab-overcooked/overcooked-v3-ippo_train/SWEEP_ID_B
 ```
 
 W&B 지표는 `/` namespace로 구분한다.
@@ -251,7 +252,7 @@ run에서도 끄려면 `recording=disabled`를 사용한다. 길이, FPS, 압축
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitnosig_0 \
+  scenario=split_0 \
   recording=disabled \
   SEED=0
 ```

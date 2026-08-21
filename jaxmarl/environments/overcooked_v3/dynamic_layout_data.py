@@ -15,8 +15,8 @@
 # phase. When the right onion pile disappears, the left agent must trade off
 # local cooking against supplying onions through the shared center counters.
 #
-# Each role category exposes the three NoSig layouts selected from the
-# cross-play report.
+# Each role category exposes the three layouts selected from the cross-play
+# report.
 
 
 def _role_grid(
@@ -323,10 +323,10 @@ def _register_role_catalog():
     for new_index, (split_source, outage_source) in enumerate(
         zip(split_sources, outage_sources)
     ):
-        globals()[f"splitnosig_{new_index}"] = _build_split_catalog_variant(
+        globals()[f"split_{new_index}"] = _build_split_catalog_variant(
             split_source
         )
-        globals()[f"outagenosig_{new_index}"] = _build_outage_catalog_variant(
+        globals()[f"outage_{new_index}"] = _build_outage_catalog_variant(
             outage_source
         )
 
@@ -728,9 +728,9 @@ def _register_distance_switch_catalog():
 _register_distance_switch_catalog()
 
 
-# Backward-compatible aliases for existing commands and checkpoints.
-split_no_sig = splitnosig_0
-outage_no_sig = outagenosig_0
+# Short aliases for the first selected layouts.
+split = split_0
+outage = outage_0
 
 dynamic_00 = [
     [

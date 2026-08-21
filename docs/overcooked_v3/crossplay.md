@@ -26,14 +26,14 @@ export MPLCONFIGDIR=/tmp
 
 ## 2. 가장 작은 smoke test
 
-아래 명령은 `outagenosig_0`의 IPPO seed 4·5 checkpoint를 받아 4개 ordered pair를
+아래 명령은 `outage_0`의 IPPO seed 4·5 checkpoint를 받아 4개 ordered pair를
 각각 1 episode, 2 step만 평가한다. W&B evaluation run은 만들지 않는다.
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  cilab-overcooked/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-ippo_train \
   --algorithms IPPO \
-  --layout outagenosig_0 \
+  --layout outage_0 \
   --seeds 4 5 \
   --episodes 1 \
   --max-steps 2 \
@@ -50,14 +50,14 @@ python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  cilab-overcooked/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-ippo_train \
   --algorithms IPPO \
-  --layout splitnosig_0 \
+  --layout split_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400 \
   --gpus 0 1 2 3 \
-  --output-project cilab-overcooked/overcooked-v3-crossplay
+  --output-project cilab-overcooked/overcooked-v3-ippo_eval
 ```
 
 한 evaluation run은 `--layout`으로 지정한 맵 하나만 평가한다. 여러 맵은 4-map
@@ -69,15 +69,15 @@ sweep처럼 맵마다 별도의 W&B run으로 실행한다.
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  cilab-overcooked/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-ippo_train \
   --algorithms IPPO \
-  --layout splitnosig_0 \
+  --layout split_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400 \
   --gpus 0 1 2 3 \
-  --output-project cilab-overcooked/overcooked-v3-crossplay \
-  --output-dir saves/crossplay/splitnosig_0-ippo
+  --output-project cilab-overcooked/overcooked-v3-ippo_eval \
+  --output-dir saves/crossplay/split_0-ippo
 ```
 
 GPU마다 `--workers-per-gpu`만큼 장시간 유지되는 worker 프로세스를 만들고 pending
@@ -89,9 +89,9 @@ runtime을 재사용한다. 부모
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  cilab-overcooked/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-ippo_train \
   --algorithms IPPO \
-  --layout splitnosig_0 \
+  --layout split_0 \
   --gpus 0 \
   --workers-per-gpu 8
 ```
@@ -120,9 +120,9 @@ artifact 검색·다운로드, 각 GPU의 첫 JIT compile, 마지막 W&B 업로�
 들어 `CUDA_VISIBLE_DEVICES=3,5`라면 GPU 3만 사용한다. 여러 GPU를 한 eval run에
 할당하려는 경우에만 `--gpus 0 1 2 3`처럼 명시한다.
 
-### 4.1 4개 맵 W&B sweep
+### 4.1 12개 맵 W&B sweep
 
-학습 sweep과 동일한 4개 맵을 한 번씩 평가하는 grid sweep이 준비되어 있다.
+학습 sweep과 동일한 12개 맵을 한 번씩 평가하는 grid sweep이 준비되어 있다.
 
 ```text
 experiment/self_play/eval.yaml
@@ -133,7 +133,7 @@ experiment/self_play/eval.yaml
 ```bash
 wandb sweep \
   --entity cilab-overcooked \
-  --project overcooked-v3-crossplay \
+  --project overcooked-v3-ippo_eval \
   experiment/self_play/eval.yaml
 ```
 
@@ -144,7 +144,7 @@ wandb sweep \
 ```bash
 GPUS="0" \
 bash scripts/overcooked_v3/run_wandb_agents.sh \
-  cilab-overcooked/overcooked-v3-crossplay/SWEEP_ID
+  cilab-overcooked/overcooked-v3-ippo_eval/SWEEP_ID
 ```
 
 이 방식에서는 W&B agent 하나가 한 GPU에 고정되고 서로 다른 맵을 가져간다. 따라서
@@ -158,9 +158,9 @@ W&B agent가 자신에게 할당된 GPU에 eval worker 여덟 개를 실행한�
 수를 바꾸려면 이 값을 수정한다.
 
 각 맵 run은 source project에서 해당 맵의 모든 training seed 최신 checkpoint를 찾아
-artifact 안의 모든 최종 vmap policy를 20 episodes, 400 max steps로 평가한다. 현재
+artifact 안의 모든 최종 vmap policy를 20 episodes, 450 max steps로 평가한다. 현재
 학습 설정은 `NUM_SEEDS=1`이므로 artifact마다 `vmap0` 하나만 존재한다. 기본 output project는
-`cilab-overcooked/overcooked-v3-crossplay`다. 이 값을 바꾸려면 sweep YAML의
+`cilab-overcooked/overcooked-v3-ippo_eval`다. 이 값을 바꾸려면 sweep YAML의
 `output-project`와 `wandb sweep --project`를 함께 변경한다.
 
 ## 5. 여러 알고리즘 비교
@@ -169,13 +169,13 @@ artifact 안의 모든 최종 vmap policy를 20 episodes, 400 max steps로 평�
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  cilab-overcooked/overcooked-v3-role-coordination \
-  --algorithms IPPO FCP OTHER_PLAY \
-  --layout splitnosig_0 \
+  cilab-overcooked/overcooked-v3-ippo_train \
+  --algorithms IPPO \
+  --layout split_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400 \
-  --output-project cilab-overcooked/overcooked-v3-crossplay
+  --output-project cilab-overcooked/overcooked-v3-ippo_eval
 ```
 
 각 알고리즘의 실제 학습 구현이 `ALGORITHM` config와 checkpoint artifact를
@@ -207,14 +207,14 @@ SP-XP_gap   = SP - XP
 
 ```bash
 python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-  cilab-overcooked/overcooked-v3-role-coordination \
+  cilab-overcooked/overcooked-v3-ippo_train \
   --algorithms IPPO \
-  --layout splitnosig_0 \
+  --layout split_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
   --max-steps 400 \
-  --output-project cilab-overcooked/overcooked-v3-crossplay \
-  --output-dir saves/crossplay/splitnosig_0-ippo
+  --output-project cilab-overcooked/overcooked-v3-ippo_eval \
+  --output-dir saves/crossplay/split_0-ippo
 ```
 
 같은 명령을 다시 실행하면 `pair_cache.json`에 있는 완료 pair는 건너뛴다. 평가
@@ -274,17 +274,17 @@ model matrix의 표시 label은 `IPPO|s0`처럼 알고리즘과 training seed만
 run ID와 vmap index는 label에서 생략하지만 CSV/JSON의 run, vmap, model ID 필드에는
 그대로 기록한다.
 
-예를 들어 IPPO를 `splitnosig_0`에서 평가하면 run 이름은 다음처럼 표시된다. seed,
+예를 들어 IPPO를 `split_0`에서 평가하면 run 이름은 다음처럼 표시된다. seed,
 vmap, episode, step, GPU 등의 세부 설정은 W&B config에서 확인한다.
 
 ```text
-xp-ippo-splitnosig_0
+xp-ippo-split_0
 ```
 
 기본적으로 각 eval은 다음처럼 독립된 run 폴더 하나를 만든다.
 
 ```text
-saves/crossplay/xp-ippo-splitnosig_0-<timestamp>-p<pid>/
+saves/crossplay/xp-ippo-split_0-<timestamp>-p<pid>/
 ├── artifacts/                    # W&B에서 받은 source checkpoints
 ├── wandb/                        # 이 eval의 W&B SDK local run files
 ├── source/                       # eval Python 및 sweep YAML snapshot
@@ -314,9 +314,9 @@ project의 최신 matrix를 가져와 옆으로 배치한다. 기본은 training
 ```bash
 python -u baselines/IPPO/build_wandb_role_scenario_report.py \
   --entity cilab-overcooked \
-  --training-project overcooked-v3-role-coordination \
-  --crossplay-project overcooked-v3-crossplay \
-  --output-project overcooked-v3-crossplay
+  --training-project overcooked-v3-ippo_train \
+  --crossplay-project overcooked-v3-ippo_eval \
+  --output-project overcooked-v3-ippo_eval
 ```
 
 로컬 `saves/reports/role-scenarios-<timestamp>/` 아래에 다음을 생성한다.

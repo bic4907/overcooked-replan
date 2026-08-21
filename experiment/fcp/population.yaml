@@ -1,29 +1,41 @@
 program: baselines/IPPO/ippo_overcooked_v3.py
-name: fcp-self-play
+name: fcp-role-scenarios-population
 method: grid
 metric:
   goal: maximize
   name: train/episode_return
 
-# Based on experiment/self_play/train.yaml with additional RNN snapshot
-# settings for the frozen FCP partner population.
+# Three independent RNN policies per layout. Each run saves the 10%, 50%, and
+# final (100%) checkpoints, yielding nine frozen partner policies per layout.
 parameters:
   scenario:
     values:
-      - splitnosig_0
-      - splitnosig_1
-      - splitnosig_2
-      - outagenosig_0
-      - outagenosig_1
-      - outagenosig_2
+      - split_0
+      - split_1
+      - split_2
+      - outage_0
+      - outage_1
+      - outage_2
+      - recipe_switch_0
+      - recipe_switch_1
+      - recipe_switch_2
+      - distance_switch_0
+      - distance_switch_1
+      - distance_switch_2
   SEED:
-    values: [0, 1, 2, 3, 4, 5]
+    values: [0, 1, 2]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-fcp-population
   ARCHITECTURE:
     value: rnn
   SAVES_DIR:
     value: saves/fcp_population
   CHECKPOINT_INTERVAL:
-    value: 152
+    value: 0
+  CHECKPOINT_FRACTIONS:
+    value: [0.1, 0.5, 1.0]
   upload_final_checkpoint:
     value: false
   recording:

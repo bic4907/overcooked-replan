@@ -25,13 +25,13 @@ features for the 29-channel encoding.
 
 ## Role-coordination scenarios
 
-`splitnosig_0` through `splitnosig_2` use 7×9 maps. They open one central doorway
+`split_0` through `split_2` use 7×9 maps. They open one central doorway
 for 40 steps, then turn it into a handoff counter for 160 steps. The
 left bay contains onions and pots, while the right bay contains plates and
 serving. Agents must choose opposite sides before the wall closes, then
 coordinate cook–server work through the counter.
 
-`outagenosig_0` through `outagenosig_2` have compact 5×7 maps with
+`outage_0` through `outage_2` have compact 5×7 maps with
 disconnected movement regions and shared center counters. Both bays are
 complete kitchens with pots, plates, serving, and onions. After a 40-step
 normal phase, every right onion pile becomes a wall for 160 steps, so the left cook must trade off local

@@ -53,12 +53,12 @@ def parse_args():
     )
     parser.add_argument(
         "--source-project",
-        default=os.getenv("WANDB_PROJECT", "overcooked-v3-role-coordination"),
+        default=os.getenv("WANDB_SOURCE_PROJECT", "overcooked-v3-ippo_train"),
         help="Training project containing bare --run-ids.",
     )
     parser.add_argument(
         "--project",
-        default="overcooked-v3-crossplay",
+        default=os.getenv("WANDB_EVAL_PROJECT", "overcooked-v3-ippo_eval"),
         help="Project used for cross-play evaluation runs.",
     )
     parser.add_argument(

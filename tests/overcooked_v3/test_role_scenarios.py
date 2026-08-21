@@ -19,8 +19,8 @@ from jaxmarl.environments.overcooked_v3.layouts import overcooked_v3_base_layout
 from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
 
 ROLE_SCENARIOS = (
-    "split_no_sig",
-    "outage_no_sig",
+    "split",
+    "outage",
 )
 
 CANONICAL_ROLE_SCENARIOS = tuple(
@@ -79,8 +79,8 @@ def _shortest_floor_distance(static_objects, starts, goals):
 
 def test_each_role_scenario_family_has_expected_unique_layouts():
     expected_counts = {
-        "splitnosig": 3,
-        "outagenosig": 3,
+        "split": 3,
+        "outage": 3,
         "recipe_switch": 3,
         "distance_switch": 3,
     }
@@ -179,13 +179,13 @@ def test_distance_switch_zero_starts_from_canonical_asymmetric_advantages():
 def test_outage_uses_two_onion_recipe_while_split_keeps_three_onions():
     onion = DynamicObject.ingredient(0)
 
-    for layout_name in ROLE_SCENARIO_LAYOUTS["splitnosig"]:
+    for layout_name in ROLE_SCENARIO_LAYOUTS["split"]:
         env = OvercookedV3(layout=layout_name, max_steps=20)
         _, state = env.reset(jax.random.PRNGKey(0))
         assert env.recipe_size == 3
         assert state.recipe == 3 * onion
 
-    for layout_name in ROLE_SCENARIO_LAYOUTS["outagenosig"]:
+    for layout_name in ROLE_SCENARIO_LAYOUTS["outage"]:
         env = OvercookedV3(layout=layout_name, max_steps=20)
         _, state = env.reset(jax.random.PRNGKey(0))
         assert env.recipe_size == 2
@@ -193,7 +193,7 @@ def test_outage_uses_two_onion_recipe_while_split_keeps_three_onions():
 
 
 def test_outage_pot_starts_cooking_after_second_onion():
-    env = OvercookedV3(layout="outage_no_sig", max_steps=20)
+    env = OvercookedV3(layout="outage", max_steps=20)
     _, state = env.reset(jax.random.PRNGKey(0))
     onion = DynamicObject.ingredient(0)
     state = state.replace(
@@ -220,7 +220,7 @@ def test_outage_pot_starts_cooking_after_second_onion():
 
 @pytest.mark.parametrize("variant", range(3))
 def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
-    layout = dynamic_layouts[f"outagenosig_{variant}"]
+    layout = dynamic_layouts[f"outage_{variant}"]
     assert tuple(phase.steps for phase in layout.phases) == (40, 160)
     normal_phase = layout.phases[0].layout.static_objects
     outage_phase = layout.phases[1].layout.static_objects
@@ -325,7 +325,7 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
 
 @pytest.mark.parametrize("variant", range(3))
 def test_split_variants_keep_complementary_resources_in_separate_bays(variant):
-    layout = dynamic_layouts[f"splitnosig_{variant}"]
+    layout = dynamic_layouts[f"split_{variant}"]
     assert tuple(phase.steps for phase in layout.phases) == (40, 160)
     open_phase = layout.phases[0].layout.static_objects
     closed_phase = layout.phases[1].layout.static_objects
@@ -372,8 +372,8 @@ def test_split_variants_keep_complementary_resources_in_separate_bays(variant):
 @pytest.mark.parametrize(
     ("layout_name", "grid_shape"),
     (
-        ("split_no_sig", (7, 9, 3)),
-        ("outage_no_sig", (5, 7, 3)),
+        ("split", (7, 9, 3)),
+        ("outage", (5, 7, 3)),
     ),
 )
 def test_role_scenario_is_registered_and_resettable(layout_name, grid_shape):
@@ -388,8 +388,8 @@ def test_role_scenario_is_registered_and_resettable(layout_name, grid_shape):
 @pytest.mark.parametrize(
     ("layout_name", "recipe_position"),
     (
-        ("split_no_sig", (4, 0)),
-        ("outage_no_sig", (3, 0)),
+        ("split", (4, 0)),
+        ("outage", (3, 0)),
     ),
 )
 def test_role_layout_keeps_recipe_indicator_at_a_separate_fixed_tile(
@@ -404,7 +404,7 @@ def test_role_layout_keeps_recipe_indicator_at_a_separate_fixed_tile(
 
 
 def test_kitchen_split_closes_doorway_between_complementary_bays():
-    layout = dynamic_layouts["split_no_sig"]
+    layout = dynamic_layouts["split"]
     open_phase = layout.phases[0].layout.static_objects
     split_phase = layout.phases[1].layout.static_objects
     left_start, right_start = layout.phases[0].agent_positions
@@ -429,7 +429,7 @@ def test_kitchen_split_closes_doorway_between_complementary_bays():
 
 
 def test_resource_outage_separates_agents_but_keeps_a_shared_handoff():
-    layout = dynamic_layouts["outage_no_sig"]
+    layout = dynamic_layouts["outage"]
     onion_pile = StaticObject.ingredient_pile(0)
 
     for phase in layout.phases:
@@ -463,8 +463,8 @@ def test_resource_outage_separates_agents_but_keeps_a_shared_handoff():
 @pytest.mark.parametrize(
     ("layout_name", "change_position", "change_count"),
     (
-        ("split_no_sig", (4, 5), 1),
-        ("outage_no_sig", (5, 0), 1),
+        ("split", (4, 5), 1),
+        ("outage", (5, 0), 1),
     ),
 )
 def test_change_mask_marks_only_the_next_static_tile_change(
@@ -486,7 +486,7 @@ def test_change_mask_marks_only_the_next_static_tile_change(
 
 
 def test_visualizer_formats_transition_countdown_in_seconds():
-    env = OvercookedV3(layout="split_no_sig", max_steps=220)
+    env = OvercookedV3(layout="split", max_steps=220)
     _, state = env.reset(jax.random.PRNGKey(0))
     visualizer = OvercookedV3Visualizer(seconds_per_step=0.2)
 
@@ -508,7 +508,7 @@ def test_visualizer_formats_transition_countdown_in_seconds():
 
 
 def test_visualizer_blinks_and_draws_count_on_each_changing_tile():
-    env = OvercookedV3(layout="split_no_sig", max_steps=220)
+    env = OvercookedV3(layout="split", max_steps=220)
     _, state = env.reset(jax.random.PRNGKey(0))
     visualizer = OvercookedV3Visualizer(tile_size=24)
     before_warning = state.replace(step=jnp.array(19), steps_until_layout_change=21)
@@ -534,7 +534,7 @@ def test_visualizer_blinks_and_draws_count_on_each_changing_tile():
 
 
 def test_visualizer_saves_low_resolution_mp4(tmp_path):
-    env = OvercookedV3(layout="split_no_sig", max_steps=2)
+    env = OvercookedV3(layout="split", max_steps=2)
     _, state = env.reset(jax.random.PRNGKey(0))
     actions = {agent: jnp.array(0) for agent in env.agents}
     _, next_state, _, _, _ = env.step_env(jax.random.PRNGKey(1), state, actions)
@@ -554,7 +554,7 @@ def test_visualizer_saves_low_resolution_mp4(tmp_path):
 
 
 def test_outage_left_cook_can_preload_two_onions_and_pass_one():
-    env = OvercookedV3(layout="outage_no_sig", max_steps=20)
+    env = OvercookedV3(layout="outage", max_steps=20)
     _, state = env.reset(jax.random.PRNGKey(0))
     onion = DynamicObject.ingredient(0)
     state = state.replace(
@@ -613,7 +613,7 @@ def test_outage_left_cook_can_preload_two_onions_and_pass_one():
 
 
 def test_split_runtime_closes_handoff_wall_at_step_40():
-    env = OvercookedV3(layout="split_no_sig", max_steps=220)
+    env = OvercookedV3(layout="split", max_steps=220)
     _, state = env.reset(jax.random.PRNGKey(0))
     state = state.replace(step=jnp.array(39))
     actions = {agent: jnp.array(OvercookedActionsEnum.stay) for agent in env.agents}
@@ -631,7 +631,7 @@ def test_split_runtime_closes_handoff_wall_at_step_40():
 
 
 def test_outage_runtime_removes_only_the_right_kitchen_onion_at_step_40():
-    env = OvercookedV3(layout="outage_no_sig", max_steps=220)
+    env = OvercookedV3(layout="outage", max_steps=220)
     _, state = env.reset(jax.random.PRNGKey(0))
     state = state.replace(step=jnp.array(39))
     actions = {agent: jnp.array(OvercookedActionsEnum.stay) for agent in env.agents}
@@ -650,7 +650,7 @@ def test_outage_runtime_removes_only_the_right_kitchen_onion_at_step_40():
 
 
 def test_non_storage_blocker_does_not_store_objects():
-    env = OvercookedV3(layout="split_no_sig", max_steps=20)
+    env = OvercookedV3(layout="split", max_steps=20)
     _, state = env.reset(jax.random.PRNGKey(0))
     state = state.replace(
         agents=state.agents.replace(

@@ -9,8 +9,8 @@ The following role-coordination experiments are currently available:
 
 | Hydra scenario | Environment | Research question |
 | --- | --- | --- |
-| `splitnosig_{0..2}` | Kitchen Split | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
-| `outagenosig_{0..2}` | Resource Outage | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
+| `split_{0..2}` | Kitchen Split | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
+| `outage_{0..2}` | Resource Outage | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
 | `recipe_switch_{0..2}` | Mixed Recipe Relay | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
 | `distance_switch_{0..2}` | Distance-Driven Role Switch | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
 
@@ -43,7 +43,7 @@ as `_0`, `_1`, and `_2`. New `_0` is a 9×5 onion-major-first layout; new `_1`
 and `_2` are 7×5 tomato-major-first layouts. The map stays fixed while the
 recipe changes at deterministic phase boundaries within a 450-step episode.
 Select any layout through its Hydra scenario name, such as
-`scenario=outagenosig_2`.
+`scenario=outage_2`.
 
 Distance-Driven Role Switch keeps the standard three-onion recipe fixed and
 follows the original `asymm_advantages` comparative-cost structure. The two
@@ -87,13 +87,13 @@ works correctly:
 
 ```bash
 python scripts/overcooked_v3/run_role_scenario.py \
-  --layout splitnosig_0 \
+  --layout split_0 \
   --steps 220 \
   --seed 0 \
-  --gif evaluation/previews/splitnosig_0.gif
+  --gif evaluation/previews/split_0.gif
 ```
 
-The resulting GIF is saved to `evaluation/previews/splitnosig_0.gif`.
+The resulting GIF is saved to `evaluation/previews/split_0.gif`.
 
 ## W&B and environment variables
 
@@ -108,8 +108,6 @@ Add your W&B credentials and settings to `.env`:
 ```dotenv
 WANDB_API_KEY=your-api-key
 WANDB_ENTITY=cilab-overcooked
-WANDB_PROJECT=overcooked-v3-role-coordination
-WANDB_SOURCE_PROJECT=overcooked-v3-role-coordination
 WANDB_MODE=online
 ```
 
@@ -117,6 +115,9 @@ WANDB_MODE=online
 slug. In a W&B workspace URL such as
 `https://wandb.ai/<entity>/<project>`, use the `<entity>` segment. If it points
 to an organization, open the target team workspace and use that team's slug.
+Training and evaluation projects are selected by the algorithm-specific config
+or sweep; avoid a global `WANDB_PROJECT` override when using the six-project
+IPPO/FCP/PolicySwitch split.
 
 The training entrypoint automatically loads `.env` from the project root. The
 file is excluded from Git. Set `WANDB_MODE=disabled` when W&B is not needed.
@@ -138,7 +139,7 @@ W&B-related settings use the following precedence order. This does not apply to
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitnosig_0 \
+  scenario=split_0 \
   EXPERIMENT_FOLDER=baseline \
   SEED=0 \
   NUM_SEEDS=1
@@ -147,14 +148,14 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
 Change only the `scenario` override to run another condition:
 
 ```bash
-scenario=outagenosig_0
+scenario=outage_0
 ```
 
 CNN is the default policy architecture. Select the RNN policy as follows:
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=outagenosig_0 \
+  scenario=outage_0 \
   ARCHITECTURE=rnn \
   EXPERIMENT_FOLDER=baseline \
   SEED=0
@@ -170,7 +171,7 @@ one update and verify the training and output paths:
 ```bash
 JAX_PLATFORMS=cpu XLA_PYTHON_CLIENT_PREALLOCATE=false \
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitnosig_0 \
+  scenario=split_0 \
   EXPERIMENT_FOLDER=dry-run \
   NUM_ENVS=2 \
   NUM_STEPS=2 \
@@ -183,7 +184,7 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
 ```
 
 This command writes the experiment to
-`saves/splitnosig_0_cnn_dry-run_seed0/`.
+`saves/split_0_cnn_dry-run_seed0/`.
 
 ### Inspect the resolved Hydra configuration
 
@@ -191,7 +192,7 @@ Print the effective configuration without starting training:
 
 ```bash
 python baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=outagenosig_0 \
+  scenario=outage_0 \
   --cfg job --resolve
 ```
 
@@ -211,17 +212,17 @@ saves/
 For example, this configuration:
 
 ```text
-scenario=splitnosig_0 ARCHITECTURE=cnn EXPERIMENT_FOLDER=baseline SEED=2
+scenario=split_0 ARCHITECTURE=cnn EXPERIMENT_FOLDER=baseline SEED=2
 ```
 
 creates the following directory:
 
 ```text
-saves/splitnosig_0_cnn_baseline_seed2/
+saves/split_0_cnn_baseline_seed2/
 ```
 
 If `EXPERIMENT_FOLDER` is omitted, the directory is
-`saves/splitnosig_0_cnn_seed2/`. Include only meaningful experimental axes in the
+`saves/split_0_cnn_seed2/`. Include only meaningful experimental axes in the
 name. For example, when a normally fixed learning rate becomes an ablation
 variable, use a name such as `EXPERIMENT_FOLDER=lr-1e-4`.
 
@@ -235,7 +236,7 @@ not hardcoded anywhere in the training code.
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitnosig_0 \
+  scenario=split_0 \
   SAVES_DIR=/mnt/nas/overcooked-replan \
   EXPERIMENT_FOLDER=baseline \
   SEED=0
@@ -268,16 +269,16 @@ with the W&B CLI:
 ```bash
 wandb sweep \
   --entity cilab-overcooked \
-  --project overcooked-v3-role-coordination \
+  --project overcooked-v3-ippo_train \
   experiment/self_play/train.yaml
 ```
 
-W&B prints `cilab-overcooked/overcooked-v3-role-coordination/SWEEP_ID`. Copy that
+W&B prints `cilab-overcooked/overcooked-v3-ippo_train/SWEEP_ID`. Copy that
 full path to the GPU server and launch one agent on each GPU:
 
 ```bash
 GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
-  cilab-overcooked/overcooked-v3-role-coordination/SWEEP_ID
+  cilab-overcooked/overcooked-v3-ippo_train/SWEEP_ID
 ```
 
 Each GPU processes one run at a time until W&B reports that the sweep is
@@ -286,12 +287,12 @@ sweep before the next one starts:
 
 ```bash
 GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
-  cilab-overcooked/overcooked-v3-role-coordination/SWEEP_ID_A \
-  cilab-overcooked/overcooked-v3-role-coordination/SWEEP_ID_B
+  cilab-overcooked/overcooked-v3-ippo_train/SWEEP_ID_A \
+  cilab-overcooked/overcooked-v3-ippo_train/SWEEP_ID_B
 ```
 
 For example, a sweep run is saved under a directory such as
-`saves/splitnosig_0_cnn_seed0/`.
+`saves/split_0_cnn_seed0/`.
 
 W&B metrics are grouped by slash-delimited namespaces:
 
@@ -316,7 +317,7 @@ also skipped when `wandb_mode=disabled`.
 
 ```bash
 python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitnosig_0 \
+  scenario=split_0 \
   recording=disabled \
   SEED=0
 ```
@@ -329,12 +330,12 @@ a GIF:
 ```bash
 JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
 python baselines/IPPO/eval_ippo_overcooked_v3.py \
-  --layout splitnosig_0 \
+  --layout split_0 \
   --architecture cnn \
   --agent-seeds 0 0 \
   --episodes 3 \
   --max-steps 400 \
-  --gif evaluation/splitnosig_0_same_seed0.gif
+  --gif evaluation/split_0_same_seed0.gif
 ```
 
 For cross-play, select policies trained with different seeds:
@@ -342,12 +343,12 @@ For cross-play, select policies trained with different seeds:
 ```bash
 JAX_PLATFORMS=cpu MPLCONFIGDIR=/tmp \
 python baselines/IPPO/eval_ippo_overcooked_v3.py \
-  --layout splitnosig_0 \
+  --layout split_0 \
   --architecture cnn \
   --agent-seeds 0 1 \
   --episodes 3 \
   --max-steps 400 \
-  --gif evaluation/splitnosig_0_cross_seed0_seed1.gif
+  --gif evaluation/split_0_cross_seed0_seed1.gif
 ```
 
 With `--agent-seeds`, the evaluator finds the newest final checkpoint for the
@@ -356,8 +357,8 @@ its path explicitly with `--checkpoint`:
 
 ```bash
 python baselines/IPPO/eval_ippo_overcooked_v3.py \
-  --layout splitnosig_0 \
-  --checkpoint saves/splitnosig_0_cnn_baseline_seed0/ippo_cnn_overcooked_v3_splitnosig_0_seed0_vmap0.safetensors \
+  --layout split_0 \
+  --checkpoint saves/split_0_cnn_baseline_seed0/ippo_cnn_overcooked_v3_split_0_seed0_vmap0.safetensors \
   --episodes 1 \
   --render \
   --render-delay 0.2
@@ -371,7 +372,7 @@ features when evaluating a checkpoint trained with the 29-channel encoding:
 
 ```bash
 python baselines/IPPO/eval_ippo_overcooked_v3.py \
-  --layout splitnosig_0 \
+  --layout split_0 \
   --checkpoint PATH_TO_OLD_CHECKPOINT.safetensors \
   --legacy-observation
 ```

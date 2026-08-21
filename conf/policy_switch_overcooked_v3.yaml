@@ -14,7 +14,7 @@ ENV_KWARGS:
   include_layout_change_mask: true
   transition_warning_steps: 20
 
-# TOTAL_TIMESTEPS is applied independently to every unique phase policy.
+# All phase policies share one full dynamic-episode training budget.
 LR: 0.00025
 ANNEAL_LR: true
 LR_WARMUP: 0.05
@@ -46,7 +46,7 @@ SAVES_DIR: saves
 EXPERIMENT_FOLDER: policy-switch
 
 ENTITY: ${oc.env:WANDB_ENTITY,cilab-overcooked}
-PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-role-coordination}
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-policyswitch_train}
 wandb_mode: ${oc.env:WANDB_MODE,online}
 WANDB_GROUP: policy-switch
 POLICY_SWITCH_WANDB_GROUP: policy-switch

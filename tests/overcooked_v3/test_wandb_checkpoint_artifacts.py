@@ -47,7 +47,7 @@ def test_log_final_checkpoint_artifact_is_optional(tmp_path, monkeypatch):
     config = {
         "upload_final_checkpoint": False,
         "ARCHITECTURE": "cnn",
-        "ENV_KWARGS": {"layout": "split_no_sig"},
+        "ENV_KWARGS": {"layout": "split"},
         "SEED": 3,
         "NUM_SEEDS": 1,
     }
@@ -68,7 +68,7 @@ def test_log_final_checkpoint_artifact_is_optional(tmp_path, monkeypatch):
     assert artifact.name == "overcooked-v3-abc123-final-checkpoint"
     assert artifact.type == "checkpoint"
     assert artifact.metadata["algorithm"] == "IPPO"
-    assert artifact.metadata["layout"] == "split_no_sig"
+    assert artifact.metadata["layout"] == "split"
     assert [name for _path, name in artifact.files] == [
         checkpoint.name,
         config_path.name,

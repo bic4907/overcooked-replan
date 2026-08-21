@@ -14,8 +14,10 @@ from jaxmarl._experiment import experiment_folder
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = ROOT / "conf"
 SCENARIO_FAMILIES = {
-    "splitnosig": "kitchen_split",
-    "outagenosig": "resource_outage",
+    "split": "kitchen_split",
+    "outage": "resource_outage",
+    "recipe_switch": "recipe_switch",
+    "distance_switch": "distance_switch",
 }
 SCENARIOS = {
     f"{family}_{variant}": metadata
@@ -34,6 +36,7 @@ def test_default_training_config_preserves_dynamic_00():
     assert config.EXPERIMENT == "dynamic_map"
     assert config.SAVES_DIR == "saves"
     assert config.ENTITY == "cilab-overcooked"
+    assert config.PROJECT == "overcooked-v3-ippo_train"
     assert config.ENV_KWARGS.include_transition_countdown is True
     assert config.ENV_KWARGS.include_layout_change_mask is True
     assert config.ENV_KWARGS.transition_warning_steps == 20
@@ -147,9 +150,7 @@ def test_explicit_offline_and_disabled_modes_are_preserved():
 
 def test_wandb_sweep_covers_scenarios_and_seeds():
     sweep = OmegaConf.to_container(
-        OmegaConf.load(
-            ROOT / "experiment" / "sweeps" / "train_ippo.yaml"
-        ),
+        OmegaConf.load(ROOT / "experiment" / "self_play" / "train.yaml"),
         resolve=False,
     )
 
@@ -161,8 +162,26 @@ def test_wandb_sweep_covers_scenarios_and_seeds():
     assert sweep["parameters"]["scenario"]["values"] == SWEEP_SCENARIOS
     assert "LAYOUT_VARIANT" not in sweep["parameters"]
     assert sweep["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
+    assert sweep["parameters"]["ENTITY"]["value"] == "cilab-overcooked"
+    assert sweep["parameters"]["PROJECT"]["value"] == "overcooked-v3-ippo_train"
     assert sweep["parameters"]["recording"]["value"] == "enabled"
     assert "${args_no_hyphens}" in sweep["command"]
+
+
+def test_ippo_eval_sweep_uses_dedicated_project_and_training_source():
+    sweep = OmegaConf.to_container(
+        OmegaConf.load(ROOT / "experiment" / "self_play" / "eval.yaml"),
+        resolve=False,
+    )
+
+    assert sweep["parameters"]["layout"]["values"] == SWEEP_SCENARIOS
+    assert sweep["parameters"]["max-steps"]["value"] == 450
+    assert sweep["parameters"]["entity"]["value"] == "cilab-overcooked"
+    assert (
+        sweep["parameters"]["output-project"]["value"]
+        == "cilab-overcooked/overcooked-v3-ippo_eval"
+    )
+    assert "cilab-overcooked/overcooked-v3-ippo_train" in sweep["command"]
 
 
 def test_wandb_metrics_are_split_into_train_and_debug_namespaces():
@@ -191,36 +210,36 @@ def test_experiment_folder_uses_only_key_experiment_parameters(tmp_path):
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
         hydra_config = compose(
             config_name="ippo_overcooked_v3",
-            overrides=["scenario=splitnosig_0", f"SAVES_DIR={tmp_path}"],
+            overrides=["scenario=split_0", f"SAVES_DIR={tmp_path}"],
         )
     config = OmegaConf.to_container(hydra_config, resolve=True)
 
-    assert experiment_folder(config) == "splitnosig_0_cnn_seed0"
+    assert experiment_folder(config) == "split_0_cnn_seed0"
 
     fixed_parameter_change = deepcopy(config)
     fixed_parameter_change["LR"] = config["LR"] * 2
     fixed_parameter_change["NUM_ENVS"] = config["NUM_ENVS"] * 2
     fixed_parameter_change["TOTAL_TIMESTEPS"] = config["TOTAL_TIMESTEPS"] * 2
-    assert experiment_folder(fixed_parameter_change) == "splitnosig_0_cnn_seed0"
+    assert experiment_folder(fixed_parameter_change) == "split_0_cnn_seed0"
 
     seed_change = deepcopy(config)
     seed_change["SEED"] = 1
-    assert experiment_folder(seed_change) == "splitnosig_0_cnn_seed1"
+    assert experiment_folder(seed_change) == "split_0_cnn_seed1"
 
     architecture_change = deepcopy(config)
     architecture_change["ARCHITECTURE"] = "rnn"
-    assert experiment_folder(architecture_change) == "splitnosig_0_rnn_seed0"
+    assert experiment_folder(architecture_change) == "split_0_rnn_seed0"
 
     layout_change = deepcopy(config)
-    layout_change["ENV_KWARGS"]["layout"] = "outagenosig_0"
-    assert experiment_folder(layout_change) == "outagenosig_0_cnn_seed0"
+    layout_change["ENV_KWARGS"]["layout"] = "outage_0"
+    assert experiment_folder(layout_change) == "outage_0_cnn_seed0"
 
 
 def test_custom_experiment_name_is_safe_and_precedes_seed():
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
         hydra_config = compose(
             config_name="ippo_overcooked_v3",
-            overrides=["scenario=outagenosig_0"],
+            overrides=["scenario=outage_0"],
         )
     config = OmegaConf.to_container(hydra_config, resolve=True)
     config["EXPERIMENT_FOLDER"] = "learning rate/sweep 01"
@@ -229,12 +248,12 @@ def test_custom_experiment_name_is_safe_and_precedes_seed():
     changed = deepcopy(config)
     changed["SEED"] = 1
 
-    assert folder == "outagenosig_0_cnn_learning-rate-sweep-01_seed0"
+    assert folder == "outage_0_cnn_learning-rate-sweep-01_seed0"
     assert "/" not in folder
     assert folder != experiment_folder(changed)
 
     config["EXPERIMENT_FOLDER"] = "양파 실험/01"
-    assert experiment_folder(config) == "outagenosig_0_cnn_양파-실험-01_seed0"
+    assert experiment_folder(config) == "outage_0_cnn_양파-실험-01_seed0"
 
 
 def test_tracking_parameters_do_not_change_experiment_folder():

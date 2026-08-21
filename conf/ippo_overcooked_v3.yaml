@@ -40,13 +40,14 @@ SEED: 0
 NUM_SEEDS: 1
 LOG_INTERVAL: 10
 CHECKPOINT_INTERVAL: 0  # Training updates; 0 disables intermediate checkpoints.
+CHECKPOINT_FRACTIONS: []  # Progress fractions in (0, 1]; final is always saved.
 upload_final_checkpoint: true
 
 SAVES_DIR: saves
 EXPERIMENT_FOLDER: null
 
 ENTITY: ${oc.env:WANDB_ENTITY,cilab-overcooked}
-PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-role-coordination}
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-ippo_train}
 wandb_mode: ${oc.env:WANDB_MODE,online}
 WANDB_GROUP: null
 WANDB_TAGS: []

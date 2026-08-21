@@ -1,5 +1,5 @@
 program: baselines/IPPO/eval_crossplay_overcooked_v3.py
-name: self-play-seedwise-xp
+name: ippo-role-scenarios-seedwise-xp
 method: grid
 metric:
   goal: maximize
@@ -10,21 +10,32 @@ parameters:
     value: IPPO
   layout:
     values:
-      - splitnosig_0
-      - splitnosig_1
-      - splitnosig_2
-      - outagenosig_0
-      - outagenosig_1
-      - outagenosig_2
+      - split_0
+      - split_1
+      - split_2
+      - outage_0
+      - outage_1
+      - outage_2
+      - recipe_switch_0
+      - recipe_switch_1
+      - recipe_switch_2
+      - distance_switch_0
+      - distance_switch_1
+      - distance_switch_2
   episodes:
     value: 20
   max-steps:
-    value: 400
+    value: 450
   workers-per-gpu:
     value: 8
+  entity:
+    value: cilab-overcooked
+  output-project:
+    value: cilab-overcooked/overcooked-v3-ippo_eval
 
 command:
   - ${env}
   - ${interpreter}
   - ${program}
+  - cilab-overcooked/overcooked-v3-ippo_train
   - ${args_no_equals}

@@ -48,7 +48,7 @@ Run training:
 ```bash
 CUDA_VISIBLE_DEVICES=0 ./run_docker.sh \
   python -u baselines/IPPO/ippo_overcooked_v3.py \
-  scenario=splitnosig_0 SEED=0 NUM_SEEDS=1
+  scenario=split_0 SEED=0 NUM_SEEDS=1
 ```
 
 The source tree is editable at `/workspace`, so ordinary Python source changes

@@ -1,8 +1,10 @@
+from pathlib import Path
 from types import SimpleNamespace
 
 import jax
 import jax.numpy as jnp
 import numpy as np
+import yaml
 
 from baselines.IPPO.ippo_overcooked_v3 import ActorCriticCNN, ScannedRNN
 from baselines.PolicySwitch.eval_overcooked_v3 import (
@@ -14,12 +16,16 @@ from baselines.PolicySwitch.policy_switch import (
     policy_key_for_phase,
     save_combined_policy_params,
 )
+from baselines.PolicySwitch.train_overcooked_v3 import _split_phase_gated_params
 from jaxmarl.environments.overcooked_v3 import (
     POLICY_SWITCH_BASE_LAYOUTS,
     dynamic_layouts,
     phase_policy_layout_name,
     phase_policy_sequence,
 )
+
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def _run_config(layout):
@@ -76,9 +82,65 @@ def test_static_policy_layouts_disable_all_dynamic_transitions():
                 source_phase.layout.static_objects,
             )
 
-    assert phase_policy_sequence("splitnosig_0") == (0, 1)
-    assert phase_policy_sequence("outagenosig_0") == (0, 1)
+    assert phase_policy_sequence("split_0") == (0, 1)
+    assert phase_policy_sequence("outage_0") == (0, 1)
     assert phase_policy_sequence("recipe_switch_0") == (0, 1, 0)
+
+
+def test_policy_switch_sweeps_target_all_role_scenarios_with_six_seeds():
+    training = yaml.safe_load(
+        (ROOT / "experiment/policy_switch/train.yaml").read_text(encoding="utf-8")
+    )
+    evaluation = yaml.safe_load(
+        (ROOT / "experiment/policy_switch/eval.yaml").read_text(encoding="utf-8")
+    )
+    expected_layouts = [
+        "split_0",
+        "split_1",
+        "split_2",
+        "outage_0",
+        "outage_1",
+        "outage_2",
+        "recipe_switch_0",
+        "recipe_switch_1",
+        "recipe_switch_2",
+        "distance_switch_0",
+        "distance_switch_1",
+        "distance_switch_2",
+    ]
+
+    assert training["parameters"]["scenario"]["values"] == expected_layouts
+    assert training["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
+    assert (
+        training["parameters"]["PROJECT"]["value"]
+        == "overcooked-v3-policyswitch_train"
+    )
+    assert training["metric"]["name"] == "train/episode_return"
+    assert evaluation["parameters"]["layout"]["values"] == expected_layouts
+    assert evaluation["parameters"]["max-steps"]["value"] == 450
+    assert (
+        evaluation["parameters"]["output-project"]["value"]
+        == "cilab-overcooked/overcooked-v3-policyswitch_eval"
+    )
+    assert (
+        "cilab-overcooked/overcooked-v3-policyswitch_train"
+        in evaluation["command"]
+    )
+
+
+def test_phase_gated_params_split_into_existing_checkpoint_format():
+    gated = {
+        "params": {
+            "policy_0": {"weight": jnp.asarray([1.0, 2.0])},
+            "policy_1": {"weight": jnp.asarray([3.0, 4.0])},
+        }
+    }
+
+    policies = _split_phase_gated_params(gated, policy_count=2)
+
+    assert len(policies) == 2
+    np.testing.assert_array_equal(policies[0]["params"]["weight"], [1, 2])
+    np.testing.assert_array_equal(policies[1]["params"]["weight"], [3, 4])
 
 
 def test_combined_safetensors_round_trip_with_arbitrary_policy_count(tmp_path):
@@ -97,7 +159,7 @@ def test_combined_safetensors_round_trip_with_arbitrary_policy_count(tmp_path):
 
 
 def test_eval_switches_policy_when_non_recipe_map_changes():
-    layout = "splitnosig_0"
+    layout = "split_0"
     config = _run_config(layout)
     args = SimpleNamespace(
         layout=layout,

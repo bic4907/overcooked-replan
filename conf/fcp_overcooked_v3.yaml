@@ -54,7 +54,7 @@ FCP:
   max_population_size: null
 
 ENTITY: ${oc.env:WANDB_ENTITY,cilab-overcooked}
-PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-role-coordination}
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-fcp_train}
 wandb_mode: ${oc.env:WANDB_MODE,online}
 WANDB_GROUP: null
 WANDB_TAGS: [FCP]

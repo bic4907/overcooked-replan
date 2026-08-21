@@ -1,9 +1,9 @@
 # @package _global_
 
 ENV_KWARGS:
-  layout: outagenosig_1
+  layout: outage_1
   random_agent_positions: false
 
 EXPERIMENT: resource_outage
-CONDITION: outagenosig_1
+CONDITION: outage_1
 WANDB_GROUP: resource_outage

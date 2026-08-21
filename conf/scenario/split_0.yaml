@@ -1,9 +1,9 @@
 # @package _global_
 
 ENV_KWARGS:
-  layout: splitnosig_0
+  layout: split_0
   random_agent_positions: false
 
 EXPERIMENT: kitchen_split
-CONDITION: splitnosig_0
+CONDITION: split_0
 WANDB_GROUP: kitchen_split

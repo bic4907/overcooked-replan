@@ -21,7 +21,7 @@ def test_crossplay_sweep_contains_all_six_training_maps():
 
     expected_maps = [
         f"{family}_{variant}"
-        for family in ("splitnosig", "outagenosig")
+        for family in ("split", "outage")
         for variant in range(3)
     ]
 
@@ -43,7 +43,7 @@ def test_crossplay_sweep_renders_argparse_compatible_flags():
         "--algorithms",
         "IPPO",
         "--layout",
-        "splitnosig_0",
+        "split_0",
     ]
     assert "--max-steps" in rendered
     assert rendered[rendered.index("--workers-per-gpu") + 1] == "8"

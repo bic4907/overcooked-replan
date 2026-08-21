@@ -1,21 +1,31 @@
 program: baselines/PolicySwitch/train_overcooked_v3.py
-name: policy-switch-nosig
+name: policy-switch-role-scenarios
 method: grid
 metric:
   goal: maximize
-  name: train/policy_1/episode_return
+  name: train/episode_return
 
 parameters:
   scenario:
     values:
-      - splitnosig_0
-      - splitnosig_1
-      - splitnosig_2
-      - outagenosig_0
-      - outagenosig_1
-      - outagenosig_2
+      - split_0
+      - split_1
+      - split_2
+      - outage_0
+      - outage_1
+      - outage_2
+      - recipe_switch_0
+      - recipe_switch_1
+      - recipe_switch_2
+      - distance_switch_0
+      - distance_switch_1
+      - distance_switch_2
   SEED:
     values: [0, 1, 2, 3, 4, 5]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-policyswitch_train
 
 command:
   - ${env}
