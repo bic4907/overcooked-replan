@@ -13,7 +13,6 @@ RESPONSE_JOB_ROOTS:
   candidates: ${oc.env:COOT_RESPONSE_CANDIDATE_JOB_ROOT,manifests/coot/response_candidates}
   exact: ${oc.env:COOT_RESPONSE_JOB_ROOT,manifests/coot/response_jobs}
   hsp_only: ${oc.env:COOT_RESPONSE_HSP_ONLY_JOB_ROOT,manifests/coot/response_jobs_hsp_only}
-  smoke: ${oc.env:COOT_SMOKE_RESPONSE_JOB_ROOT,manifests/coot/smoke/response_jobs}
 RESPONSE_JOB_MANIFEST: null  # Optional exact manifest override.
 JOB_INDEX: 0
 

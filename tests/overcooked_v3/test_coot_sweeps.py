@@ -53,7 +53,13 @@ def test_coot_projects_are_stage_isolated_from_fcp_and_self_play():
             other_projects.add(value)
 
     assert coot_projects.isdisjoint(other_projects)
-    assert "overcooked-v3-coot-smoke" in coot_projects
+    assert coot_projects == {
+        "overcooked-v3-coot-eval",
+        "overcooked-v3-coot-population",
+        "overcooked-v3-coot-response",
+        "overcooked-v3-coot-response-candidates",
+        "overcooked-v3-coot-train",
+    }
 
 
 def test_response_sweeps_use_distinct_manifest_stages():
@@ -62,7 +68,6 @@ def test_response_sweeps_use_distinct_manifest_stages():
         "response_candidates_multi_recipe.yaml": "candidates",
         "response.yaml": "exact",
         "response_hsp_only.yaml": "hsp_only",
-        "smoke_response.yaml": "smoke",
     }
     roots = _compose("coot_br_overcooked_v3", [])["RESPONSE_JOB_ROOTS"]
     assert len(set(roots.values())) == len(roots)
@@ -97,20 +102,22 @@ def test_response_job_identity_includes_stage_job_and_partner_hash(tmp_path):
     )
     config = _compose(
         "coot_br_overcooked_v3",
-        ["scenario=split_0", "RESPONSE_JOB_STAGE=smoke"],
+        ["scenario=split_0", "RESPONSE_JOB_STAGE=candidates"],
     )
     config["RESPONSE_JOB_MANIFEST"] = str(manifest)
     resolved = OmegaConf.to_container(
         resolve_response_job(OmegaConf.create(config)), resolve=True
     )
 
-    assert resolved["RESOLVED_RESPONSE_JOB"]["stage"] == "smoke"
+    assert resolved["RESOLVED_RESPONSE_JOB"]["stage"] == "candidates"
     assert (
-        "coot_br_smoke_split_0_hsp_hsp_0000_final_job0000_p"
+        "coot_br_candidates_split_0_hsp_hsp_0000_final_job0000_p"
         in resolved["EXPERIMENT_FOLDER"]
     )
-    assert resolved["RUN_NAME"].startswith("coot-br-smoke-split_0-hsp-hsp_0000")
-    assert resolved["WANDB_GROUP"] == "smoke-split_0"
+    assert resolved["RUN_NAME"].startswith(
+        "coot-br-candidates-split_0-hsp-hsp_0000"
+    )
+    assert resolved["WANDB_GROUP"] == "candidates-split_0"
 
 
 def test_hsp_candidates_have_distinct_local_directories():
@@ -130,15 +137,6 @@ def test_hsp_candidates_have_distinct_local_directories():
     assert directories[0] != directories[1]
     assert "candidate0000" in directories[0]
     assert "candidate0001" in directories[1]
-
-
-def test_population_smoke_is_two_tiny_updates_with_isolated_output():
-    sweep = _sweep(REPO_ROOT / "experiment" / "coot" / "smoke_population.yaml")
-    assert _parameter(sweep, "NUM_ENVS") == 1
-    assert _parameter(sweep, "NUM_STEPS") == 1
-    assert _parameter(sweep, "TOTAL_TIMESTEPS") == 2
-    assert _parameter(sweep, "SAVES_DIR") == "saves/coot_smoke/population"
-    assert _parameter(sweep, "PROJECT") == "overcooked-v3-coot-smoke"
 
 
 def test_builder_and_eval_defaults_use_coot_namespaces(monkeypatch):
@@ -179,7 +177,7 @@ def test_sweep_target_guard_rejects_wrong_project_before_training():
             run,
             {
                 "ENTITY": "cilab-overcooked",
-                "PROJECT": "overcooked-v3-coot-smoke",
+                "PROJECT": "overcooked-v3-coot-population",
             },
             environ={"WANDB_SWEEP_ID": "sweep"},
         )

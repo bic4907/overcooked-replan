@@ -206,7 +206,7 @@ def _command_seeds(sweep: Mapping[str, Any]) -> list[int]:
             break
         seeds.append(int(value))
     if len(seeds) < 2:
-        raise ValueError("Evaluation smoke command needs at least two --seeds")
+        raise ValueError("Evaluation command needs at least two --seeds")
     return seeds
 
 

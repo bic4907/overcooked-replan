@@ -218,25 +218,6 @@ wandb sweep --entity cilab-overcooked \
 `COOT_DATASET_ROOT`로 dataset root를, `WANDB_MODE=offline`으로 logging mode를
 바꿀 수 있다.
 
-### Smoke sweep and preflight
-
-Production sweep은 수백 run과 선행 artifact를 요구한다. 경로와 W&B wiring만 먼저
-확인할 때는 별도 `overcooked-v3-coot-smoke` project의 stage별 smoke suite를 쓴다.
-즉시 실행 가능한 첫 단계는 다음과 같다.
-
-```bash
-uv run python baselines/CooT/preflight_sweep.py \
-  experiment/coot/smoke_population.yaml
-uv run wandb sweep --entity cilab-overcooked \
-  --project overcooked-v3-coot-smoke \
-  experiment/coot/smoke_population.yaml
-```
-
-반환된 sweep path는 GPU 하나의 agent로 실행한다. 후속
-`smoke_response.yaml`, `smoke_train.yaml`, `smoke_eval.yaml`은 각각 앞 단계의
-manifest/checkpoint, horizon-1 dataset, seed 0/1 checkpoint가 있을 때만 preflight를
-통과한다. 전체 명령과 namespace 표는 `experiment/coot/README.md`에 있다.
-
 ## 5. Seed-wise SP/XP evaluation
 
 기본 평가는 기존 FCP/Self-play와 같은 ordered checkpoint matrix다. Training

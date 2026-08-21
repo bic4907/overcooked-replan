@@ -127,8 +127,7 @@ The corresponding sweeps are `experiment/coot/population.yaml` and
 `population_multi_recipe.yaml` (HSP candidates),
 `response_candidates*.yaml` (all-candidate final BRs for diversity scoring),
 `response.yaml` or `response_hsp_only.yaml` (post-selection responses), and
-`train.yaml` (Transformer). A stage-isolated plumbing suite is available as
-`smoke_population.yaml`, `smoke_response.yaml`, `smoke_train.yaml`, and
-`smoke_eval.yaml`; run `preflight_sweep.py` before registering each sweep.
+`train.yaml` (Transformer). Run `preflight_sweep.py` before registering each
+sweep.
 
 See `docs/overcooked_v3/coot.md` for commands, W&B metrics, and sweeps.
