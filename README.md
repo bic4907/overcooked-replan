@@ -14,7 +14,7 @@ The following role-coordination experiments are currently available:
 | `outagenosig_{0..2}` | Resource Outage | No | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
 | `outagesig_{0..2}` | Resource Outage | Yes | Does signaling speed up the switch from parallel cooking to supplier–cook cooperation? |
 | `recipe_switch_{0..2}` | Mixed Recipe Relay | No | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
-| `distance_switch_{0..9}` | Distance-Driven Role Switch | No | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
+| `distance_switch_{0..2}` | Distance-Driven Role Switch | No | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
 
 Kitchen Split starts with one central doorway open for 40 steps. It then becomes
 a handoff counter for 160 steps, preventing agents from changing bays. The left
@@ -57,10 +57,11 @@ pile, central pot, plate pile, and serving station. During each 450-step episode
 the assignment follows A → B → A: agent 0 first has the short serving loop and
 agent 1 the short onion-input loop, the onion and serving endpoints exchange at
 step 150, and they return at step 300. Pots, plates, counters, floor, and agent
-positions remain fixed. `distance_switch_0` is the canonical 9×5
-`asymm_advantages` map; `_1`–`_9` vary counter islands, pillars, shelves,
-U-shaped detours, and pot-bar orientation while retaining at least a three-step
-comparative advantage for the efficient task loop.
+positions remain fixed. The retained layouts are the former `_0`, `_1`, and
+`_6`, reindexed as `_0`, `_1`, and `_2`. New `_0` is the canonical 9×5
+`asymm_advantages` map, `_1` is its wider 11×5 variant, and `_2` is the 11×8
+staggered-islands variant. All retain at least a three-step comparative
+advantage for the efficient task loop.
 
 Overcooked V3 exposes public signals and upcoming layout transitions to every
 agent. The final three channels of the default 33-channel observation contain a

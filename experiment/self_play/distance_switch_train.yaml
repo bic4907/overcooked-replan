@@ -11,13 +11,6 @@ parameters:
       - distance_switch_0
       - distance_switch_1
       - distance_switch_2
-      - distance_switch_3
-      - distance_switch_4
-      - distance_switch_5
-      - distance_switch_6
-      - distance_switch_7
-      - distance_switch_8
-      - distance_switch_9
   SEED:
     values: [0, 1, 2, 3, 4, 5]
   recording:

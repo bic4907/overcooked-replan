@@ -87,7 +87,7 @@ def test_each_role_scenario_family_has_expected_unique_layouts():
         "outagenosig": 3,
         "outagesig": 3,
         "recipe_switch": 3,
-        "distance_switch": 10,
+        "distance_switch": 3,
     }
     assert set(ROLE_SCENARIO_LAYOUTS) == set(expected_counts)
     for family, names in ROLE_SCENARIO_LAYOUTS.items():

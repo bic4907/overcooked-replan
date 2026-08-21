@@ -712,97 +712,19 @@ def _vertical_distance_switch_spec(width, height, extra_counters=()):
     }
 
 
+# Selected from the original ten-map catalog and reindexed as:
+# new 0 <- old 0, new 1 <- old 1, new 2 <- old 6.
 _DISTANCE_SWITCH_SPECS = (
     # Canonical Overcooked-AI asymmetric_advantages.
     _vertical_distance_switch_spec(9, 5),
     # Wider canonical corridor.
     _vertical_distance_switch_spec(11, 5),
-    # Symmetric counter islands leave inner and outer bypass lanes.
-    _vertical_distance_switch_spec(
-        11,
-        7,
-        ((2, 3), (3, 3), (7, 3), (8, 3)),
-    ),
-    # Offset vertical pillars create different left/right doglegs.
-    _vertical_distance_switch_spec(
-        9,
-        7,
-        ((2, 2), (2, 3), (6, 3), (6, 4)),
-    ),
-    # Mirrored stair counters produce a zigzag route to the outer endpoints.
-    _vertical_distance_switch_spec(
-        11,
-        7,
-        ((2, 2), (3, 2), (3, 3), (3, 4), (7, 2), (7, 3), (7, 4), (8, 4)),
-    ),
-    # Long asymmetric shelves emphasize inner versus outer lanes.
-    _vertical_distance_switch_spec(
-        13,
-        7,
-        ((2, 3), (3, 3), (4, 3), (4, 4), (8, 2), (8, 3), (9, 3), (10, 3)),
-    ),
     # Staggered islands make the two work regions visually non-isomorphic.
     _vertical_distance_switch_spec(
         11,
         8,
         ((2, 2), (2, 3), (3, 3), (3, 5), (7, 2), (8, 2), (8, 3), (7, 5)),
     ),
-    # Large counter blocks form narrow outer and inner circulation lanes.
-    _vertical_distance_switch_spec(
-        13,
-        8,
-        (
-            (2, 2),
-            (3, 2),
-            (4, 2),
-            (2, 3),
-            (3, 3),
-            (4, 3),
-            (2, 4),
-            (3, 4),
-            (4, 4),
-            (8, 2),
-            (9, 2),
-            (10, 2),
-            (8, 3),
-            (9, 3),
-            (10, 3),
-            (8, 4),
-            (9, 4),
-            (10, 4),
-        ),
-    ),
-    # Tall hooked counters create U-shaped detours on both sides.
-    _vertical_distance_switch_spec(
-        11,
-        9,
-        (
-            (2, 2),
-            (2, 3),
-            (2, 4),
-            (2, 5),
-            (3, 5),
-            (8, 2),
-            (8, 3),
-            (8, 4),
-            (8, 5),
-            (7, 5),
-        ),
-    ),
-    # Rotated asymmetric-advantages: agent 0 works above the pot bar and
-    # agent 1 below it. Endpoint swapping still reverses the same two roles.
-    {
-        "width": 9,
-        "height": 9,
-        "left_role_slots": ((0, 1), (4, 2)),
-        "right_role_slots": ((4, 6), (8, 7)),
-        "pot_positions": ((3, 4), (5, 4)),
-        "plate_positions": ((4, 0), (4, 8)),
-        "agent_positions": ((3, 2), (5, 6)),
-        "divider": tuple((x, 4) for x in range(1, 8)),
-        "counters": ((4, 2), (4, 6)),
-        "minimum_advantage": 3,
-    },
 )
 
 

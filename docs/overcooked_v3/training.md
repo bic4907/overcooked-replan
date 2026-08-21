@@ -46,7 +46,7 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 | `scenario=outagenosig_<0-2>` | Resource Outage | No |
 | `scenario=outagesig_<0-2>` | Resource Outage | Yes |
 | `scenario=recipe_switch_<0-2>` | Mixed Recipe Relay | No |
-| `scenario=distance_switch_<0-9>` | Distance-Driven Role Switch | No |
+| `scenario=distance_switch_<0-2>` | Distance-Driven Role Switch | No |
 
 Kitchen Split은 처음 40 step 동안 중앙 통로 하나가 열려 있고, 이후 160 step 동안
 그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
@@ -99,16 +99,9 @@ Pot, plate, counter, floor와 agent 위치는 전환 중 고정된다. 레시피
 
 | Layout | Size | Near-station axis |
 | --- | --- | --- |
-| `distance_switch_0` | 9×5 | canonical `asymm_advantages` |
-| `distance_switch_1` | 11×5 | wider input/serving detour |
-| `distance_switch_2` | 11×7 | symmetric counter islands |
-| `distance_switch_3` | 9×7 | offset vertical pillars |
-| `distance_switch_4` | 11×7 | mirrored stair/zigzag counters |
-| `distance_switch_5` | 13×7 | asymmetric long shelves |
-| `distance_switch_6` | 11×8 | staggered non-isomorphic islands |
-| `distance_switch_7` | 13×8 | large counter blocks and narrow lanes |
-| `distance_switch_8` | 11×9 | tall U-shaped detours |
-| `distance_switch_9` | 9×9 | rotated horizontal pot bar |
+| `distance_switch_0` | 9×5 | canonical `asymm_advantages` (former `_0`) |
+| `distance_switch_1` | 11×5 | wider input/serving detour (former `_1`) |
+| `distance_switch_2` | 11×8 | staggered non-isomorphic islands (former `_6`) |
 
 V3 기본 관측은 V2의 30채널에 public signal status, phase 전환 countdown,
 change mask를 추가한 33채널이다. 뒤에서 세 번째 채널은 signal button 위치에서

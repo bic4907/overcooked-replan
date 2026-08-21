@@ -87,7 +87,7 @@ def test_hydra_scenario_group_composes_all_conditions():
 
 def test_distance_switch_scenarios_use_fixed_positions_and_full_episode():
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
-        for variant in range(10):
+        for variant in range(3):
             scenario = f"distance_switch_{variant}"
             config = compose(
                 config_name="ippo_overcooked_v3",
