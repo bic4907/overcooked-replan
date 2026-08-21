@@ -1,0 +1,57 @@
+program: baselines/PolicySwitch/train_overcooked_v3.py
+name: adaptation-policy-oracle-policy-selector
+method: grid
+metric:
+  goal: maximize
+  name: train/policy_1/episode_return
+
+# Oracle upper bound for the ten original-layout pairs. Each run independently
+# trains one static specialist for each constituent map. At evaluation time the
+# environment's true layout index selects the matching specialist immediately.
+parameters:
+  ENV_KWARGS.layout:
+    values:
+      - multilayout_cramped_room__asymm_advantages
+      - multilayout_cramped_room__coord_ring
+      - multilayout_cramped_room__forced_coord
+      - multilayout_cramped_room__counter_circuit
+      - multilayout_asymm_advantages__coord_ring
+      - multilayout_asymm_advantages__forced_coord
+      - multilayout_asymm_advantages__counter_circuit
+      - multilayout_coord_ring__forced_coord
+      - multilayout_coord_ring__counter_circuit
+      - multilayout_forced_coord__counter_circuit
+  ENV_KWARGS.layout_mode:
+    value: cyclic
+  ENV_KWARGS.max_steps:
+    value: 400
+  ENV_KWARGS.reset_on_layout_change:
+    value: true
+  ENV_KWARGS.include_transition_countdown:
+    value: false
+  ENV_KWARGS.include_layout_change_mask:
+    value: false
+  ENV_KWARGS.include_signal_status:
+    value: false
+  ENV_KWARGS.include_previous_coplayer_action:
+    value: false
+  ARCHITECTURE:
+    value: cnn
+  POLICY_SWITCH_WANDB_GROUP:
+    value: adaptation-policy-oracle-policy-selector
+  WANDB_TAGS:
+    value: [adaptation-policy, oracle-policy-selector, policy-switch, original-layouts-9x7]
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  NUM_SEEDS:
+    value: 1
+  EXPERIMENT_FOLDER:
+    value: original-layouts-9x7-oracle-policy-selector-v1
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

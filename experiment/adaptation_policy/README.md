@@ -122,6 +122,42 @@ wandb sweep \
   experiment/adaptation_policy/motive/switch_trained_coplayer_action_eval.yaml
 ```
 
+## 3. Oracle policy selector
+
+The oracle condition uses `PolicySwitch-IPPO`. For each of the ten original
+layout pairs, it trains one independent static specialist per constituent map.
+During the 400-step switching episode, the environment's true
+`state.layout_index` selects the matching specialist immediately after every
+100-step boundary. The new map still starts at its own agent spawn positions
+with empty transient state, exactly as in 2a and 2b. Countdown, layout-change
+mask, signal status, and previous co-player action are disabled.
+
+This is an oracle selector upper bound: it assumes perfect map identity and
+zero policy-selection latency. The train sweep contains ten layout pairs and
+six seeds, for 60 W&B runs. Each run trains two static specialists, so its
+compute is twice one ordinary 30M-step IPPO run.
+
+The SP diagonal is the relevant oracle upper-bound comparison. XP is retained
+to measure convention compatibility across independently trained specialist
+bundles; perfect map selection alone does not guarantee an XP upper bound.
+
+```bash
+wandb sweep \
+  --entity cilab-overcooked \
+  --project overcooked-v3-oracle-policy-selector_train \
+  experiment/adaptation_policy/motive/oracle_policy_selector_train.yaml
+```
+
+After all 60 runs have final checkpoint artifacts, create the ten-run SP/XP
+evaluation sweep:
+
+```bash
+wandb sweep \
+  --entity cilab-overcooked \
+  --project overcooked-v3-oracle-policy-selector_eval \
+  experiment/adaptation_policy/motive/oracle_policy_selector_eval.yaml
+```
+
 ## Sequential multi-GPU sweep launcher
 
 The launcher assigns one W&B agent per listed GPU, waits for the current grid
@@ -130,7 +166,7 @@ sweep to be exhausted, and then starts the next sweep. For example, this keeps
 
 ```bash
 GPUS="0 1 2 3" bash \
-  experiment/adaptation_policy/motive/run_agents_sequential.sh \
+  experiment/run_agents_sequential.sh \
   cilab-overcooked/overcooked-v3-switch-trained-no-coplayer-action_train/<TRAIN_SWEEP_ID> \
   cilab-overcooked/overcooked-v3-switch-trained-no-coplayer-action_eval/<EVAL_SWEEP_ID>
 ```

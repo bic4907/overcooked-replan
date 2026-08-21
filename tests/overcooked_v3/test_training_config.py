@@ -273,6 +273,74 @@ def test_coplayer_action_eval_sweep_uses_2b_source_project():
     ]
 
 
+def test_policy_switch_config_declares_layout_reset_dynamics():
+    with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
+        config = compose(config_name="policy_switch_overcooked_v3")
+
+    assert config.ENV_KWARGS.layout_mode == "cyclic"
+    assert config.ENV_KWARGS.reset_on_layout_change is False
+
+
+def test_oracle_policy_selector_train_sweep_matches_switch_conditions():
+    sweep = OmegaConf.to_container(
+        OmegaConf.load(
+            ROOT
+            / "experiment"
+            / "adaptation_policy"
+            / "motive"
+            / "oracle_policy_selector_train.yaml"
+        ),
+        resolve=False,
+    )
+
+    parameters = sweep["parameters"]
+    assert sweep["program"] == "baselines/PolicySwitch/train_overcooked_v3.py"
+    assert len(parameters["ENV_KWARGS.layout"]["values"]) == 10
+    assert parameters["ENV_KWARGS.layout_mode"]["value"] == "cyclic"
+    assert parameters["ENV_KWARGS.max_steps"]["value"] == 400
+    assert parameters["ENV_KWARGS.reset_on_layout_change"]["value"] is True
+    assert parameters["ENV_KWARGS.include_transition_countdown"]["value"] is False
+    assert parameters["ENV_KWARGS.include_layout_change_mask"]["value"] is False
+    assert parameters["ENV_KWARGS.include_signal_status"]["value"] is False
+    assert parameters["ENV_KWARGS.include_previous_coplayer_action"]["value"] is False
+    assert parameters["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
+    assert "${args_no_hyphens}" in sweep["command"]
+
+
+def test_oracle_policy_selector_eval_sweep_uses_oracle_train_project():
+    sweep = OmegaConf.to_container(
+        OmegaConf.load(
+            ROOT
+            / "experiment"
+            / "adaptation_policy"
+            / "motive"
+            / "oracle_policy_selector_eval.yaml"
+        ),
+        resolve=False,
+    )
+
+    parameters = sweep["parameters"]
+    assert sweep["program"] == "baselines/PolicySwitch/eval_all_overcooked_v3.py"
+    assert parameters["algorithms"]["value"] == "PolicySwitch-IPPO"
+    assert len(parameters["layout"]["values"]) == 10
+    assert parameters["episodes"]["value"] == 50
+    assert parameters["max-steps"]["value"] == 400
+    assert parameters["run-state"]["value"] == "finished"
+    assert sweep["command"][3] == (
+        "cilab-overcooked/overcooked-v3-oracle-policy-selector_train"
+    )
+    assert sweep["command"][-8:] == [
+        "--seeds",
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "${args_no_equals}",
+    ]
+
+
 def test_multilayout_sp_eval_sweep_covers_all_valid_training_target_cases():
     sweep = OmegaConf.to_container(
         OmegaConf.load(

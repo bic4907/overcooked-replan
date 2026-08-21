@@ -9,7 +9,9 @@ ARCHITECTURE: cnn
 ENV_KWARGS:
   layout: dynamic_00
   max_steps: 400
+  layout_mode: cyclic
   random_agent_positions: false
+  reset_on_layout_change: false
   include_transition_countdown: true
   include_layout_change_mask: true
   include_signal_status: true

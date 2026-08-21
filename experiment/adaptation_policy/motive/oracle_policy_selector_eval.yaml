@@ -1,0 +1,46 @@
+program: baselines/PolicySwitch/eval_all_overcooked_v3.py
+name: adaptation-policy-oracle-policy-selector-eval
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+# One seed-wise SP/XP matrix per dynamic layout pair. Each matrix contains six
+# SP diagonal pairs and thirty ordered XP pairs, with fifty episodes per pair.
+parameters:
+  algorithms:
+    value: PolicySwitch-IPPO
+  layout:
+    values:
+      - multilayout_cramped_room__asymm_advantages
+      - multilayout_cramped_room__coord_ring
+      - multilayout_cramped_room__forced_coord
+      - multilayout_cramped_room__counter_circuit
+      - multilayout_asymm_advantages__coord_ring
+      - multilayout_asymm_advantages__forced_coord
+      - multilayout_asymm_advantages__counter_circuit
+      - multilayout_coord_ring__forced_coord
+      - multilayout_coord_ring__counter_circuit
+      - multilayout_forced_coord__counter_circuit
+  episodes:
+    value: 50
+  max-steps:
+    value: 400
+  run-state:
+    value: finished
+  workers-per-gpu:
+    value: 8
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - cilab-overcooked/overcooked-v3-oracle-policy-selector_train
+  - --seeds
+  - "0"
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+  - "5"
+  - ${args_no_equals}
