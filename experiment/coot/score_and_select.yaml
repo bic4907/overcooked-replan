@@ -1,0 +1,24 @@
+program: baselines/CooT/pipeline_stage_overcooked_v3.py
+name: coot-score-and-select-hsp
+method: grid
+metric:
+  goal: maximize
+  name: pipeline/completed
+
+parameters:
+  stage:
+    value: score_and_select
+  layout:
+    values: [split_0, split_1, split_2, outage_0, outage_1, outage_2, recipe_switch_0, recipe_switch_1, recipe_switch_2, distance_switch_0, distance_switch_1, distance_switch_2]
+  score-episodes:
+    value: 50
+  entity:
+    value: cilab-overcooked
+  project:
+    value: overcooked-v3-coot-pipeline
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_equals}

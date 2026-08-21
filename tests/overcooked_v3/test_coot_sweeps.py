@@ -55,6 +55,7 @@ def test_coot_projects_are_stage_isolated_from_fcp_and_self_play():
     assert coot_projects.isdisjoint(other_projects)
     assert coot_projects == {
         "overcooked-v3-coot-eval",
+        "overcooked-v3-coot-pipeline",
         "overcooked-v3-coot-population",
         "overcooked-v3-coot-response",
         "overcooked-v3-coot-response-candidates",
