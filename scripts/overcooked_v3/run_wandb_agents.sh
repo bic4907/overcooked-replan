@@ -8,6 +8,7 @@ cd "${PROJECT_DIR}"
 PYTHON_BIN="${PYTHON_BIN:-python}"
 GPUS="${GPUS:-0}"
 DRY_RUN="${DRY_RUN:-0}"
+VERIFY_SWEEP="${VERIFY_SWEEP:-1}"
 
 log() {
     printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$*"
@@ -25,6 +26,7 @@ Environment variables:
   GPUS           Space- or comma-separated GPU IDs (default: 0)
   PYTHON_BIN     Python executable from the installed environment (default: python)
   DRY_RUN=1      Print the assignments without launching W&B agents
+  VERIFY_SWEEP=0 Skip post-sweep run/metric validation (default: validate)
 EOF
 }
 
@@ -89,6 +91,7 @@ run_agents() {
         (
             export CUDA_VISIBLE_DEVICES="${gpu_id}"
             export XLA_PYTHON_CLIENT_PREALLOCATE=false
+            export PYTHONPATH="${PROJECT_DIR}${PYTHONPATH:+:${PYTHONPATH}}"
             "${PYTHON_BIN}" -m dotenv run --no-override -- \
                 "${PYTHON_BIN}" -m wandb agent "${sweep_path}"
         ) 2>&1 | sed -u "s/^/[GPU ${gpu_id}] /" &
@@ -105,6 +108,14 @@ run_agents() {
     if [[ ${status} -ne 0 ]]; then
         echo "At least one W&B agent failed for ${sweep_path}." >&2
         return "${status}"
+    fi
+    if [[ "${DRY_RUN}" != "1" && "${VERIFY_SWEEP}" == "1" ]]; then
+        log "Verifying completed runs for ${sweep_path}"
+        if ! "${PYTHON_BIN}" -m dotenv run --no-override -- \
+            "${PYTHON_BIN}" baselines/CooT/verify_wandb_sweep.py "${sweep_path}"; then
+            echo "W&B sweep verification failed for ${sweep_path}." >&2
+            return 1
+        fi
     fi
     log "Completed sweep ${sweep_path}"
 }

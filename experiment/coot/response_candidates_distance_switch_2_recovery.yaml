@@ -1,0 +1,33 @@
+program: baselines/CooT/train_best_response_overcooked_v3.py
+name: coot-hsp-final-candidate-responses-distance-switch-2-recovery
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+# The first distance_switch_2 candidate sweep produced 52 W&B runs marked as
+# finished, but none emitted a train metric, checkpoint, or response sidecar.
+# Its 11x8 layout is the largest response environment, so this recovery sweep
+# lowers vectorization to reduce compile/device pressure while preserving the
+# one-million-step budget.
+parameters:
+  scenario:
+    value: distance_switch_2
+  JOB_INDEX:
+    values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+  RESPONSE_JOB_STAGE:
+    value: candidates
+  NUM_ENVS:
+    value: 50
+  REW_SHAPING_HORIZON:
+    value: 1000000
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-coot-response-candidates
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

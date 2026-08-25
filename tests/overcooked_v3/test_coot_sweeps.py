@@ -4,7 +4,11 @@ from pathlib import Path
 import pytest
 from omegaconf import OmegaConf
 
-from baselines.CooT.build_population_manifest import parse_args as parse_builder_args
+from baselines.CooT.build_population_manifest import (
+    Candidate,
+    parse_args as parse_builder_args,
+    select_scored_hsp,
+)
 from baselines.CooT.eval_crossplay_overcooked_v3 import parse_args as parse_eval_args
 from baselines.CooT.hsp_population import resolve_hsp_config
 from baselines.CooT.preflight_sweep import REPO_ROOT, _compose, preflight
@@ -66,15 +70,54 @@ def test_coot_projects_are_stage_isolated_from_fcp_and_self_play():
 def test_response_sweeps_use_distinct_manifest_stages():
     expected = {
         "response_candidates.yaml": "candidates",
+        "response_candidates_distance_switch_2_recovery.yaml": "candidates",
         "response_candidates_multi_recipe.yaml": "candidates",
         "response.yaml": "exact",
         "response_hsp_only.yaml": "hsp_only",
+        "response_hsp_only_recovery.yaml": "hsp_only",
     }
     roots = _compose("coot_br_overcooked_v3", [])["RESPONSE_JOB_ROOTS"]
     assert len(set(roots.values())) == len(roots)
     for filename, stage in expected.items():
         sweep = _sweep(REPO_ROOT / "experiment" / "coot" / filename)
         assert _parameter(sweep, "RESPONSE_JOB_STAGE") == stage
+
+
+def test_hsp_only_low_return_fill_is_explicit_and_keeps_eligible_candidates():
+    candidates = [
+        Candidate(
+            identifier=f"hsp_{index:04d}",
+            population_type="hsp",
+            selection_features=[float(index), float(index % 2)],
+            reference_return=1.0 if index == 2 else 0.0,
+        )
+        for index in range(5)
+    ]
+
+    with pytest.raises(ValueError, match="Need at least 3 eligible HSP candidates"):
+        select_scored_hsp(
+            candidates,
+            count=3,
+            seed=0,
+            minimum_return=0.1,
+            allow_low_return_fill=False,
+            context="test",
+        )
+
+    selected, eligible, filtered_ids, fill_ids = select_scored_hsp(
+        candidates,
+        count=3,
+        seed=0,
+        minimum_return=0.1,
+        allow_low_return_fill=True,
+        context="test",
+    )
+    selected_ids = {candidate.identifier for candidate in selected}
+    assert [candidate.identifier for candidate in eligible] == ["hsp_0002"]
+    assert "hsp_0002" in selected_ids
+    assert len(selected_ids) == 3
+    assert len(filtered_ids) == 4
+    assert set(fill_ids) == selected_ids - {"hsp_0002"}
 
 
 def test_response_job_identity_includes_stage_job_and_partner_hash(tmp_path):

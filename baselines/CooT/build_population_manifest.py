@@ -684,6 +684,98 @@ def greedy_normalized_l1_select(
     )
 
 
+def select_scored_hsp(
+    candidates: Sequence[Candidate],
+    *,
+    count: int,
+    seed: int,
+    minimum_return: float,
+    allow_low_return_fill: bool,
+    context: str,
+) -> tuple[list[Candidate], list[Candidate], list[str], list[str]]:
+    """Select scored HSPs, optionally filling an HSP-only proxy below threshold.
+
+    The release selector remains the default.  The fallback is deliberately
+    opt-in: it first keeps every return-eligible candidate, then greedily adds
+    maximally distant filtered candidates until the requested proxy size is
+    reached.  When no candidate clears the return filter, the seeded release
+    selector is applied to the full scored catalog.
+    """
+
+    eligible, return_filtered_ids = _filter_scored_hsp_by_return(
+        candidates,
+        minimum_return=minimum_return,
+        context=context,
+    )
+    if len(eligible) >= count or not allow_low_return_fill:
+        selected = greedy_normalized_l1_select(
+            eligible,
+            count=count,
+            seed=seed,
+        )
+        return selected, eligible, return_filtered_ids, []
+
+    ordered = sorted(
+        candidates, key=lambda candidate: _natural_key(candidate.identifier)
+    )
+    if len(ordered) < count:
+        raise ValueError(
+            f"Need at least {count} total HSP candidates for low-return fill; "
+            f"found {len(ordered)}"
+        )
+    missing = [
+        candidate.identifier
+        for candidate in ordered
+        if candidate.selection_features is None
+    ]
+    if missing:
+        raise ValueError(
+            "Every HSP candidate needs selection_features before low-return fill; "
+            f"missing for {missing}"
+        )
+    dimensions = {len(candidate.selection_features or []) for candidate in ordered}
+    if len(dimensions) != 1:
+        raise ValueError(
+            f"HSP selection feature dimensions must match; found {sorted(dimensions)}"
+        )
+
+    matrix = np.asarray(
+        [candidate.selection_features for candidate in ordered], dtype=np.float64
+    )
+    normalized = matrix / (np.max(matrix, axis=0, keepdims=True) + 1e-3)
+    eligible_ids = {candidate.identifier for candidate in eligible}
+    selected_indices = [
+        index
+        for index, candidate in enumerate(ordered)
+        if candidate.identifier in eligible_ids
+    ]
+    if not selected_indices:
+        rng = np.random.RandomState(seed)
+        selected_indices = [int(rng.randint(0, len(ordered)))]
+
+    while len(selected_indices) < count:
+        scores = np.full((len(ordered),), -np.inf, dtype=np.float64)
+        for index in range(len(ordered)):
+            if index in selected_indices:
+                continue
+            scores[index] = sum(
+                float(np.abs(normalized[index] - normalized[chosen]).sum())
+                for chosen in selected_indices
+            )
+        selected_indices.append(int(np.argmax(scores)))
+
+    selected = sorted(
+        (ordered[index] for index in selected_indices),
+        key=lambda candidate: _natural_key(candidate.identifier),
+    )
+    low_return_fill_ids = [
+        candidate.identifier
+        for candidate in selected
+        if candidate.identifier not in eligible_ids
+    ]
+    return selected, eligible, return_filtered_ids, low_return_fill_ids
+
+
 def _load_exclusions(values: Sequence[str], file_path: Path | None) -> set[str]:
     exclusions = {str(value).strip() for value in values if str(value).strip()}
     if file_path is None:
@@ -796,6 +888,7 @@ def _deviations(
     seed: int,
     hsp_only: bool,
     minimum_hsp_reference_return: float,
+    low_return_fill_ids: Sequence[str],
 ) -> list[dict[str, Any]]:
     deviations: list[dict[str, Any]] = []
     if hsp_count != PAPER_HSP_COUNT:
@@ -843,6 +936,22 @@ def _deviations(
                 "used_value": mep_count,
             }
         )
+    if low_return_fill_ids:
+        deviations.append(
+            {
+                "code": "low_return_hsp_fill",
+                "description": (
+                    "The HSP-only proxy had fewer return-eligible candidates than "
+                    "the requested population size. Filtered candidates were added "
+                    "by greedy normalized-L1 diversity."
+                ),
+                "filled_count": len(low_return_fill_ids),
+                "filled_ids": list(low_return_fill_ids),
+                "minimum_reference_return_exclusive": (
+                    minimum_hsp_reference_return
+                ),
+            }
+        )
     return deviations
 
 
@@ -853,6 +962,7 @@ def _construction_metadata(
     eligible_hsp_count: int,
     exclusions: set[str],
     return_filtered_ids: Sequence[str],
+    low_return_fill_ids: Sequence[str],
     minimum_hsp_reference_return: float,
     seed: int,
     requested_hsp_count: int,
@@ -878,6 +988,7 @@ def _construction_metadata(
             "candidate_count_after_return_filter": eligible_hsp_count,
             "minimum_reference_return_exclusive": minimum_hsp_reference_return,
             "return_filtered_ids": list(return_filtered_ids),
+            "low_return_fill_ids": list(low_return_fill_ids),
             "selected_count": len(selected_hsp),
             "selected_ids": [candidate.identifier for candidate in selected_hsp],
         },
@@ -906,6 +1017,7 @@ def _construction_metadata(
             seed=seed,
             hsp_only=hsp_only,
             minimum_hsp_reference_return=minimum_hsp_reference_return,
+            low_return_fill_ids=low_return_fill_ids,
         ),
     }
 
@@ -961,6 +1073,16 @@ def _load_population_inputs(
                 "--mep-catalog or explicitly acknowledge the proxy with "
                 "--allow-hsp-only."
             )
+        if args.allow_low_return_fill and not args.allow_hsp_only:
+            raise ValueError(
+                "--allow-low-return-fill requires --allow-hsp-only so the "
+                "paper-deviating population is explicit"
+            )
+    elif args.allow_low_return_fill:
+        raise ValueError(
+            "--allow-low-return-fill is supported only for an explicit "
+            "HSP-only proxy"
+        )
     else:
         mep, mep_payload, mep_path = _load_catalog(
             args.mep_catalog, expected_population_type="mep"
@@ -991,13 +1113,18 @@ def _build_pairs(args: argparse.Namespace) -> Path:
         for identifier, candidate in hsp.items()
         if identifier not in exclusions
     ]
-    eligible_hsp, return_filtered_ids = _filter_scored_hsp_by_return(
+    (
+        selected_hsp,
+        eligible_hsp,
+        return_filtered_ids,
+        low_return_fill_ids,
+    ) = select_scored_hsp(
         hsp_after_explicit_exclusions,
+        count=args.hsp_count,
+        seed=args.selector_seed,
         minimum_return=args.minimum_hsp_reference_return,
+        allow_low_return_fill=args.allow_low_return_fill,
         context="build-pairs HSP selection",
-    )
-    selected_hsp = greedy_normalized_l1_select(
-        eligible_hsp, count=args.hsp_count, seed=args.selector_seed
     )
 
     if not hsp_only and len(mep) != args.mep_count:
@@ -1091,6 +1218,7 @@ def _build_pairs(args: argparse.Namespace) -> Path:
             eligible_hsp_count=len(eligible_hsp),
             exclusions=exclusions,
             return_filtered_ids=return_filtered_ids,
+            low_return_fill_ids=low_return_fill_ids,
             minimum_hsp_reference_return=args.minimum_hsp_reference_return,
             seed=args.selector_seed,
             requested_hsp_count=args.hsp_count,
@@ -1139,20 +1267,24 @@ def _response_jobs(args: argparse.Namespace) -> Path:
         # produces reference_return, so every explicit candidate is scheduled.
         eligible_hsp = hsp_after_explicit_exclusions
         return_filtered_ids: list[str] = []
+        low_return_fill_ids: list[str] = []
         selected_hsp = sorted(
             eligible_hsp,
             key=lambda candidate: _natural_key(candidate.identifier),
         )
     else:
-        eligible_hsp, return_filtered_ids = _filter_scored_hsp_by_return(
-            hsp_after_explicit_exclusions,
-            minimum_return=args.minimum_hsp_reference_return,
-            context="response-jobs HSP selection",
-        )
-        selected_hsp = greedy_normalized_l1_select(
+        (
+            selected_hsp,
             eligible_hsp,
+            return_filtered_ids,
+            low_return_fill_ids,
+        ) = select_scored_hsp(
+            hsp_after_explicit_exclusions,
             count=args.hsp_count,
             seed=args.selector_seed,
+            minimum_return=args.minimum_hsp_reference_return,
+            allow_low_return_fill=args.allow_low_return_fill,
+            context="response-jobs HSP selection",
         )
     ordered_mep = sorted(
         mep.values(), key=lambda candidate: _natural_key(candidate.identifier)
@@ -1250,6 +1382,7 @@ def _response_jobs(args: argparse.Namespace) -> Path:
         # it is not itself the final paper population and does not require MEP.
         hsp_only=hsp_only and not hsp_candidate_preselection,
         minimum_hsp_reference_return=args.minimum_hsp_reference_return,
+        low_return_fill_ids=low_return_fill_ids,
     )
     if args.all_hsp_candidates:
         deviations.append(
@@ -1308,6 +1441,7 @@ def _response_jobs(args: argparse.Namespace) -> Path:
                 ),
                 "return_filter_applied": not args.all_hsp_candidates,
                 "return_filtered_ids": return_filtered_ids,
+                "low_return_fill_ids": low_return_fill_ids,
                 "selection_applied": not args.all_hsp_candidates,
                 "selected_count": len(selected_hsp),
                 "selected_ids": [candidate.identifier for candidate in selected_hsp],
@@ -1371,6 +1505,15 @@ def _add_population_arguments(parser: argparse.ArgumentParser) -> None:
             "Explicitly permit an HSP-only proxy when --mep-catalog is absent. "
             "The generated manifest records this paper deviation. This flag is "
             "not needed for --all-hsp-candidates preselection jobs."
+        ),
+    )
+    parser.add_argument(
+        "--allow-low-return-fill",
+        action="store_true",
+        help=(
+            "For an explicit HSP-only proxy only, keep every return-eligible HSP "
+            "and greedily fill the remaining requested slots from scored candidates "
+            "below the release return threshold. The manifest records the deviation."
         ),
     )
     parser.add_argument(

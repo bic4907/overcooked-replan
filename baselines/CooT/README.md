@@ -94,6 +94,12 @@ population sweep implements HSP utilities; until MEP is ported, an HSP-only
 manifest is allowed only behind an explicit proxy flag and is marked as a
 deviation in its metadata. As in the release, candidates with scored sparse
 `reference_return <= 0.1` are removed before the greedy selector.
+For the explicitly non-paper HSP-only proxy, `--allow-low-return-fill` may be
+used when V3 produces fewer than 21 viable candidates. It preserves every
+return-eligible candidate and fills the remaining slots by normalized-L1
+diversity over the scored, filtered candidates. The selected low-return IDs and
+the additional deviation are written to the manifest; paper-matched HSP+MEP
+construction cannot enable this option.
 
 The release passes a `--share_policy` flag implemented with `store_false`, so
 its HSP run actually uses separated MAPPO actors and saves per-agent

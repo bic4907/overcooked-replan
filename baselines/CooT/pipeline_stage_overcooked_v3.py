@@ -81,7 +81,12 @@ def _prepare_candidates(layout: str) -> list[Path]:
     return [raw_catalog, candidate_jobs]
 
 
-def _score_and_select(layout: str, episodes: int) -> list[Path]:
+def _score_and_select(
+    layout: str,
+    episodes: int,
+    *,
+    allow_low_return_fill: bool,
+) -> list[Path]:
     paths = _paths(layout)
     raw_catalog = paths["raw_catalog"]
     scored_catalog = paths["scored_catalog"]
@@ -112,26 +117,27 @@ def _score_and_select(layout: str, episodes: int) -> list[Path]:
             "--overwrite",
         ]
     )
-    build_manifest(
-        [
-            "response-jobs",
-            "--hsp-catalog",
-            str(scored_catalog),
-            "--layout",
-            layout,
-            "--allow-hsp-only",
-            "--hsp-skill",
-            "mid",
-            "--verify-checkpoints",
-            "--output",
-            str(selected_jobs),
-            "--overwrite",
-        ]
-    )
+    manifest_args = [
+        "response-jobs",
+        "--hsp-catalog",
+        str(scored_catalog),
+        "--layout",
+        layout,
+        "--allow-hsp-only",
+        "--hsp-skill",
+        "mid",
+        "--verify-checkpoints",
+        "--output",
+        str(selected_jobs),
+        "--overwrite",
+    ]
+    if allow_low_return_fill:
+        manifest_args.append("--allow-low-return-fill")
+    build_manifest(manifest_args)
     return [scored_catalog, selected_jobs]
 
 
-def _build_dataset(layout: str) -> list[Path]:
+def _build_dataset(layout: str, *, allow_low_return_fill: bool) -> list[Path]:
     paths = _paths(layout)
     scored_catalog = paths["scored_catalog"]
     pair_manifest = paths["pair_manifest"]
@@ -142,22 +148,23 @@ def _build_dataset(layout: str) -> list[Path]:
     pair_manifest.parent.mkdir(parents=True, exist_ok=True)
     dataset_dir.parent.mkdir(parents=True, exist_ok=True)
 
-    build_manifest(
-        [
-            "build-pairs",
-            "--hsp-catalog",
-            str(scored_catalog),
-            "--layout",
-            layout,
-            "--allow-hsp-only",
-            "--response-results",
-            str(paths["response_glob"]),
-            "--verify-checkpoints",
-            "--output",
-            str(pair_manifest),
-            "--overwrite",
-        ]
-    )
+    manifest_args = [
+        "build-pairs",
+        "--hsp-catalog",
+        str(scored_catalog),
+        "--layout",
+        layout,
+        "--allow-hsp-only",
+        "--response-results",
+        str(paths["response_glob"]),
+        "--verify-checkpoints",
+        "--output",
+        str(pair_manifest),
+        "--overwrite",
+    ]
+    if allow_low_return_fill:
+        manifest_args.append("--allow-low-return-fill")
+    build_manifest(manifest_args)
 
     metadata = dataset_dir / "metadata.json"
     if not metadata.is_file():
@@ -175,6 +182,15 @@ def _build_dataset(layout: str) -> list[Path]:
     return [pair_manifest, metadata, dataset_dir / "resolved_manifest.json"]
 
 
+def _boolean(value: str) -> bool:
+    normalized = str(value).lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    raise argparse.ArgumentTypeError(f"Expected a boolean value, got {value!r}")
+
+
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -184,6 +200,15 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--layout", required=True)
     parser.add_argument("--score-episodes", type=int, default=50)
+    parser.add_argument(
+        "--allow-low-return-fill",
+        type=_boolean,
+        default=False,
+        help=(
+            "Allow the explicit HSP-only proxy to fill a short return-eligible "
+            "population with diversity-selected low-return candidates."
+        ),
+    )
     parser.add_argument("--entity", default="cilab-overcooked")
     parser.add_argument("--project", default="overcooked-v3-coot-pipeline")
     parser.add_argument("--wandb-mode", default=os.getenv("WANDB_MODE", "online"))
@@ -215,9 +240,16 @@ def main(argv: Sequence[str] | None = None) -> None:
         if args.stage == "prepare_candidates":
             outputs = _prepare_candidates(args.layout)
         elif args.stage == "score_and_select":
-            outputs = _score_and_select(args.layout, args.score_episodes)
+            outputs = _score_and_select(
+                args.layout,
+                args.score_episodes,
+                allow_low_return_fill=args.allow_low_return_fill,
+            )
         else:
-            outputs = _build_dataset(args.layout)
+            outputs = _build_dataset(
+                args.layout,
+                allow_low_return_fill=args.allow_low_return_fill,
+            )
 
         missing = [str(path) for path in outputs if not path.is_file()]
         if missing:
