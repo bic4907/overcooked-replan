@@ -1,19 +1,10 @@
 # Coordination Transformer
 
-Repository root에서 다음 agent들을 순서대로 실행한다.
+현재 recovery, train, eval agent는 repository root에서 아래 entrypoint로
+순서대로 실행한다. 이전 sweep ID는 재사용하지 않는다.
 
 ```bash
-GPUS=0,1 bash scripts/overcooked_v3/run_wandb_agents.sh \
-  cilab-overcooked/overcooked-v3-coot-population/47ubezl3 \
-  cilab-overcooked/overcooked-v3-coot-population/ueiul4xd \
-  cilab-overcooked/overcooked-v3-coot-pipeline/5xvncbux \
-  cilab-overcooked/overcooked-v3-coot-response-candidates/gojtpiqm \
-  cilab-overcooked/overcooked-v3-coot-response-candidates/omh17zwt \
-  cilab-overcooked/overcooked-v3-coot-pipeline/9u2s6axd \
-  cilab-overcooked/overcooked-v3-coot-response/ac9f9ssi \
-  cilab-overcooked/overcooked-v3-coot-pipeline/yhnbq7jf \
-  cilab-overcooked/overcooked-v3-coot-train/e22e0tlo \
-  cilab-overcooked/overcooked-v3-coot-eval/agrn47k5
+GPUS=0,1 bash scripts/overcooked_v3/run_coot_recovery_pipeline.sh
 ```
 
 `run_wandb_agents.sh`는 각 sweep이 끝난 뒤 grid run 수, run state, sweep
@@ -52,10 +43,12 @@ wandb sweep --entity cilab-overcooked \
 
 | Stage | Sweep |
 | --- | --- |
-| `distance_switch_2` candidate recovery | `cilab-overcooked/overcooked-v3-coot-response-candidates/6lfm72m6` |
-| score and select | `cilab-overcooked/overcooked-v3-coot-pipeline/w7qigk8w` |
-| seven-layout HSP response recovery | `cilab-overcooked/overcooked-v3-coot-response/93fcaxnk` |
-| build dataset | `cilab-overcooked/overcooked-v3-coot-pipeline/fqdzmy74` |
+| `distance_switch_2` candidate recovery | `cilab-overcooked/overcooked-v3-coot-response-candidates/sc4vcnkw` |
+| score and select | `cilab-overcooked/overcooked-v3-coot-pipeline/nam6at9w` |
+| seven-layout HSP response recovery | `cilab-overcooked/overcooked-v3-coot-response/mq11r1ym` |
+| build dataset | `cilab-overcooked/overcooked-v3-coot-pipeline/q6xqy5re` |
+| train | `cilab-overcooked/overcooked-v3-coot-train/vxwsqkok` |
+| eval | `cilab-overcooked/overcooked-v3-coot-eval/g98cqm98` |
 
 Recovery부터 기존 train/eval까지 전체 순서는 아래 한 명령으로 실행한다.
 
