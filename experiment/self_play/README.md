@@ -1,15 +1,15 @@
 # Self-Play IPPO
 
-The combined sweeps cover all 12 selected role-scenario layouts. Training and
+The combined sweeps cover all 8 selected role-scenario layouts. Training and
 evaluation use separate projects under the `cilab-overcooked` entity.
 
-## Train (12 layouts)
+## Train (8 layouts)
 
 ```bash
 wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo_train train.yaml
 ```
 
-## Evaluate (12 layouts, 450 steps)
+## Evaluate (8 layouts, 450 steps)
 
 ```bash
 wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo_eval eval.yaml

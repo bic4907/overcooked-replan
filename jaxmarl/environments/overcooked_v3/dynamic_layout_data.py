@@ -15,8 +15,8 @@
 # phase. When the right onion pile disappears, the left agent must trade off
 # local cooking against supplying onions through the shared center counters.
 #
-# Each role category exposes the three layouts selected from the cross-play
-# report.
+# Each role category exposes the two layouts selected from the cross-play
+# report, ranked as public tags ``0`` and ``1``.
 
 
 def _role_grid(
@@ -139,7 +139,7 @@ def _rotated_take(positions, count, offset):
     return rotated[:count]
 
 
-# Candidate source layouts retain the 7x9 split topology. Only the three
+# Candidate source layouts retain the 7x9 split topology. Only the two
 # cross-play-selected candidates are registered below. The workload tuple is
 # (onion piles, pots, plate piles, serving stations). Resources remain assigned
 # to their role-specific bay, while placement and starting positions vary.
@@ -236,7 +236,7 @@ def _build_split_catalog_variant(variant_index):
 
 
 # Outage candidate sources keep the compact 5x7, permanently separated two-bay
-# topology. Only the three selected candidates are registered. Each side starts
+# topology. Only the two selected candidates are registered. Each side starts
 # with an identical complete kitchen. All right-side
 # onion piles disappear during outage, and the two center handoff counters stay
 # available. Anchors keep an onion-to-handoff and handoff-to-pot route short.
@@ -316,10 +316,11 @@ def _build_outage_catalog_variant(variant_index):
 
 
 def _register_role_catalog():
-    # Ranked candidates from the 2026-08-17 cross-play report. Reindexing the
-    # selected source layouts keeps the public scenario names compact.
-    split_sources = (9, 19, 14)
-    outage_sources = (4, 12, 8)
+    # Ranked by mean absolute XP-SP gap in the 2026-08-22 baseline report.
+    # Public split tags 0/1 come from previous tags 2/0 (sources 14/9), and
+    # outage tags 0/1 come from previous tags 1/0 (sources 12/4).
+    split_sources = (14, 9)
+    outage_sources = (12, 4)
     for new_index, (split_source, outage_source) in enumerate(
         zip(split_sources, outage_sources)
     ):
@@ -389,31 +390,10 @@ def _recipe_switch_grid(spec):
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-# Selected from the original ten-map catalog and reindexed as:
-# new 0 <- old 4, new 1 <- old 5, new 2 <- old 7.
+# Ranked by mean absolute XP-SP gap in the 2026-08-22 baseline report and
+# reindexed as new 0 <- previous tag 2 (catalog 7), new 1 <- previous tag 1
+# (catalog 5).
 _RECIPE_SWITCH_SPECS = (
-    {
-        "width": 9,
-        "height": 5,
-        "handoff_rows": (2, 3),
-        "agent_positions": ((3, 2), (5, 2)),
-        "left_resources": (("0", (0, 1)), ("P", (2, 0)), ("X", (3, 4))),
-        "right_resources": (
-            ("1", (8, 1)),
-            ("P", (6, 0)),
-            ("P", (8, 3)),
-            ("B", (5, 4)),
-        ),
-        "notches": ((1, 2), (7, 2)),
-    },
-    {
-        "width": 7,
-        "height": 5,
-        "handoff_rows": (1, 3),
-        "agent_positions": ((2, 2), (4, 2)),
-        "left_resources": (("0", (0, 2)), ("P", (2, 0)), ("X", (1, 4))),
-        "right_resources": (("1", (6, 2)), ("P", (4, 0)), ("B", (5, 4))),
-    },
     {
         "width": 7,
         "height": 5,
@@ -432,16 +412,23 @@ _RECIPE_SWITCH_SPECS = (
             ("B", (4, 4)),
         ),
     },
+    {
+        "width": 7,
+        "height": 5,
+        "handoff_rows": (1, 3),
+        "agent_positions": ((2, 2), (4, 2)),
+        "left_resources": (("0", (0, 2)), ("P", (2, 0)), ("X", (1, 4))),
+        "right_resources": (("1", (6, 2)), ("P", (4, 0)), ("B", (5, 4))),
+    },
 )
 
 _RECIPE_ONION_MAJOR = [0, 0, 1]
 _RECIPE_TOMATO_MAJOR = [0, 1, 1]
 _RECIPE_SWITCH_TIMINGS = (
-    (165, 135),
-    (150, 150),
     (180, 120),
+    (150, 150),
 )
-_RECIPE_SWITCH_ONION_MAJOR_FIRST = (True, False, False)
+_RECIPE_SWITCH_ONION_MAJOR_FIRST = (False, False)
 
 
 def _register_recipe_switch_catalog():
@@ -697,19 +684,13 @@ def _vertical_distance_switch_spec(width, height, extra_counters=()):
     }
 
 
-# Selected from the original ten-map catalog and reindexed as:
-# new 0 <- old 0, new 1 <- old 1, new 2 <- old 6.
+# Selected tags stay new 0 <- previous tag 0 (catalog 0) and new 1 <- previous
+# tag 1 (catalog 1), ranked by the 2026-08-22 baseline report.
 _DISTANCE_SWITCH_SPECS = (
     # Canonical Overcooked-AI asymmetric_advantages.
     _vertical_distance_switch_spec(9, 5),
     # Wider canonical corridor.
     _vertical_distance_switch_spec(11, 5),
-    # Staggered islands make the two work regions visually non-isomorphic.
-    _vertical_distance_switch_spec(
-        11,
-        8,
-        ((2, 2), (2, 3), (3, 3), (3, 5), (7, 2), (8, 2), (8, 3), (7, 5)),
-    ),
 )
 
 

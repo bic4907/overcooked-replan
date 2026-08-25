@@ -12,7 +12,6 @@ parameters:
     values:
       - distance_switch_0
       - distance_switch_1
-      - distance_switch_2
   episodes:
     value: 20
   max-steps:

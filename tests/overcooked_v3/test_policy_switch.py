@@ -95,18 +95,9 @@ def test_policy_switch_sweeps_target_all_role_scenarios_with_six_seeds():
         (ROOT / "experiment/policy_switch/eval.yaml").read_text(encoding="utf-8")
     )
     expected_layouts = [
-        "split_0",
-        "split_1",
-        "split_2",
-        "outage_0",
-        "outage_1",
-        "outage_2",
-        "recipe_switch_0",
-        "recipe_switch_1",
-        "recipe_switch_2",
-        "distance_switch_0",
-        "distance_switch_1",
-        "distance_switch_2",
+        f"{family}_{variant}"
+        for family in ("split", "outage", "recipe_switch", "distance_switch")
+        for variant in range(2)
     ]
 
     assert training["parameters"]["scenario"]["values"] == expected_layouts

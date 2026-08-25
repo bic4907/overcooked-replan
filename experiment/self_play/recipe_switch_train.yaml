@@ -10,7 +10,6 @@ parameters:
     values:
       - recipe_switch_0
       - recipe_switch_1
-      - recipe_switch_2
   SEED:
     values: [0, 1, 2, 3, 4, 5]
   ENTITY:

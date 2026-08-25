@@ -312,11 +312,11 @@ _register_static_phase_policy_layouts()
 
 ROLE_SCENARIO_LAYOUTS = {
     **{
-        family: tuple(f"{family}_{variant}" for variant in range(3))
+        family: tuple(f"{family}_{variant}" for variant in range(2))
         for family in ("split", "outage")
     },
-    "recipe_switch": tuple(f"recipe_switch_{variant}" for variant in range(3)),
-    "distance_switch": tuple(f"distance_switch_{variant}" for variant in range(3)),
+    "recipe_switch": tuple(f"recipe_switch_{variant}" for variant in range(2)),
+    "distance_switch": tuple(f"distance_switch_{variant}" for variant in range(2)),
 }
 ROLE_SCENARIO_LAYOUT_NAMES = tuple(
     name for names in ROLE_SCENARIO_LAYOUTS.values() for name in names

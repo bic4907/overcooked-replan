@@ -90,18 +90,9 @@ def test_fcp_eval_sweep_runs_seedwise_fcp_only():
 
     assert evaluation["parameters"]["algorithms"]["value"] == "FCP"
     assert evaluation["parameters"]["layout"]["values"] == [
-        "split_0",
-        "split_1",
-        "split_2",
-        "outage_0",
-        "outage_1",
-        "outage_2",
-        "recipe_switch_0",
-        "recipe_switch_1",
-        "recipe_switch_2",
-        "distance_switch_0",
-        "distance_switch_1",
-        "distance_switch_2",
+        f"{family}_{variant}"
+        for family in ("split", "outage", "recipe_switch", "distance_switch")
+        for variant in range(2)
     ]
     assert evaluation["parameters"]["max-steps"]["value"] == 450
     assert (
@@ -121,18 +112,9 @@ def test_fcp_switch_sweeps_use_three_population_and_six_training_seeds():
         (ROOT / "experiment/fcp/train.yaml").read_text(encoding="utf-8")
     )
     expected_layouts = [
-        "split_0",
-        "split_1",
-        "split_2",
-        "outage_0",
-        "outage_1",
-        "outage_2",
-        "recipe_switch_0",
-        "recipe_switch_1",
-        "recipe_switch_2",
-        "distance_switch_0",
-        "distance_switch_1",
-        "distance_switch_2",
+        f"{family}_{variant}"
+        for family in ("split", "outage", "recipe_switch", "distance_switch")
+        for variant in range(2)
     ]
 
     assert population["parameters"]["scenario"]["values"] == expected_layouts

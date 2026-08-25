@@ -12,7 +12,6 @@ parameters:
     values:
       - recipe_switch_0
       - recipe_switch_1
-      - recipe_switch_2
   episodes:
     value: 20
   max-steps:

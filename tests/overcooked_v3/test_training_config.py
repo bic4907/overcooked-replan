@@ -22,7 +22,7 @@ SCENARIO_FAMILIES = {
 SCENARIOS = {
     f"{family}_{variant}": metadata
     for family, metadata in SCENARIO_FAMILIES.items()
-    for variant in range(3)
+    for variant in range(2)
 }
 SWEEP_SCENARIOS = list(SCENARIOS)
 
@@ -84,7 +84,7 @@ def test_hydra_scenario_group_composes_all_conditions():
 
 def test_distance_switch_scenarios_use_fixed_positions_and_full_episode():
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
-        for variant in range(3):
+        for variant in range(2):
             scenario = f"distance_switch_{variant}"
             config = compose(
                 config_name="ippo_overcooked_v3",

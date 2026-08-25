@@ -9,10 +9,10 @@ The following role-coordination experiments are currently available:
 
 | Hydra scenario | Environment | Research question |
 | --- | --- | --- |
-| `split_{0..2}` | Kitchen Split | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
-| `outage_{0..2}` | Resource Outage | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
-| `recipe_switch_{0..2}` | Mixed Recipe Relay | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
-| `distance_switch_{0..2}` | Distance-Driven Role Switch | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
+| `split_{0..1}` | Kitchen Split | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
+| `outage_{0..1}` | Resource Outage | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
+| `recipe_switch_{0..1}` | Mixed Recipe Relay | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
+| `distance_switch_{0..1}` | Distance-Driven Role Switch | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
 
 Kitchen Split starts with one central doorway open for 40 steps. It then becomes
 a handoff counter for 160 steps, preventing agents from changing bays. The left
@@ -24,7 +24,10 @@ the left cook must trade off local production against supplying the right bay.
 Both conditions keep a recipe indicator at a separate fixed tile and use a
 generic non-storage blocker in the center column.
 
-Each category has three cross-play-selected layouts named `_0` through `_2`.
+Each category has two cross-play-selected layouts ranked and tagged `_0` and `_1`.
+The tags are ordered by mean absolute XP-SP gap in the 2026-08-22 baseline
+report. Split `_0`/`_1` come from the previous `_2`/`_0`, and Outage `_0`/`_1`
+come from the previous `_1`/`_0`.
 Split uses a 7×9 map, while Outage uses a compact 5×7 map whose phases last
 40 and 160 steps. Outage keeps each onion-to-handoff and handoff-to-pot leg
 within one movement step. The central wall always
@@ -38,12 +41,11 @@ Outage places two adjacent storage counters above the blocker tile, allowing the
 left cook to preload two onions for the right cook.
 Mixed Recipe Relay permanently separates an onion/serving bay from a
 tomato/plate bay and exposes exactly two shared handoff counters. Both bays have
-pots. The three retained layouts are the former `_4`, `_5`, and `_7`, reindexed
-as `_0`, `_1`, and `_2`. New `_0` is a 9×5 onion-major-first layout; new `_1`
-and `_2` are 7×5 tomato-major-first layouts. The map stays fixed while the
+pots. The two retained layouts are the former catalog `_7` and `_5`, reindexed
+as `_0` and `_1`. Both are 7×5 tomato-major-first layouts. The map stays fixed while the
 recipe changes at deterministic phase boundaries within a 450-step episode.
 Select any layout through its Hydra scenario name, such as
-`scenario=outage_2`.
+`scenario=outage_1`.
 
 Distance-Driven Role Switch keeps the standard three-onion recipe fixed and
 follows the original `asymm_advantages` comparative-cost structure. The two
@@ -52,10 +54,9 @@ pile, central pot, plate pile, and serving station. During each 450-step episode
 the assignment follows A → B → A: agent 0 first has the short serving loop and
 agent 1 the short onion-input loop, the onion and serving endpoints exchange at
 step 150, and they return at step 300. Pots, plates, counters, floor, and agent
-positions remain fixed. The retained layouts are the former `_0`, `_1`, and
-`_6`, reindexed as `_0`, `_1`, and `_2`. New `_0` is the canonical 9×5
-`asymm_advantages` map, `_1` is its wider 11×5 variant, and `_2` is the 11×8
-staggered-islands variant. All retain at least a three-step comparative
+positions remain fixed. The retained layouts keep the previous `_0` and `_1`
+tags. New `_0` is the canonical 9×5 `asymm_advantages` map and `_1` is its
+wider 11×5 variant. Both retain at least a three-step comparative
 advantage for the efficient task loop.
 
 Overcooked V3 exposes upcoming layout transitions to every agent. The final two
@@ -262,7 +263,7 @@ Fictitious Co-Play uses a two-stage self-play-population and best-response
 workflow. See [the FCP guide](experiment/fcp/README.md) for its W&B sweep
 commands.
 
-`experiment/self_play/train.yaml` defines a 72-run grid over all 12 layouts
+`experiment/self_play/train.yaml` defines a 48-run grid over all 8 layouts
 and six seeds. Create it on a Mac
 with the W&B CLI:
 
