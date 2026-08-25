@@ -48,14 +48,26 @@ wandb sweep --entity cilab-overcooked \
   experiment/coot/build_dataset.yaml
 ```
 
-등록 결과의 sweep ID를 아래 순서로 실행한다.
+등록된 recovery sweep은 다음과 같다.
+
+| Stage | Sweep |
+| --- | --- |
+| `distance_switch_2` candidate recovery | `cilab-overcooked/overcooked-v3-coot-response-candidates/6lfm72m6` |
+| score and select | `cilab-overcooked/overcooked-v3-coot-pipeline/w7qigk8w` |
+| seven-layout HSP response recovery | `cilab-overcooked/overcooked-v3-coot-response/93fcaxnk` |
+| build dataset | `cilab-overcooked/overcooked-v3-coot-pipeline/fqdzmy74` |
+
+Recovery부터 기존 train/eval까지 전체 순서는 아래 한 명령으로 실행한다.
 
 ```bash
-GPUS=0,1 bash scripts/overcooked_v3/run_wandb_agents.sh \
-  cilab-overcooked/overcooked-v3-coot-response-candidates/<candidate-recovery-id> \
-  cilab-overcooked/overcooked-v3-coot-pipeline/<score-and-select-id> \
-  cilab-overcooked/overcooked-v3-coot-response/<hsp-response-recovery-id> \
-  cilab-overcooked/overcooked-v3-coot-pipeline/<build-dataset-id>
+GPUS=0,1 bash scripts/overcooked_v3/run_coot_recovery_pipeline.sh
+```
+
+Dataset 생성까지만 복구하고 train/eval은 시작하지 않으려면 다음처럼 실행한다.
+
+```bash
+RECOVERY_ONLY=1 GPUS=0,1 \
+  bash scripts/overcooked_v3/run_coot_recovery_pipeline.sh
 ```
 
 Recovery candidate/response sweep은 vectorized env를 50으로 낮추고 reward shaping을
