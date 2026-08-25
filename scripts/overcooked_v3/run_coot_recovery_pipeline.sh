@@ -6,16 +6,16 @@ PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${PROJECT_DIR}"
 
 sweep_paths=(
-    "cilab-overcooked/overcooked-v3-coot-response-candidates/sc4vcnkw"
-    "cilab-overcooked/overcooked-v3-coot-pipeline/nam6at9w"
-    "cilab-overcooked/overcooked-v3-coot-response/mq11r1ym"
-    "cilab-overcooked/overcooked-v3-coot-pipeline/q6xqy5re"
+    "cilab-overcooked/overcooked-v3-coot-response-candidates/f0rdtzx6"
+    "cilab-overcooked/overcooked-v3-coot-pipeline/9zy1r9ni"
+    "cilab-overcooked/overcooked-v3-coot-response/82wckiy9"
+    "cilab-overcooked/overcooked-v3-coot-pipeline/oqrzpu7x"
 )
 
 if [[ "${RECOVERY_ONLY:-0}" != "1" ]]; then
     sweep_paths+=(
-        "cilab-overcooked/overcooked-v3-coot-train/vxwsqkok"
-        "cilab-overcooked/overcooked-v3-coot-eval/g98cqm98"
+        "cilab-overcooked/overcooked-v3-coot-train/3yyndhum"
+        "cilab-overcooked/overcooked-v3-coot-eval/1hrrw5z6"
     )
 fi
 
