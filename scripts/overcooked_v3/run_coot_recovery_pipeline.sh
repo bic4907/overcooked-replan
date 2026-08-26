@@ -9,7 +9,7 @@ sweep_paths=(
     "cilab-overcooked/overcooked-v3-coot-response-candidates/f0rdtzx6"
     "cilab-overcooked/overcooked-v3-coot-pipeline/9zy1r9ni"
     "cilab-overcooked/overcooked-v3-coot-response/82wckiy9"
-    "cilab-overcooked/overcooked-v3-coot-pipeline/oqrzpu7x"
+    "cilab-overcooked/overcooked-v3-coot-build-dataset/wey7r86r"
 )
 
 if [[ "${RECOVERY_ONLY:-0}" != "1" ]]; then

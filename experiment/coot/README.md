@@ -27,7 +27,7 @@ wandb sweep --entity cilab-overcooked \
   experiment/coot/response_candidates.yaml
 
 wandb sweep --entity cilab-overcooked \
-  --project overcooked-v3-coot-pipeline \
+  --project overcooked-v3-coot-score-select \
   experiment/coot/score_and_select.yaml
 
 wandb sweep --entity cilab-overcooked \
@@ -35,7 +35,7 @@ wandb sweep --entity cilab-overcooked \
   experiment/coot/response_hsp_only.yaml
 
 wandb sweep --entity cilab-overcooked \
-  --project overcooked-v3-coot-pipeline \
+  --project overcooked-v3-coot-build-dataset \
   experiment/coot/build_dataset.yaml
 
 wandb sweep --entity cilab-overcooked \
@@ -52,9 +52,9 @@ wandb sweep --entity cilab-overcooked \
 | Stage | Sweep |
 | --- | --- |
 | full non-recipe candidate response | `cilab-overcooked/overcooked-v3-coot-response-candidates/f0rdtzx6` |
-| score and select | `cilab-overcooked/overcooked-v3-coot-pipeline/9zy1r9ni` |
+| score and select (current run) | `cilab-overcooked/overcooked-v3-coot-pipeline/9zy1r9ni` |
 | full HSP response | `cilab-overcooked/overcooked-v3-coot-response/82wckiy9` |
-| build dataset | `cilab-overcooked/overcooked-v3-coot-pipeline/oqrzpu7x` |
+| build dataset | `cilab-overcooked/overcooked-v3-coot-build-dataset/wey7r86r` |
 | train | `cilab-overcooked/overcooked-v3-coot-train/3yyndhum` |
 | eval | `cilab-overcooked/overcooked-v3-coot-eval/1hrrw5z6` |
 
@@ -77,3 +77,8 @@ Full-rerun candidate/response sweep은 vectorized env를 50으로 낮추고 rewa
 `reference_return > 0.1` 필터를 우선 적용하되, 21개보다 적은 HSP-only proxy에
 한해서 low-return 후보를 normalized-L1 diversity로 채운다. 채운 ID는 생성 manifest의
 `low_return_fill_ids`와 `low_return_hsp_fill` deviation에 기록된다.
+
+현재 score/select sweep은 프로젝트 분리 전에 등록되어 기존
+`overcooked-v3-coot-pipeline`에 있다. 이후 `score_and_select.yaml`을 다시 등록하면
+`overcooked-v3-coot-score-select` 프로젝트를 사용한다. Build-dataset은 현재 체인부터
+`overcooked-v3-coot-build-dataset`으로 분리되었다.

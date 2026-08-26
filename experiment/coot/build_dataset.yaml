@@ -17,7 +17,7 @@ parameters:
   entity:
     value: cilab-overcooked
   project:
-    value: overcooked-v3-coot-pipeline
+    value: overcooked-v3-coot-build-dataset
 
 command:
   - ${env}
