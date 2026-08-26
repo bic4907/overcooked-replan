@@ -2,6 +2,6 @@
 
 # Record one deterministic episode from the first trained seed at the end.
 RECORD_FINAL_EPISODE: true
-RECORD_MAX_STEPS: 400
+RECORD_MAX_STEPS: 450
 RECORD_VIDEO_FPS: 10
 RECORD_VIDEO_QUALITY: 5

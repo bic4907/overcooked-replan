@@ -12,12 +12,12 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 
-LEGACY_LOG_NAME_PATTERN = re.compile(
-    r"^(dynamic_(easy|medium|hard)_(\d+))_"
-    r"(same_seed0|same_seed1|cross_seed0_seed1|cross_seed1_seed0)\.log$"
+ROLE_FAMILIES = ("split", "outage", "recipe_switch", "distance_switch")
+ROLE_LAYOUTS = tuple(
+    f"{family}_{variant}" for family in ROLE_FAMILIES for variant in range(2)
 )
-NUMBERED_LOG_NAME_PATTERN = re.compile(
-    r"^(dynamic_(\d{2}))_"
+ROLE_LOG_NAME_PATTERN = re.compile(
+    r"^((split|outage|recipe_switch|distance_switch)_([01]))_"
     r"(same_seed0|same_seed1|cross_seed0_seed1|cross_seed1_seed0)\.log$"
 )
 EPISODE_PATTERN = re.compile(
@@ -32,30 +32,15 @@ PAIRINGS = {
 
 
 def parse_log_name(filename):
-    legacy_match = LEGACY_LOG_NAME_PATTERN.fullmatch(filename)
-    if legacy_match is not None:
-        layout, layout_group, index, pairing = legacy_match.groups()
+    match = ROLE_LOG_NAME_PATTERN.fullmatch(filename)
+    if match is not None:
+        layout, family, index, pairing = match.groups()
         return {
             "layout": layout,
-            "layout_group": layout_group,
-            "group_order": ("easy", "medium", "hard").index(layout_group),
+            "layout_group": family,
+            "group_order": ROLE_FAMILIES.index(family),
             "index": int(index),
             "pairing": pairing,
-            "scheme": "legacy",
-        }
-
-    numbered_match = NUMBERED_LOG_NAME_PATTERN.fullmatch(filename)
-    if numbered_match is not None:
-        layout, index, pairing = numbered_match.groups()
-        index = int(index)
-        group_start = (index // 5) * 5
-        return {
-            "layout": layout,
-            "layout_group": f"{group_start:02d}-{group_start + 4:02d}",
-            "group_order": group_start // 5,
-            "index": index,
-            "pairing": pairing,
-            "scheme": "numbered",
         }
 
     return None
@@ -81,7 +66,7 @@ def parse_args():
 
 def load_results(input_dir):
     results = {}
-    for path in sorted(input_dir.glob("dynamic_*/*.log")):
+    for path in sorted(input_dir.glob("*/*.log")):
         metadata = parse_log_name(path.name)
         if metadata is None:
             continue
@@ -128,22 +113,8 @@ def ordered_layouts(results, layout_group):
 
 
 def validate_results(results):
-    schemes = {item["scheme"] for item in results.values()}
-    if len(schemes) != 1:
-        raise ValueError(f"Mixed layout naming schemes found: {sorted(schemes)}")
-
-    scheme = schemes.pop()
-    if scheme == "legacy":
-        expected_layouts = [
-            f"dynamic_{difficulty}_{index}"
-            for difficulty in ("easy", "medium", "hard")
-            for index in range(5)
-        ]
-    else:
-        expected_layouts = [f"dynamic_{index:02d}" for index in range(15)]
-
     missing = []
-    for layout in expected_layouts:
+    for layout in ROLE_LAYOUTS:
         for pairing in PAIRINGS:
             if (layout, pairing) not in results:
                 missing.append(f"{layout}/{pairing}")
@@ -315,9 +286,7 @@ def plot_pairings(results, output_path, dpi):
 
         axis.set_title(f"Layout group {layout_group}")
         axis.set_ylabel("Episode return")
-        axis.set_xticks(
-            positions, [layout.removeprefix("dynamic_") for layout in layouts]
-        )
+        axis.set_xticks(positions, layouts)
         axis.grid(axis="y", alpha=0.25)
         axis.margins(y=0.15)
 
@@ -370,9 +339,7 @@ def plot_same_cross(results, output_path, dpi):
 
         axis.set_title(f"Layout group {layout_group}")
         axis.set_ylabel("Episode return")
-        axis.set_xticks(
-            positions, [layout.removeprefix("dynamic_") for layout in layouts]
-        )
+        axis.set_xticks(positions, layouts)
         axis.grid(axis="y", alpha=0.25)
         axis.margins(y=0.15)
 

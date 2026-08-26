@@ -12,6 +12,15 @@ import numpy as np
 import wandb
 
 import jaxmarl
+from baselines.adaptation_metrics import (
+    EpisodeAdaptationTrace,
+    adaptation_config_dict,
+    adaptation_config_from_args,
+    adaptation_wandb_metrics,
+    add_adaptation_metric_args,
+    canonical_phase_mapping,
+    summarize_adaptation_traces,
+)
 from jaxmarl._env import load_project_env
 from jaxmarl.environments.overcooked_v3 import POLICY_SWITCH_BASE_LAYOUTS
 from jaxmarl.environments.overcooked_v3.common import OvercookedActionsEnum
@@ -94,7 +103,7 @@ def parse_args(argv=None):
         choices=POLICY_SWITCH_BASE_LAYOUTS,
     )
     parser.add_argument("--episodes", type=int, default=3)
-    parser.add_argument("--max-steps", type=int, default=400)
+    parser.add_argument("--max-steps", type=int, default=450)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--stochastic", action="store_true")
     parser.add_argument("--architecture", choices=("cnn", "rnn"), default="cnn")
@@ -106,9 +115,7 @@ def parse_args(argv=None):
     )
     parser.add_argument(
         "--source-project",
-        default=os.getenv(
-            "WANDB_SOURCE_PROJECT", "overcooked-v3-policyswitch_train"
-        ),
+        default=os.getenv("WANDB_SOURCE_PROJECT", "overcooked-v3-policyswitch_train"),
     )
     parser.add_argument(
         "--project",
@@ -134,6 +141,7 @@ def parse_args(argv=None):
     parser.add_argument("--video", type=Path)
     parser.add_argument("--video-fps", type=int, default=12)
     parser.add_argument("--video-quality", type=int, choices=range(0, 11), default=5)
+    add_adaptation_metric_args(parser)
     return parser.parse_args(argv)
 
 
@@ -212,6 +220,7 @@ def evaluate_policy_switch_episode(
     combined_params,
     key,
     record_trajectory=True,
+    collect_adaptation=False,
 ):
     key, reset_key = jax.random.split(key)
     obs, state = runtime.env.reset(reset_key)
@@ -223,9 +232,31 @@ def evaluate_policy_switch_episode(
     captions = ["step=0 score=0 policy=0 actions=-/-"] if record_trajectory else None
     policy_trace = []
     episode_return = 0.0
+    step_rewards = [] if collect_adaptation else None
+    phase_indices = [] if collect_adaptation else None
+
+    def episode_result(length):
+        result = (
+            episode_return,
+            length,
+            states,
+            captions,
+            tuple(policy_trace),
+            key,
+        )
+        if collect_adaptation:
+            result += (
+                EpisodeAdaptationTrace(
+                    rewards=np.asarray(step_rewards),
+                    phase_indices=np.asarray(phase_indices),
+                ),
+            )
+        return result
 
     for step in range(runtime.env.max_steps):
         phase_index = int(state.layout_index)
+        if collect_adaptation:
+            phase_indices.append(phase_index)
         active_policy_key = policy_key_for_phase(runtime.layout, phase_index)
         if active_policy_key != previous_policy_key:
             hidden = _initial_hidden(runtime.hidden_sizes)
@@ -249,7 +280,10 @@ def evaluate_policy_switch_episode(
             agent: action[index] for index, agent in enumerate(runtime.env.agents)
         }
         obs, state, reward, done, _ = runtime.env_step(step_key, state, actions)
-        episode_return += float(reward[runtime.env.agents[0]])
+        team_reward = float(reward[runtime.env.agents[0]])
+        episode_return += team_reward
+        if collect_adaptation:
+            step_rewards.append(team_reward)
         if record_trajectory:
             states.append(state)
             action_names = [
@@ -263,23 +297,9 @@ def evaluate_policy_switch_episode(
             )
         last_done = jnp.asarray([done[agent] for agent in runtime.env.agents])
         if bool(done["__all__"]):
-            return (
-                episode_return,
-                step + 1,
-                states,
-                captions,
-                tuple(policy_trace),
-                key,
-            )
+            return episode_result(step + 1)
 
-    return (
-        episode_return,
-        runtime.env.max_steps,
-        states,
-        captions,
-        tuple(policy_trace),
-        key,
-    )
+    return episode_result(runtime.env.max_steps)
 
 
 def evaluate_policy_switch(checkpoints, run_configs, args, record_trajectory=True):
@@ -294,16 +314,27 @@ def evaluate_policy_switch(checkpoints, run_configs, args, record_trajectory=Tru
     first_states = None
     first_captions = None
     first_policy_trace = None
+    adaptation_traces = []
     for episode in range(int(args.episodes)):
         result = evaluate_policy_switch_episode(
             runtime,
             combined_params,
             key,
             record_trajectory=record_trajectory,
+            collect_adaptation=True,
         )
-        episode_return, length, states, captions, policy_trace, key = result
+        (
+            episode_return,
+            length,
+            states,
+            captions,
+            policy_trace,
+            key,
+            adaptation_trace,
+        ) = result
         returns.append(episode_return)
         lengths.append(length)
+        adaptation_traces.append(adaptation_trace)
         if first_policy_trace is None:
             first_states = states
             first_captions = captions
@@ -312,6 +343,15 @@ def evaluate_policy_switch(checkpoints, run_configs, args, record_trajectory=Tru
             f"episode={episode + 1} return={episode_return:.2f} length={length}",
             flush=True,
         )
+    adaptation_config = adaptation_config_from_args(args, runtime.layout)
+    phase_mapping = canonical_phase_mapping(
+        runtime.layout, len(runtime.env.dynamic_layout.phases)
+    )
+    adaptation_metrics = summarize_adaptation_traces(
+        adaptation_traces,
+        adaptation_config,
+        phase_mapping,
+    )
     return {
         "layout": runtime.layout,
         "returns": np.asarray(returns),
@@ -320,6 +360,7 @@ def evaluate_policy_switch(checkpoints, run_configs, args, record_trajectory=Tru
         "captions": first_captions,
         "policy_trace": first_policy_trace,
         "env": runtime.env,
+        "adaptation_metrics": adaptation_metrics,
     }
 
 
@@ -380,6 +421,7 @@ def main(argv=None):
         raise ValueError("--max-steps must be at least 1")
     if args.video_fps < 1:
         raise ValueError("--video-fps must be at least 1")
+    adaptation_config = adaptation_config_from_args(args, args.layout)
     validate_policy_switch_layout(args.layout)
 
     run_name = f"policy_switch_{args.layout}_seed{args.seed}"
@@ -396,6 +438,7 @@ def main(argv=None):
             "max_steps": args.max_steps,
             "seed": args.seed,
             "stochastic": args.stochastic,
+            **adaptation_config_dict(adaptation_config),
         },
     ) as evaluation_run:
         checkpoints, run_configs, run_paths = _resolve_sources(args, evaluation_run)
@@ -414,6 +457,7 @@ def main(argv=None):
                     result["policy_trace"], result["policy_trace"][1:]
                 )
             ),
+            **adaptation_wandb_metrics(result["adaptation_metrics"]),
         }
         wandb.log(summary)
         evaluation_run.summary.update(summary)

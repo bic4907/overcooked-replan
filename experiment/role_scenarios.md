@@ -32,12 +32,12 @@ Phase A의 가까운 역할 배치는 agent 0=onion/pot, agent 1=plate/serve이�
 초기 위치로 돌아온다. 각 가까운 agent와 먼 agent의 spawn-to-station 최단거리
 차이는 station마다 최소 3 step이다.
 
-Outage는 5×7로 줄이고 normal/outage phase를 40/160 step으로 설정했다.
+Outage는 5×7로 줄이고 normal/outage phase를 각각 150 step으로 설정했다.
 각 layout은 onion→handoff와 handoff→right pot 구간을 각각 최대 1 movement
 step으로 제한한다. 중앙은 항상 wall/counter로 막혀 두 agent의
 movement region을
 완전히 분리한다. 따라서 right agent는 남아 있는 왼쪽 onion을 직접 가져올 수
-없고, left agent가 shared counter로 양파를 공급해야만 right cook이 160-step
+없고, left agent가 shared counter로 양파를 공급해야만 right cook이 150-step
 outage 동안 지속적으로 생산할 수 있다.
 blocker는 중앙열 아래쪽에 두고 그 위에 인접한 handoff counter 2칸을
 확보해, left agent가 onion 두 개를 미리 적재할 수 있게 한다.
@@ -106,3 +106,27 @@ eval worker 여덟 개가 실행된다. GPU 메모리와 utilization에 맞춰 �
 맵 여러 개를 병렬 평가하려면 `GPUS="0 1 2 3"`처럼 GPU 목록을 늘린다.
 
 `JAX_PLATFORMS=gpu`는 사용하지 않는다. NVIDIA JAX backend 이름은 `cuda`다.
+
+## 6. Adaptation metrics
+
+Dynamic-layout eval은 각 episode의 A→B 및 B→A transition을 따로 계산한 뒤,
+두 방향 평균에 동일한 가중치를 주어 전체 adaptation metric을 기록한다. 기본
+horizon은 layout의 가장 짧은 phase이며, window는
+`min(30, adaptation_horizon / 2)`다. 선택된 8개 role-scenario는 모두
+step 150과 300에 phase가 바뀌고 step 450에 episode가 끝나므로
+`window=30`, `horizon=150`을 사용한다. 필요하면
+`--adaptation-window`와 `--adaptation-horizon`으로 덮어쓸 수 있다.
+기본 recovery 설정은 `--recovery-threshold 0.9`,
+`--recovery-persistence 5`다.
+
+W&B summary에는 SP와 XP 각각 다음 이름이 기록된다.
+
+- `{SP,XP}/adaptation/immediate_drop`
+- `{SP,XP}/adaptation/recovery_time_steps`
+- `{SP,XP}/adaptation/recovery_success_rate`
+- `{SP,XP}/adaptation/auc`
+- `{SP,XP}/adaptation/auc_normalized`
+
+개별 ordered pair의 history에는 같은 suffix를 사용하는
+`pair/adaptation/...` metric이 기록된다. `results/pairs` table에는 방향별
+상세값 대신 위 metric의 A→B/B→A 동일 가중 평균 컬럼이 추가된다.

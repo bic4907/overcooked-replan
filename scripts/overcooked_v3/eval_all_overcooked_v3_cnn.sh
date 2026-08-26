@@ -8,7 +8,7 @@ cd "${PROJECT_DIR}"
 SAVES_DIR="${SAVES_DIR:-${PROJECT_DIR}/saves}"
 EVALUATION_DIR="${EVALUATION_DIR:-${PROJECT_DIR}/evaluation/overcooked_v3/cnn}"
 EPISODES="${EPISODES:-3}"
-MAX_STEPS="${MAX_STEPS:-400}"
+MAX_STEPS="${MAX_STEPS:-450}"
 EVAL_SEED="${EVAL_SEED:-0}"
 JAX_PLATFORM="${JAX_PLATFORM:-cpu}"
 
@@ -19,21 +19,14 @@ if [[ ! -d "${SAVES_DIR}" ]]; then
 fi
 
 layouts=(
-    dynamic_00
-    dynamic_01
-    dynamic_02
-    dynamic_03
-    dynamic_04
-    dynamic_05
-    dynamic_06
-    dynamic_07
-    dynamic_08
-    dynamic_09
-    dynamic_10
-    dynamic_11
-    dynamic_12
-    dynamic_13
-    dynamic_14
+    split_0
+    split_1
+    outage_0
+    outage_1
+    recipe_switch_0
+    recipe_switch_1
+    distance_switch_0
+    distance_switch_1
 )
 
 # label:agent_0_training_seed:agent_1_training_seed
@@ -48,11 +41,10 @@ pair_specs=(
 # does not leave behind a misleading partial set of evaluation results.
 missing_checkpoint=0
 for layout in "${layouts[@]}"; do
-    experiment_name="overcooked_v3_${layout#dynamic_}"
     checkpoint_dir="${SAVES_DIR}"
 
     for seed in 0 1; do
-        checkpoint_name="ippo_cnn_${experiment_name}_seed${seed}_vmap0.safetensors"
+        checkpoint_name="ippo_cnn_overcooked_v3_${layout}_seed${seed}_vmap0.safetensors"
         if ! find "${checkpoint_dir}" -type f -name "${checkpoint_name}" -print -quit 2>/dev/null | grep -q .; then
             echo "Missing final checkpoint under ${checkpoint_dir}: ${checkpoint_name}" >&2
             missing_checkpoint=1
@@ -91,4 +83,4 @@ for layout in "${layouts[@]}"; do
     done
 done
 
-echo "===== All dynamic CNN evaluations completed: ${EVALUATION_DIR} ====="
+echo "===== All role-scenario CNN evaluations completed: ${EVALUATION_DIR} ====="

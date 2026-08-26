@@ -1,14 +1,14 @@
 defaults:
   - _self_
   - recording: disabled
-  - scenario: dynamic_00
+  - scenario: split_0
 
 ENV_NAME: overcooked_v3
 ALGORITHM: PolicySwitch-IPPO
 ARCHITECTURE: cnn
 ENV_KWARGS:
-  layout: dynamic_00
-  max_steps: 400
+  layout: split_0
+  max_steps: 450
   random_agent_positions: false
   include_transition_countdown: true
   include_layout_change_mask: true

@@ -10,6 +10,8 @@ from jaxmarl.environments.overcooked_v3.common import (
     StaticObject,
 )
 from jaxmarl.environments.overcooked_v3.dynamic_layouts import (
+    POLICY_SWITCH_BASE_LAYOUTS,
+    ROLE_SCENARIO_LAYOUT_NAMES,
     DynamicLayout,
     dynamic_layouts,
 )
@@ -56,24 +58,31 @@ def _positions(state):
 
 
 def test_overcooked_v3_is_registered_and_based_on_v2():
-    env = make("overcooked_v3", layout="dynamic_00", max_steps=20)
+    env = make("overcooked_v3")
     assert isinstance(env, OvercookedV3)
     assert isinstance(env, OvercookedV3Base)
+    assert env.max_steps == 450
+    assert tuple(map(int, env.phase_durations)) == (150, 150, 1000)
+
+
+def test_registered_base_catalog_contains_only_role_scenarios():
+    assert POLICY_SWITCH_BASE_LAYOUTS == ROLE_SCENARIO_LAYOUT_NAMES
+    assert not any(name.startswith("dynamic_") for name in dynamic_layouts)
 
 
 def test_default_observation_adds_countdown_and_layout_change_mask():
-    env = OvercookedV3(layout="dynamic_00", max_steps=20)
+    env = OvercookedV3(layout="split_0", max_steps=20)
     obs, state = env.reset(jax.random.PRNGKey(0))
 
     assert state.grid.shape == (env.height, env.width, 3)
     assert obs["agent_0"].shape == (env.height, env.width, 31)
     assert state.layout_index.item() == 0
-    assert state.steps_until_layout_change.item() == 100
+    assert state.steps_until_layout_change.item() == 150
     assert jnp.all(obs["agent_0"][..., -2] == 0.0)
     assert jnp.all(obs["agent_0"][..., -1] == 0.0)
     assert jnp.any(state.layout_change_mask)
 
-    warning_state = state.replace(step=jnp.array(80))
+    warning_state = state.replace(step=jnp.array(130))
     warning_obs = env.get_obs(warning_state)
     assert jnp.all(warning_obs["agent_0"][..., -2] == 1.0)
     assert jnp.array_equal(
@@ -117,7 +126,7 @@ def test_transition_countdown_decreases_and_resets_after_layout_change():
 def test_transition_warning_steps_must_be_a_positive_integer(warning_steps):
     with pytest.raises(ValueError, match="positive integer"):
         OvercookedV3(
-            layout="dynamic_00",
+            layout="split_0",
             max_steps=20,
             transition_warning_steps=warning_steps,
         )
@@ -125,7 +134,7 @@ def test_transition_warning_steps_must_be_a_positive_integer(warning_steps):
 
 def test_transition_countdown_can_be_disabled_for_old_checkpoints():
     env = OvercookedV3(
-        layout="dynamic_00",
+        layout="split_0",
         max_steps=20,
         include_transition_countdown=False,
     )
@@ -137,13 +146,13 @@ def test_transition_countdown_can_be_disabled_for_old_checkpoints():
 
 def test_layout_change_mask_can_be_disabled_independently():
     env = OvercookedV3(
-        layout="dynamic_00",
+        layout="split_0",
         max_steps=20,
         include_transition_countdown=True,
         include_layout_change_mask=False,
     )
     _, state = env.reset(jax.random.PRNGKey(0))
-    obs = env.get_obs(state.replace(step=jnp.array(80)))
+    obs = env.get_obs(state.replace(step=jnp.array(130)))
 
     assert env.obs_shape == (env.height, env.width, 30)
     assert jnp.all(obs["agent_0"][..., -1] == 1.0)
@@ -151,12 +160,12 @@ def test_layout_change_mask_can_be_disabled_independently():
 
 def test_featurized_observation_appends_countdown_and_flat_change_mask():
     env = OvercookedV3(
-        layout="dynamic_00",
+        layout="split_0",
         max_steps=20,
         observation_type=ObservationType.FEATURIZED,
     )
     _, state = env.reset(jax.random.PRNGKey(0))
-    state = state.replace(step=jnp.array(80))
+    state = state.replace(step=jnp.array(130))
     obs = env.get_obs(state)
     agent_obs = obs["agent_0"]
     mask_size = env.height * env.width
@@ -169,7 +178,7 @@ def test_featurized_observation_appends_countdown_and_flat_change_mask():
     )
 
 
-@pytest.mark.parametrize("layout_name", sorted(dynamic_layouts))
+@pytest.mark.parametrize("layout_name", ROLE_SCENARIO_LAYOUT_NAMES)
 def test_registered_layouts_reset_and_reach_second_phase(layout_name):
     env = OvercookedV3(layout=layout_name, max_steps=500)
     _, state = env.reset(jax.random.PRNGKey(0))
@@ -322,7 +331,7 @@ WOPBW
 
 def test_v2_configuration_flags_remain_available():
     env = OvercookedV3(
-        layout="dynamic_00",
+        layout="split_0",
         negative_rewards=True,
         sample_recipe_on_delivery=True,
         start_cooking_interaction=True,
@@ -336,7 +345,7 @@ def test_v2_configuration_flags_remain_available():
 
 
 def test_jitted_step_reports_v2_reward_and_dynamic_layout_info():
-    env = OvercookedV3(layout="dynamic_00", max_steps=20)
+    env = OvercookedV3(layout="split_0", max_steps=20)
     _, state = env.reset(jax.random.PRNGKey(0))
 
     _, _, rewards, dones, infos = _step(env, state)

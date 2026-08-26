@@ -14,8 +14,8 @@ The following role-coordination experiments are currently available:
 | `recipe_switch_{0..1}` | Mixed Recipe Relay | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
 | `distance_switch_{0..1}` | Distance-Driven Role Switch | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
 
-Kitchen Split starts with one central doorway open for 40 steps. It then becomes
-a handoff counter for 160 steps, preventing agents from changing bays. The left
+Kitchen Split starts with one central doorway open for 150 steps. It then becomes
+a handoff counter for 150 steps, preventing agents from changing bays. The left
 bay has onions and pots; the right bay has plates and serving. Agents must
 choose opposite sides before closure and sustain complementary cook–server
 roles through the counter. Resource Outage instead keeps two complete kitchens
@@ -29,7 +29,7 @@ The tags are ordered by mean absolute XP-SP gap in the 2026-08-22 baseline
 report. Split `_0`/`_1` come from the previous `_2`/`_0`, and Outage `_0`/`_1`
 come from the previous `_1`/`_0`.
 Split uses a 7×9 map, while Outage uses a compact 5×7 map whose phases last
-40 and 160 steps. Outage keeps each onion-to-handoff and handoff-to-pot leg
+150 steps each. Outage keeps each onion-to-handoff and handoff-to-pot leg
 within one movement step. The central wall always
 separates agent movement, so cross-bay assistance is possible only by placing
 objects on shared handoff counters. This keeps the right cook productive without
@@ -43,7 +43,8 @@ Mixed Recipe Relay permanently separates an onion/serving bay from a
 tomato/plate bay and exposes exactly two shared handoff counters. Both bays have
 pots. The two retained layouts are the former catalog `_7` and `_5`, reindexed
 as `_0` and `_1`. Both are 7×5 tomato-major-first layouts. The map stays fixed while the
-recipe changes at deterministic phase boundaries within a 450-step episode.
+recipe changes at steps 150 and 300 within a 450-step episode. All eight role
+scenarios use the same A → B → A phase schedule and episode length.
 Select any layout through its Hydra scenario name, such as
 `scenario=outage_1`.
 
@@ -162,7 +163,7 @@ python -u baselines/IPPO/ippo_overcooked_v3.py \
   SEED=0
 ```
 
-When `scenario` is omitted, the existing `dynamic_00` map is used.
+When `scenario` is omitted, `split_0` is used.
 
 ### Short dry run
 
@@ -335,7 +336,7 @@ python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --architecture cnn \
   --agent-seeds 0 0 \
   --episodes 3 \
-  --max-steps 400 \
+  --max-steps 450 \
   --gif evaluation/split_0_same_seed0.gif
 ```
 
@@ -348,7 +349,7 @@ python baselines/IPPO/eval_ippo_overcooked_v3.py \
   --architecture cnn \
   --agent-seeds 0 1 \
   --episodes 3 \
-  --max-steps 400 \
+  --max-steps 450 \
   --gif evaluation/split_0_cross_seed0_seed1.gif
 ```
 
@@ -382,9 +383,9 @@ For a 30-channel checkpoint trained with the countdown but without the change
 mask, use `--no-layout-change-mask`. Checkpoints from the removed 33-channel
 signal-enabled environment are not shape-compatible with the new encoding.
 
-## Batch training and evaluation of dynamic maps
+## Batch training and evaluation of role scenarios
 
-Train CNN policies on `dynamic_00` through `dynamic_14`:
+Train CNN policies on all eight selected role scenarios:
 
 ```bash
 TRAIN_SEEDS="0 1" \
@@ -393,7 +394,7 @@ bash scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh \
   SAVES_DIR=saves
 ```
 
-Evaluate same-seed and cross-seed combinations of the trained dynamic-map
+Evaluate same-seed and cross-seed combinations of the trained role-scenario
 policies:
 
 ```bash

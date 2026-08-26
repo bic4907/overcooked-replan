@@ -13,6 +13,14 @@ import numpy as np
 import wandb
 
 import jaxmarl
+from baselines.adaptation_metrics import (
+    adaptation_config_dict,
+    adaptation_config_from_args,
+    adaptation_wandb_metrics,
+    add_adaptation_metric_args,
+    canonical_phase_mapping,
+    summarize_adaptation_traces,
+)
 from jaxmarl._env import load_project_env
 from jaxmarl.environments.overcooked_v3 import overcooked_v3_layouts
 from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
@@ -68,7 +76,7 @@ def parse_args():
     )
     parser.add_argument("--layout", choices=sorted(overcooked_v3_layouts))
     parser.add_argument("--episodes", type=int, default=10)
-    parser.add_argument("--max-steps", type=int, default=400)
+    parser.add_argument("--max-steps", type=int, default=450)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument(
         "--stochastic",
@@ -107,6 +115,7 @@ def parse_args():
             "matrix viewer."
         ),
     )
+    add_adaptation_metric_args(parser)
     return parser.parse_args()
 
 
@@ -325,19 +334,24 @@ def evaluate_crossplay(
     lengths = []
     first_states = None
     first_captions = None
+    adaptation_traces = []
 
     for episode in range(args.episodes):
-        episode_return, length, states, captions, key = evaluate_episode(
-            runtime.policy,
-            params,
-            runtime.env_step,
-            runtime.env,
-            key,
-            runtime.hidden_sizes,
-            record_trajectory=record_trajectory,
+        episode_return, length, states, captions, key, adaptation_trace = (
+            evaluate_episode(
+                runtime.policy,
+                params,
+                runtime.env_step,
+                runtime.env,
+                key,
+                runtime.hidden_sizes,
+                record_trajectory=record_trajectory,
+                collect_adaptation=True,
+            )
         )
         returns.append(episode_return)
         lengths.append(length)
+        adaptation_traces.append(adaptation_trace)
         if record_trajectory and first_states is None:
             first_states = states
             first_captions = captions
@@ -352,6 +366,15 @@ def evaluate_crossplay(
         if record_trajectory:
             print(f"episode={episode + 1} return={episode_return:.2f} length={length}")
 
+    adaptation_config = adaptation_config_from_args(args, runtime.layout)
+    phase_mapping = canonical_phase_mapping(
+        runtime.layout, len(runtime.env.dynamic_layout.phases)
+    )
+    adaptation_metrics = summarize_adaptation_traces(
+        adaptation_traces,
+        adaptation_config,
+        phase_mapping,
+    )
     return {
         "layout": runtime.layout,
         "returns": np.asarray(returns),
@@ -359,6 +382,7 @@ def evaluate_crossplay(
         "states": first_states,
         "captions": first_captions,
         "env": runtime.env,
+        "adaptation_metrics": adaptation_metrics,
     }
 
 
@@ -371,7 +395,6 @@ def main():
         raise ValueError("--max-steps must be at least 1")
     if args.video_fps < 1:
         raise ValueError("--video-fps must be at least 1")
-
     run_paths = tuple(
         qualify_run_path(run_id, args.entity, args.source_project)
         for run_id in args.run_ids
@@ -387,6 +410,7 @@ def main():
     target_layout = args.layout or (
         source_layouts[0] if source_layouts[0] == source_layouts[1] else "cross-layout"
     )
+    adaptation_config = adaptation_config_from_args(args, target_layout)
     short_ids = tuple(source_run.id for source_run in source_runs)
     run_name = f"{target_layout}_{short_ids[0]}-x-{short_ids[1]}"
 
@@ -407,6 +431,7 @@ def main():
             "max_steps": args.max_steps,
             "seed": args.seed,
             "stochastic": args.stochastic,
+            **adaptation_config_dict(adaptation_config),
         },
     ) as evaluation_run:
         checkpoints = []
@@ -437,6 +462,7 @@ def main():
             "eval/min_return": float(np.min(returns)),
             "eval/max_return": float(np.max(returns)),
             "eval/mean_episode_length": float(np.mean(lengths)),
+            **adaptation_wandb_metrics(result["adaptation_metrics"]),
         }
         wandb.log(summary)
         evaluation_run.summary.update(summary)

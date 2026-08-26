@@ -5,9 +5,9 @@
 # The recipe display stays at a separate fixed cell. A non-storage blocker
 # separates the dynamic doorway or handoff counters from the rest of the map.
 #
-# Kitchen Split starts with one open central doorway. After 40 steps, that
+# Kitchen Split starts with one open central doorway. After 150 steps, that
 # doorway becomes a handoff counter and traps agents in their chosen bays until
-# the next cycle. The left bay has onions and pots, while the right bay has
+# step 300. The left bay has onions and pots, while the right bay has
 # plates and serving, so agents must occupy different sides and divide labor.
 #
 # Resource Outage permanently separates two otherwise complete kitchens. Each
@@ -17,6 +17,10 @@
 #
 # Each role category exposes the two layouts selected from the cross-play
 # report, ranked as public tags ``0`` and ``1``.
+
+
+_ROLE_PHASE_STEPS = 150
+_FINAL_PHASE_STEPS = 1000
 
 
 def _role_grid(
@@ -73,7 +77,11 @@ def _build_split_workload(spec, width=11, recipe_row=0):
         recipe_row=recipe_row,
         width=width,
     )
-    return [[open_grid, 40], [closed_grid, 160]]
+    return [
+        [open_grid, _ROLE_PHASE_STEPS],
+        [closed_grid, _ROLE_PHASE_STEPS],
+        [open_grid, _FINAL_PHASE_STEPS],
+    ]
 
 
 def _compact_outage_grid(
@@ -125,7 +133,11 @@ def _build_compact_outage_variant(spec):
         blocker_row,
         notches,
     )
-    return [[normal_grid, 40], [outage_grid, 160]]
+    return [
+        [normal_grid, _ROLE_PHASE_STEPS],
+        [outage_grid, _ROLE_PHASE_STEPS],
+        [normal_grid, _FINAL_PHASE_STEPS],
+    ]
 
 
 def _rotated_take(positions, count, offset):
@@ -324,12 +336,8 @@ def _register_role_catalog():
     for new_index, (split_source, outage_source) in enumerate(
         zip(split_sources, outage_sources)
     ):
-        globals()[f"split_{new_index}"] = _build_split_catalog_variant(
-            split_source
-        )
-        globals()[f"outage_{new_index}"] = _build_outage_catalog_variant(
-            outage_source
-        )
+        globals()[f"split_{new_index}"] = _build_split_catalog_variant(split_source)
+        globals()[f"outage_{new_index}"] = _build_outage_catalog_variant(outage_source)
 
 
 _register_role_catalog()
@@ -425,7 +433,7 @@ _RECIPE_SWITCH_SPECS = (
 _RECIPE_ONION_MAJOR = [0, 0, 1]
 _RECIPE_TOMATO_MAJOR = [0, 1, 1]
 _RECIPE_SWITCH_TIMINGS = (
-    (180, 120),
+    (150, 150),
     (150, 150),
 )
 _RECIPE_SWITCH_ONION_MAJOR_FIRST = (False, False)
@@ -451,7 +459,7 @@ def _register_recipe_switch_catalog():
             [grid, second_phase_steps, recipe_b],
             # Training episodes stop at step 450. A long final duration avoids
             # displaying a countdown for an unused wraparound transition.
-            [grid, 1000, recipe_a],
+            [grid, _FINAL_PHASE_STEPS, recipe_a],
         ]
 
 
@@ -700,9 +708,9 @@ def _register_distance_switch_catalog():
         phase_a = _distance_switch_grid(spec, roles_swapped=False)
         phase_b = _distance_switch_grid(spec, roles_swapped=True)
         globals()[f"distance_switch_{variant_index}"] = [
-            [phase_a, 150],
-            [phase_b, 150],
-            [phase_a, 1000],
+            [phase_a, _ROLE_PHASE_STEPS],
+            [phase_b, _ROLE_PHASE_STEPS],
+            [phase_a, _FINAL_PHASE_STEPS],
         ]
 
 
@@ -712,480 +720,3 @@ _register_distance_switch_catalog()
 # Short aliases for the first selected layouts.
 split = split_0
 outage = outage_0
-
-dynamic_00 = [
-    [
-        """
-WWWWWWW
-0 AWA X
-W  W  W
-B     P
-WWWWWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWWWW
-0 A A X
-W  W  W
-B  W  P
-WWWWWWW
-""",
-        100,
-    ],
-]
-
-dynamic_01 = [
-    [
-        """
-WWWOWWW
-W     W
-XAWWWAB
-W WWW W
-W     W
-WWWPWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWWWW
-W WWW W
-XAWOWAB
-W     W
-W     W
-WWWPWWW
-""",
-        100,
-    ],
-]
-
-dynamic_02 = [
-    [
-        """
-WWWWW
-0AWAX
-W W W
-B W P
-WWWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWW
-0A AX
-WWWWW
-B   P
-WWWWW
-""",
-        100,
-    ],
-]
-
-dynamic_03 = [
-    [
-        """
-WWWWW
-0A AW
-W   W
-B   P
-WWXWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWW
-WA AO
-W   W
-B   P
-WWXWW
-""",
-        100,
-    ],
-]
-
-dynamic_04 = [
-    [
-        """
-WWWOOWWW
-W      W
-XAWWWWAB
-W      W
-WWWPPWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWPPWWW
-W      W
-BAWWWWAX
-W      W
-WWWOOWWW
-""",
-        100,
-    ],
-]
-
-
-dynamic_05 = [
-    [
-        """
-WWWWWOW
-WWW A P
-X     B
-WWW A P
-WWWWWOW
-""",
-        100,
-    ],
-    [
-        """
-WWWWWOW
-WWW A P
-X W   B
-WWW A P
-WWWWWOW
-""",
-        100,
-    ],
-]
-
-dynamic_06 = [
-    [
-        """
-WWPWW
-W   W
-BA AO
-W   W
-WWXWW
-""",
-        100,
-    ],
-    [
-        """
-WWOWW
-W   W
-PA AX
-W   W
-WWBWW
-""",
-        100,
-    ],
-    [
-        """
-WWXWW
-W   W
-OA AB
-W   W
-WWPWW
-""",
-        100,
-    ],
-    [
-        """
-WWBWW
-W   W
-XA AP
-W   W
-WWOWW
-""",
-        100,
-    ],
-]
-
-
-dynamic_07 = [
-    [
-        """
-WWWWW
-WA AX
-W W P
-W   B
-WWOWW
-""",
-        50,
-    ],
-    [
-        """
-WWWWW
-WA AX
-O W P
-W   B
-WWWWW
-""",
-        50,
-    ],
-    [
-        """
-WWOWW
-WA AX
-W W P
-W   B
-WWWWW
-""",
-        50,
-    ],
-]
-
-dynamic_08 = [
-    [
-        """
-WWWPWWW
-WW   WW
-WW A WW
-WBWWWOW
-W  A  W
-W     W
-WWWXWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWPWWW
-W    WW
-W  A WW
-WBWWWOW
-WW A  W
-WW    W
-WWWXWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWPWWW
-W     W
-W  A  W
-WBWWWOW
-WW A WW
-WW   WW
-WWWXWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWPWWW
-WW    W
-WW A  W
-WBWWWOW
-W  A WW
-W    WW
-WWWXWWW
-""",
-        100,
-    ],
-]
-
-
-dynamic_09 = [
-    [
-        """
-WWWWW
-0AWAX
-W W W
-B W P
-WWWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWW
-XAWAO
-W W W
-P W B
-WWWWW
-""",
-        100,
-    ],
-]
-
-dynamic_10 = [
-    [
-        """
-WWWWWWWWWWW
-0A  B     W
-W   W     W
-XA  P     W
-WWWWWWWWWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWWWWWWWW
-0A        B
-W         W
-XA        P
-WWWWWWWWWWW
-""",
-        100,
-    ],
-]
-
-dynamic_11 = [
-    [
-        """
-WWWWWWWWWWWW
-B          O
-BAWWWPPWWWAO
-B    WW    O
-WWWWXWWXWWWW
-""",
-        50,
-    ],
-    [
-        """
-WWWWXWWXWWWW
-B    WW    O
-BAWWWPPWWWAO
-B          O
-WWWWWWWWWWWW
-""",
-        50,
-    ],
-]
-
-
-dynamic_12 = [
-    [
-        """
-WOWWWXW
-0A    X
-W WWW W
-W WWW W
-W WWW W
-B  W AP
-WBWWWPW
-""",
-        20,
-    ],
-    [
-        """
-WOWWWXW
-0A    X
-W WWW W
-WWWWW W
-W WWW W
-B    AP
-WBWWWPW
-""",
-        20,
-    ],
-    [
-        """
-WOWWWXW
-0A W  X
-W WWW W
-W WWW W
-W WWW W
-B    AP
-WBWWWPW
-""",
-        20,
-    ],
-    [
-        """
-WOWWWXW
-0A    X
-W WWW W
-W WWWWW
-W WWW W
-B    AP
-WBWWWPW
-""",
-        20,
-    ],
-]
-
-
-dynamic_13 = [
-    [
-        """
-WWWWWWW
-0 AWA X
-W  W  W
-W  WWWW
-W     W
-B     P
-WWWWWWW
-""",
-        10,
-    ],
-    [
-        """
-WWWWWWW
-0 AWA X
-W  W  W
-W  W  W
-W  W  W
-B  W  P
-WWWWWWW
-""",
-        10,
-    ],
-    [
-        """
-WWWWWWW
-0 AWA X
-W  W  W
-WWWW  W
-W     W
-B     P
-WWWWWWW
-""",
-        10,
-    ],
-    [
-        """
-WWWWWWW
-0 AWA X
-W  W  W
-W  W  W
-W  W  W
-B  W  P
-WWWWWWW
-""",
-        10,
-    ],
-]
-
-
-dynamic_14 = [
-    [
-        """
-WXWOWBWPW
-WA  W W W
-W W   W W
-W W W  AW
-WXWOWBWPW
-""",
-        10,
-    ],
-    [
-        """
-WXWOWBWPW
-WAW W   W
-W   W W W
-W W   WAW
-WXWOWBWPW
-""",
-        10,
-    ],
-    [
-        """
-WXWOWBWPW
-WAW   W W
-W W W   W
-W   W WAW
-WXWOWBWPW
-""",
-        10,
-    ],
-]

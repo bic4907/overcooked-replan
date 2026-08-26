@@ -2,7 +2,9 @@
 
 ENV_KWARGS:
   layout: outage_1
+  max_steps: 450
   random_agent_positions: false
+RECORD_MAX_STEPS: 450
 
 EXPERIMENT: resource_outage
 CONDITION: outage_1

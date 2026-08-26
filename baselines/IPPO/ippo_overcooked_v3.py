@@ -136,10 +136,7 @@ def _checkpoint_update_steps(config):
 
 def _checkpoint_metadata(config):
     layout_name = config["ENV_KWARGS"]["layout"]
-    layout_suffix = layout_name
-    if config["ENV_NAME"] == "overcooked_v3":
-        layout_suffix = layout_suffix.removeprefix("dynamic_")
-    experiment_name = f"{config['ENV_NAME']}_{layout_suffix}"
+    experiment_name = f"{config['ENV_NAME']}_{layout_name}"
     save_dir = os.path.join(config["SAVES_DIR"], experiment_folder(config))
     return experiment_name, save_dir
 

@@ -7,6 +7,13 @@ from types import SimpleNamespace
 import jax
 import numpy as np
 
+from baselines.adaptation_metrics import (
+    adaptation_config_from_args,
+    adaptation_result_metrics,
+    canonical_phase_mapping,
+    summarize_adaptation_traces,
+)
+
 try:
     from baselines.IPPO import eval_wandb_crossplay_matrix_overcooked_v3 as matrix
 except ModuleNotFoundError as error:
@@ -40,6 +47,10 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
         max_steps=task["max_steps"],
         seed=task["evaluation_seed"],
         stochastic=task["stochastic"],
+        adaptation_window=task["adaptation_window"],
+        adaptation_horizon=task["adaptation_horizon"],
+        recovery_threshold=task["recovery_threshold"],
+        recovery_persistence=task["recovery_persistence"],
     )
     run_configs = (task["agent_0_config"], task["agent_1_config"])
     signature = matrix.evaluation_signature(run_configs, pair_args)
@@ -63,15 +74,30 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
     key = jax.random.PRNGKey(int(pair_args.seed))
     returns = []
     lengths = []
+    adaptation_traces = []
     for _episode in range(int(pair_args.episodes)):
-        episode_return, length, _, _, _, key = evaluate_policy_switch_episode(
-            runtime,
-            tuple(combined_params),
-            key,
-            record_trajectory=False,
+        episode_return, length, _, _, _, key, adaptation_trace = (
+            evaluate_policy_switch_episode(
+                runtime,
+                tuple(combined_params),
+                key,
+                record_trajectory=False,
+                collect_adaptation=True,
+            )
         )
         returns.append(episode_return)
         lengths.append(length)
+        adaptation_traces.append(adaptation_trace)
+
+    adaptation_config = adaptation_config_from_args(pair_args, runtime.layout)
+    phase_mapping = canonical_phase_mapping(
+        runtime.layout, len(runtime.env.dynamic_layout.phases)
+    )
+    adaptation_metrics = summarize_adaptation_traces(
+        adaptation_traces,
+        adaptation_config,
+        phase_mapping,
+    )
 
     record_keys = (
         "layout",
@@ -92,12 +118,18 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
         "max_steps",
         "evaluation_seed",
         "stochastic",
+        "adaptation_metrics_version",
+        "adaptation_window",
+        "adaptation_horizon",
+        "recovery_threshold",
+        "recovery_persistence",
     )
     return {
         **{key: task[key] for key in record_keys},
         "mean_return": float(np.mean(returns)),
         "std_return": float(np.std(returns)),
         "mean_episode_length": float(np.mean(lengths)),
+        **adaptation_result_metrics(adaptation_metrics),
     }
 
 
@@ -107,10 +139,7 @@ def evaluate_tasks_in_process(tasks, _gpu_ids, _output_dir, workers_per_gpu=1):
     runtime_cache = {}
     params_cache = {}
     return (
-        [
-            evaluate_pair_task(task, runtime_cache, params_cache)
-            for task in tasks
-        ],
+        [evaluate_pair_task(task, runtime_cache, params_cache) for task in tasks],
         [],
     )
 

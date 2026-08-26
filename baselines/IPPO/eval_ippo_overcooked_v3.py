@@ -9,6 +9,14 @@ import jax.numpy as jnp
 import numpy as np
 
 import jaxmarl
+from baselines.adaptation_metrics import (
+    EpisodeAdaptationTrace,
+    adaptation_config_from_args,
+    adaptation_wandb_metrics,
+    add_adaptation_metric_args,
+    canonical_phase_mapping,
+    summarize_adaptation_traces,
+)
 from jaxmarl.environments.overcooked_v3 import overcooked_v3_layouts
 from jaxmarl.environments.overcooked_v3.common import OvercookedActionsEnum
 from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
@@ -66,7 +74,7 @@ def parse_args(default_architecture="cnn"):
         required=True,
     )
     parser.add_argument("--episodes", type=int, default=3)
-    parser.add_argument("--max-steps", type=int, default=400)
+    parser.add_argument("--max-steps", type=int, default=450)
     parser.add_argument("--activation", choices=("relu", "tanh"), default="relu")
     parser.add_argument("--fc-dim-size", type=int, default=128)
     parser.add_argument("--gru-hidden-dim", type=int, default=128)
@@ -99,6 +107,7 @@ def parse_args(default_architecture="cnn"):
         action="store_true",
         help="Use the 30-channel countdown-only observation.",
     )
+    add_adaptation_metric_args(parser)
     return parser.parse_args()
 
 
@@ -114,7 +123,7 @@ def resolve_checkpoint(
             raise FileNotFoundError(f"Checkpoint not found: {checkpoint}")
         return checkpoint
 
-    experiment_name = f"overcooked_v3_{layout.removeprefix('dynamic_')}"
+    experiment_name = f"overcooked_v3_{layout}"
     checkpoint_prefix = f"ippo_{architecture}"
     checkpoint_dir = saves_dir
     seed_pattern = "*" if training_seed is None else str(training_seed)
@@ -141,6 +150,7 @@ def evaluate_episode(
     key,
     hidden_size,
     record_trajectory=True,
+    collect_adaptation=False,
 ):
     key, reset_key = jax.random.split(key)
     obs, state = env.reset(reset_key)
@@ -156,8 +166,23 @@ def evaluate_episode(
     state_seq = [state] if record_trajectory else None
     captions = ["step=0 score=0 actions=-/-"] if record_trajectory else None
     episode_return = 0.0
+    step_rewards = [] if collect_adaptation else None
+    phase_indices = [] if collect_adaptation else None
+
+    def episode_result(length):
+        result = (episode_return, length, state_seq, captions, key)
+        if collect_adaptation:
+            result += (
+                EpisodeAdaptationTrace(
+                    rewards=np.asarray(step_rewards),
+                    phase_indices=np.asarray(phase_indices),
+                ),
+            )
+        return result
 
     for step in range(env.max_steps):
+        if collect_adaptation:
+            phase_indices.append(int(state.layout_index))
         key, action_key, step_key = jax.random.split(key, 3)
         obs_batch = jnp.stack([obs[agent] for agent in env.agents])
         hidden, action = policy(
@@ -171,7 +196,10 @@ def evaluate_episode(
         actions = {agent: action[i] for i, agent in enumerate(env.agents)}
 
         obs, state, reward, done, info = env_step(step_key, state, actions)
-        episode_return += float(reward["agent_0"])
+        team_reward = float(reward["agent_0"])
+        episode_return += team_reward
+        if collect_adaptation:
+            step_rewards.append(team_reward)
         if record_trajectory:
             state_seq.append(state)
             action_names = [
@@ -184,9 +212,9 @@ def evaluate_episode(
         last_done = jnp.asarray([done[agent] for agent in env.agents])
 
         if bool(done["__all__"]):
-            return episode_return, step + 1, state_seq, captions, key
+            return episode_result(step + 1)
 
-    return episode_return, env.max_steps, state_seq, captions, key
+    return episode_result(env.max_steps)
 
 
 def main(default_architecture="cnn"):
@@ -197,6 +225,7 @@ def main(default_architecture="cnn"):
         raise ValueError("--render-delay must be non-negative")
     if args.checkpoint is not None and args.agent_seeds is not None:
         raise ValueError("--checkpoint and --agent-seeds cannot be used together")
+    adaptation_config = adaptation_config_from_args(args, args.layout)
 
     if args.agent_seeds is None:
         checkpoint = resolve_checkpoint(
@@ -268,18 +297,23 @@ def main(default_architecture="cnn"):
     lengths = []
     first_states = None
     first_captions = None
+    adaptation_traces = []
 
     for episode in range(args.episodes):
-        episode_return, length, states, captions, key = evaluate_episode(
-            policy,
-            params,
-            env_step,
-            env,
-            key,
-            args.gru_hidden_dim,
+        episode_return, length, states, captions, key, adaptation_trace = (
+            evaluate_episode(
+                policy,
+                params,
+                env_step,
+                env,
+                key,
+                args.gru_hidden_dim,
+                collect_adaptation=True,
+            )
         )
         returns.append(episode_return)
         lengths.append(length)
+        adaptation_traces.append(adaptation_trace)
         if first_states is None:
             first_states = states
             first_captions = captions
@@ -290,6 +324,14 @@ def main(default_architecture="cnn"):
         f"std_return={np.std(returns):.2f} "
         f"mean_length={np.mean(lengths):.2f}"
     )
+    phase_mapping = canonical_phase_mapping(args.layout, len(env.dynamic_layout.phases))
+    adaptation_summary = summarize_adaptation_traces(
+        adaptation_traces,
+        adaptation_config,
+        phase_mapping,
+    )
+    for name, value in adaptation_wandb_metrics(adaptation_summary).items():
+        print(f"{name}={value}")
 
     if args.gif is not None:
         args.gif.parent.mkdir(parents=True, exist_ok=True)

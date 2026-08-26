@@ -7,7 +7,7 @@ environments remain unchanged from `main`.
 ```python
 from jaxmarl import make
 
-env = make("overcooked_v3", layout="dynamic_00")
+env = make("overcooked_v3", layout="split_0")
 ```
 
 Layout definitions live in `dynamic_layout_data.py` and are validated by
@@ -26,15 +26,15 @@ features for the 29-channel encoding.
 ## Role-coordination scenarios
 
 `split_0` and `split_1` use 7×9 maps. They open one central doorway
-for 40 steps, then turn it into a handoff counter for 160 steps. The
+for 150 steps, then turn it into a handoff counter for 150 steps. The
 left bay contains onions and pots, while the right bay contains plates and
 serving. Agents must choose opposite sides before the wall closes, then
 coordinate cook–server work through the counter.
 
 `outage_0` and `outage_1` have compact 5×7 maps with
 disconnected movement regions and shared center counters. Both bays are
-complete kitchens with pots, plates, serving, and onions. After a 40-step
-normal phase, every right onion pile becomes a wall for 160 steps, so the left cook must trade off local
+complete kitchens with pots, plates, serving, and onions. After a 150-step
+normal phase, every right onion pile becomes a wall for 150 steps, so the left cook must trade off local
 production against supplying the right cook through a handoff counter. Both
 conditions keep a separate fixed recipe display and a generic non-storage
 blocker in the center column. The
@@ -64,7 +64,9 @@ pot can start only when its contents match the current recipe. Recipe Relay
 adds two next-recipe preview channels to the standard V3 observation.
 
 `distance_switch_0` and `distance_switch_1` are Distance-Driven Role
-Switch layouts based on `asymm_advantages`. The standard three-onion recipe is
+Switch layouts based on `asymm_advantages`. All eight role scenarios use the
+same 450-step A → B → A schedule, with changes at steps 150 and 300.
+The standard three-onion recipe is
 fixed, and each agent's separate work region contains access to an onion pile,
 central pot, plate pile, and serving station. Pots and plates remain fixed;
 only the onion and serving endpoints exchange at steps 150 and 300. This

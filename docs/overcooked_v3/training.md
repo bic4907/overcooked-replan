@@ -47,7 +47,7 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 | `scenario=recipe_switch_<0-1>` | Mixed Recipe Relay |
 | `scenario=distance_switch_<0-1>` | Distance-Driven Role Switch |
 
-Kitchen Split은 처음 40 step 동안 중앙 통로 하나가 열려 있고, 이후 160 step 동안
+Kitchen Split은 처음 150 step 동안 중앙 통로 하나가 열려 있고, 이후 150 step 동안
 그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
 plate pile과 serving station이 있다. 벽이 닫히기 전에 두 에이전트가 서로 다른
 bay를 선택해야 하며, 닫힌 뒤에는 중앙 counter로 재료와 dish를 전달하면서
@@ -63,7 +63,7 @@ recipe indicator는 맵 위쪽 중앙의 별도 타일에 유지한다. 중앙�
 각 category에는 2026-08-22 baseline report의 method 평균 `|XP-SP|`가 큰 순서로
 선별한 `_0`, `_1` 두 레이아웃이 등록되어 있다. Split의 새 `_0`, `_1`은 각각
 기존 `_2`, `_0`이고, Outage의 새 `_0`, `_1`은 각각 기존 `_1`, `_0`이다.
-Split은 7×9, Resource Outage는 5×7이다. Outage는 normal 40 step, outage 160 step이다.
+Split은 7×9, Resource Outage는 5×7이다. Outage는 normal과 outage를 각각 150 step 유지한다.
 모든 Outage variant는 onion→handoff와 handoff→pot 각각을 최대 1 step으로 제한한다.
 중앙은 항상 wall/counter로
 막혀 두 agent의 이동 영역이 완전히 분리된다. 오른쪽 agent는 왼쪽 onion pile에
@@ -76,14 +76,15 @@ Split은 기존의 양파 3개 레시피를 유지하고, Outage는 양파 2개�
 `_1`은 `scenario=split_1` 또는 `scenario=outage_1`처럼 바로 선택할 수
 있다. 기본 sweep에는 네 category의 총 8개 layout이 등록되어 있다.
 
-기존 dynamic map 기본값은 `scenario=dynamic_00`이다.
+기본값은 `scenario=split_0`이다.
 
 Mixed Recipe Relay는 onion·serving이 있는 왼쪽 bay와 tomato·plate가 있는 오른쪽
 bay를 영구적으로 분리하고, 중앙 handoff counter 두 칸으로만 물건을 교환한다.
 기존 catalog의 `_7`, `_5`만 남겨 새 `_0`, `_1`로 재인덱싱했다. 둘 다 7×5이며
-tomato-major → onion-major → tomato-major 순서를 사용한다. 새 `_0`은 180/120,
-새 `_1`은 150/150 step timing을 사용한다. 모든 scenario config는
-`max_steps: 450`을 사용한다.
+tomato-major → onion-major → tomato-major 순서를 사용한다. 두 layout 모두
+150/150 step timing을 사용한다. 선택된 8개 role scenario는 step 150과
+300에 전환하고 step 450에 종료하며, 모든 scenario config는
+`max_steps: 450`과 `RECORD_MAX_STEPS: 450`을 사용한다.
 
 Distance-Driven Role Switch는 표준 onion 3개 레시피를 episode 전체에서 고정하고
 원본 `asymm_advantages`의 비교비용 구조를 사용한다. 두 agent의 이동 영역은
