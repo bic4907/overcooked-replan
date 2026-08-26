@@ -1,5 +1,5 @@
 program: baselines/IPPO/ippo_overcooked_v3.py
-name: coot-hsp-population-multi-recipe
+name: coot-hsp-population-multi-recipe-reindexed-v2
 method: grid
 metric:
   goal: maximize
@@ -12,7 +12,6 @@ parameters:
     values:
       - recipe_switch_0
       - recipe_switch_1
-      - recipe_switch_2
   HSP.PROFILE:
     value: multi_recipe
   HSP.CANDIDATE_ID:

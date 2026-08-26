@@ -1,5 +1,5 @@
 program: baselines/CooT/pipeline_stage_overcooked_v3.py
-name: coot-build-training-datasets
+name: coot-build-training-datasets-reindexed-v2
 method: grid
 metric:
   goal: maximize
@@ -9,7 +9,7 @@ parameters:
   stage:
     value: build_dataset
   layout:
-    values: [split_0, split_1, split_2, outage_0, outage_1, outage_2, recipe_switch_0, recipe_switch_1, recipe_switch_2, distance_switch_0, distance_switch_1, distance_switch_2]
+    values: [split_0, split_1, outage_0, outage_1, recipe_switch_0, recipe_switch_1, distance_switch_0, distance_switch_1]
   # Must match score_and_select.yaml so pair construction resolves the same 21
   # HSP-only proxy members.
   allow-low-return-fill:

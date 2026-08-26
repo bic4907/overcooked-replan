@@ -1,5 +1,5 @@
 program: baselines/CooT/pipeline_stage_overcooked_v3.py
-name: coot-score-and-select-hsp
+name: coot-score-and-select-hsp-reindexed-v2
 method: grid
 metric:
   goal: maximize
@@ -9,7 +9,7 @@ parameters:
   stage:
     value: score_and_select
   layout:
-    values: [split_0, split_1, split_2, outage_0, outage_1, outage_2, recipe_switch_0, recipe_switch_1, recipe_switch_2, distance_switch_0, distance_switch_1, distance_switch_2]
+    values: [split_0, split_1, outage_0, outage_1, recipe_switch_0, recipe_switch_1, distance_switch_0, distance_switch_1]
   score-episodes:
     value: 50
   # V3 can yield fewer than 21 candidates above the release's sparse-return
