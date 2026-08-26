@@ -52,7 +52,7 @@ wandb sweep --entity cilab-overcooked \
 | Stage | Sweep |
 | --- | --- |
 | full non-recipe candidate response | `cilab-overcooked/overcooked-v3-coot-response-candidates/f0rdtzx6` |
-| score and select (current run) | `cilab-overcooked/overcooked-v3-coot-pipeline/9zy1r9ni` |
+| score and select | `cilab-overcooked/overcooked-v3-coot-score-select/o1w699iy` |
 | full HSP response | `cilab-overcooked/overcooked-v3-coot-response/82wckiy9` |
 | build dataset | `cilab-overcooked/overcooked-v3-coot-build-dataset/wey7r86r` |
 | train | `cilab-overcooked/overcooked-v3-coot-train/3yyndhum` |
@@ -78,7 +78,7 @@ Full-rerun candidate/response sweep은 vectorized env를 50으로 낮추고 rewa
 한해서 low-return 후보를 normalized-L1 diversity로 채운다. 채운 ID는 생성 manifest의
 `low_return_fill_ids`와 `low_return_hsp_fill` deviation에 기록된다.
 
-현재 score/select sweep은 프로젝트 분리 전에 등록되어 기존
-`overcooked-v3-coot-pipeline`에 있다. 이후 `score_and_select.yaml`을 다시 등록하면
-`overcooked-v3-coot-score-select` 프로젝트를 사용한다. Build-dataset은 현재 체인부터
+유효 완료 결과는 population과 candidate-response까지만 재사용한다. 프로젝트 분리 전
+`overcooked-v3-coot-pipeline`에 등록된 partial score/select 결과는 재사용하지 않고,
+`overcooked-v3-coot-score-select`의 새 sweep을 처음부터 실행한다. Build-dataset도
 `overcooked-v3-coot-build-dataset`으로 분리되었다.
