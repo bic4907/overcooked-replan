@@ -20,7 +20,7 @@ parameters:
   entity:
     value: cilab-overcooked
   project:
-    value: overcooked-v3-coot-score-select
+    value: overcooked-v3-coot-pipeline
 
 command:
   - ${env}

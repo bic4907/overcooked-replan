@@ -70,11 +70,9 @@ def test_coot_projects_are_stage_isolated_from_fcp_and_self_play():
 def test_response_sweeps_use_distinct_manifest_stages():
     expected = {
         "response_candidates.yaml": "candidates",
-        "response_candidates_distance_switch_2_recovery.yaml": "candidates",
         "response_candidates_multi_recipe.yaml": "candidates",
         "response.yaml": "exact",
         "response_hsp_only.yaml": "hsp_only",
-        "response_hsp_only_recovery.yaml": "hsp_only",
     }
     roots = _compose("coot_br_overcooked_v3", [])["RESPONSE_JOB_ROOTS"]
     assert len(set(roots.values())) == len(roots)

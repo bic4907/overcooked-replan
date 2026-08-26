@@ -20,11 +20,11 @@ wandb sweep --entity cilab-overcooked --project overcooked-v3-coot-response-cand
 wandb sweep --entity cilab-overcooked --project overcooked-v3-coot-response-candidates experiment/coot/response_candidates_multi_recipe.yaml
 
 # 3. Selection and post-selection responses
-wandb sweep --entity cilab-overcooked --project overcooked-v3-coot-score-select experiment/coot/score_and_select.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-coot-pipeline experiment/coot/score_and_select.yaml
 wandb sweep --entity cilab-overcooked --project overcooked-v3-coot-response experiment/coot/response_hsp_only.yaml
 
 # 4. Dataset, CooT training, and seed-wise XP evaluation
-wandb sweep --entity cilab-overcooked --project overcooked-v3-coot-build-dataset experiment/coot/build_dataset.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-coot-pipeline experiment/coot/build_dataset.yaml
 wandb sweep --entity cilab-overcooked --project overcooked-v3-coot-train experiment/coot/train.yaml
 wandb sweep --entity cilab-overcooked --project overcooked-v3-coot-eval experiment/coot/eval.yaml
 ```
