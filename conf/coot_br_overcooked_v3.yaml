@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - recording: disabled
-  - scenario: dynamic_00
+  - scenario: split_0
 
 # One entry in this JSON manifest is selected atomically by JOB_INDEX. Relative
 # partner checkpoint paths are resolved from the manifest's directory. Stages
@@ -20,7 +20,7 @@ ENV_NAME: overcooked_v3
 ALGORITHM: CooT-BR
 ARCHITECTURE: rnn
 ENV_KWARGS:
-  layout: dynamic_00
+  layout: split_0
   max_steps: 450
   random_agent_positions: false
   include_transition_countdown: true

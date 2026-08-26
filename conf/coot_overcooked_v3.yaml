@@ -1,12 +1,12 @@
 defaults:
   - _self_
-  - scenario: dynamic_00
+  - scenario: split_0
 
 ENV_NAME: overcooked_v3
 ALGORITHM: CooT
 ARCHITECTURE: transformer
 ENV_KWARGS:
-  layout: dynamic_00
+  layout: split_0
 
 # One directory per layout, produced by collect_overcooked_v3.py.
 DATASET_ROOT: ${oc.env:COOT_DATASET_ROOT,datasets/coot}
