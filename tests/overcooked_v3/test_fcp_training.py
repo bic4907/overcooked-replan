@@ -3,11 +3,11 @@ from pathlib import Path
 import yaml
 from hydra import compose, initialize_config_dir
 
-from baselines.IPPO.ippo_overcooked_v3 import _checkpoint_update_steps
 from baselines.FCP.fcp_overcooked_v3 import (
     _evenly_spaced,
     discover_population_checkpoints,
 )
+from baselines.IPPO.ippo_overcooked_v3 import _checkpoint_update_steps
 
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = ROOT / "conf"
@@ -69,10 +69,7 @@ def test_population_discovery_selects_matching_sp_snapshots(tmp_path):
 
 def test_fcp_hydra_config_uses_rnn_and_default_v3_observation():
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
-        config = compose(
-            config_name="fcp_overcooked_v3",
-            overrides=["scenario=split_0"],
-        )
+        config = compose(config_name="fcp_overcooked_v3")
 
     assert config.ALGORITHM == "FCP"
     assert config.ARCHITECTURE == "rnn"
@@ -90,18 +87,9 @@ def test_fcp_eval_sweep_runs_seedwise_fcp_only():
 
     assert evaluation["parameters"]["algorithms"]["value"] == "FCP"
     assert evaluation["parameters"]["layout"]["values"] == [
-        "split_0",
-        "split_1",
-        "split_2",
-        "outage_0",
-        "outage_1",
-        "outage_2",
-        "recipe_switch_0",
-        "recipe_switch_1",
-        "recipe_switch_2",
-        "distance_switch_0",
-        "distance_switch_1",
-        "distance_switch_2",
+        f"{family}_{variant}"
+        for family in ("split", "outage", "recipe_switch", "distance_switch")
+        for variant in range(2)
     ]
     assert evaluation["parameters"]["max-steps"]["value"] == 450
     assert (
@@ -121,25 +109,15 @@ def test_fcp_switch_sweeps_use_three_population_and_six_training_seeds():
         (ROOT / "experiment/fcp/train.yaml").read_text(encoding="utf-8")
     )
     expected_layouts = [
-        "split_0",
-        "split_1",
-        "split_2",
-        "outage_0",
-        "outage_1",
-        "outage_2",
-        "recipe_switch_0",
-        "recipe_switch_1",
-        "recipe_switch_2",
-        "distance_switch_0",
-        "distance_switch_1",
-        "distance_switch_2",
+        f"{family}_{variant}"
+        for family in ("split", "outage", "recipe_switch", "distance_switch")
+        for variant in range(2)
     ]
 
     assert population["parameters"]["scenario"]["values"] == expected_layouts
     assert population["parameters"]["SEED"]["values"] == [0, 1, 2]
     assert (
-        population["parameters"]["PROJECT"]["value"]
-        == "overcooked-v3-fcp-population"
+        population["parameters"]["PROJECT"]["value"] == "overcooked-v3-fcp-population"
     )
     assert population["parameters"]["CHECKPOINT_INTERVAL"]["value"] == 0
     assert population["parameters"]["CHECKPOINT_FRACTIONS"]["value"] == [

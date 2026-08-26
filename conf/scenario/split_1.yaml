@@ -2,7 +2,9 @@
 
 ENV_KWARGS:
   layout: split_1
+  max_steps: 450
   random_agent_positions: false
+RECORD_MAX_STEPS: 450
 
 EXPERIMENT: kitchen_split
 CONDITION: split_1

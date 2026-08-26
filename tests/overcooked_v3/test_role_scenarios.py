@@ -79,10 +79,10 @@ def _shortest_floor_distance(static_objects, starts, goals):
 
 def test_each_role_scenario_family_has_expected_unique_layouts():
     expected_counts = {
-        "split": 3,
-        "outage": 3,
-        "recipe_switch": 3,
-        "distance_switch": 3,
+        "split": 2,
+        "outage": 2,
+        "recipe_switch": 2,
+        "distance_switch": 2,
     }
     assert set(ROLE_SCENARIO_LAYOUTS) == set(expected_counts)
     for family, names in ROLE_SCENARIO_LAYOUTS.items():
@@ -110,12 +110,17 @@ def test_all_role_scenario_variants_are_resettable(layout_name):
     assert obs["agent_0"].shape == (*expected_shape[:2], expected_channels)
 
 
+@pytest.mark.parametrize("layout_name", CANONICAL_ROLE_SCENARIOS)
+def test_all_role_scenarios_share_phase_boundaries(layout_name):
+    layout = dynamic_layouts[layout_name]
+    assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
+
+
 @pytest.mark.parametrize("layout_name", ROLE_SCENARIO_LAYOUTS["distance_switch"])
 def test_distance_switch_keeps_local_access_and_reverses_role_costs(
     layout_name,
 ):
     layout = dynamic_layouts[layout_name]
-    assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
     assert all(phase.recipe is None for phase in layout.phases)
 
     phase_a, phase_b, phase_a_return = (
@@ -218,10 +223,10 @@ def test_outage_pot_starts_cooking_after_second_onion():
     assert state.grid[0, 2, 2] == 19
 
 
-@pytest.mark.parametrize("variant", range(3))
+@pytest.mark.parametrize("variant", range(2))
 def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     layout = dynamic_layouts[f"outage_{variant}"]
-    assert tuple(phase.steps for phase in layout.phases) == (40, 160)
+    assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
     normal_phase = layout.phases[0].layout.static_objects
     outage_phase = layout.phases[1].layout.static_objects
     left_start, right_start = layout.phases[0].agent_positions
@@ -323,10 +328,10 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     )
 
 
-@pytest.mark.parametrize("variant", range(3))
+@pytest.mark.parametrize("variant", range(2))
 def test_split_variants_keep_complementary_resources_in_separate_bays(variant):
     layout = dynamic_layouts[f"split_{variant}"]
-    assert tuple(phase.steps for phase in layout.phases) == (40, 160)
+    assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
     open_phase = layout.phases[0].layout.static_objects
     closed_phase = layout.phases[1].layout.static_objects
     left_start, right_start = layout.phases[0].agent_positions
@@ -612,38 +617,38 @@ def test_outage_left_cook_can_preload_two_onions_and_pass_one():
     assert state.agents.inventory[1] == onion
 
 
-def test_split_runtime_closes_handoff_wall_at_step_40():
+def test_split_runtime_closes_handoff_wall_at_step_150():
     env = OvercookedV3(layout="split", max_steps=220)
     _, state = env.reset(jax.random.PRNGKey(0))
-    state = state.replace(step=jnp.array(39))
+    state = state.replace(step=jnp.array(149))
     actions = {agent: jnp.array(OvercookedActionsEnum.stay) for agent in env.agents}
 
     _, state, _, _, infos = jax.jit(env.step_env)(jax.random.PRNGKey(1), state, actions)
 
-    assert state.step.item() == 40
+    assert state.step.item() == 150
     assert state.layout_index.item() == 1
     assert state.grid[5, 4, 0].item() == StaticObject.WALL
     assert jnp.all(infos["left_workload_tile_count"] == 2)
-    assert jnp.all(infos["right_workload_tile_count"] == 3)
+    assert jnp.all(infos["right_workload_tile_count"] == 4)
     assert jnp.all(infos["left_ingredient_pile_count"] == 1)
     assert jnp.all(infos["right_ingredient_pile_count"] == 0)
     assert jnp.all(infos["layout_changed"])
 
 
-def test_outage_runtime_removes_only_the_right_kitchen_onion_at_step_40():
+def test_outage_runtime_removes_only_the_right_kitchen_onion_at_step_150():
     env = OvercookedV3(layout="outage", max_steps=220)
     _, state = env.reset(jax.random.PRNGKey(0))
-    state = state.replace(step=jnp.array(39))
+    state = state.replace(step=jnp.array(149))
     actions = {agent: jnp.array(OvercookedActionsEnum.stay) for agent in env.agents}
 
     _, state, _, _, infos = jax.jit(env.step_env)(jax.random.PRNGKey(1), state, actions)
 
-    assert state.step.item() == 40
+    assert state.step.item() == 150
     assert state.layout_index.item() == 1
     assert state.grid[0, 1, 0].item() == StaticObject.ingredient_pile(0)
     assert state.grid[0, 5, 0].item() == StaticObject.WALL
-    assert jnp.all(infos["left_workload_tile_count"] == 4)
-    assert jnp.all(infos["right_workload_tile_count"] == 4)
+    assert jnp.all(infos["left_workload_tile_count"] == 6)
+    assert jnp.all(infos["right_workload_tile_count"] == 6)
     assert jnp.all(infos["left_ingredient_pile_count"] == 1)
     assert jnp.all(infos["right_ingredient_pile_count"] == 0)
     assert jnp.all(infos["layout_changed"])

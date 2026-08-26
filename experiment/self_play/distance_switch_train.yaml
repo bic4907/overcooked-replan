@@ -10,7 +10,6 @@ parameters:
     values:
       - distance_switch_0
       - distance_switch_1
-      - distance_switch_2
   SEED:
     values: [0, 1, 2, 3, 4, 5]
   ENTITY:

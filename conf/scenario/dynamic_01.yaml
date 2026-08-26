@@ -1,9 +1,0 @@
-# @package _global_
-
-ENV_KWARGS:
-  layout: dynamic_01
-  random_agent_positions: false
-
-EXPERIMENT: dynamic_map
-CONDITION: dynamic_01
-WANDB_GROUP: dynamic_map

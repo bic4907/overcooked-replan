@@ -1,5 +1,5 @@
-program: baselines/PolicySwitch/eval_all_overcooked_v3.py
-name: policy-switch-role-scenarios-seedwise-xp
+program: baselines/IPPO/eval_crossplay_overcooked_v3.py
+name: ippo-rnn-role-scenarios-seedwise-xp
 method: grid
 metric:
   goal: maximize
@@ -7,7 +7,7 @@ metric:
 
 parameters:
   algorithms:
-    value: PolicySwitch-IPPO
+    value: IPPO
   layout:
     values:
       - split_0
@@ -22,14 +22,16 @@ parameters:
     value: 20
   max-steps:
     value: 450
+  workers-per-gpu:
+    value: 8
   entity:
     value: cilab-overcooked
   output-project:
-    value: cilab-overcooked/overcooked-v3-policyswitch_eval
+    value: cilab-overcooked/overcooked-v3-ippo-rnn_eval
 
 command:
   - ${env}
   - ${interpreter}
   - ${program}
-  - cilab-overcooked/overcooked-v3-policyswitch_train
+  - cilab-overcooked/overcooked-v3-ippo-rnn_train
   - ${args_no_equals}

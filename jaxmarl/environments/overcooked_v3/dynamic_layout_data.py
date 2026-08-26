@@ -5,9 +5,9 @@
 # The recipe display stays at a separate fixed cell. A non-storage blocker
 # separates the dynamic doorway or handoff counters from the rest of the map.
 #
-# Kitchen Split starts with one open central doorway. After 40 steps, that
+# Kitchen Split starts with one open central doorway. After 150 steps, that
 # doorway becomes a handoff counter and traps agents in their chosen bays until
-# the next cycle. The left bay has onions and pots, while the right bay has
+# step 300. The left bay has onions and pots, while the right bay has
 # plates and serving, so agents must occupy different sides and divide labor.
 #
 # Resource Outage permanently separates two otherwise complete kitchens. Each
@@ -15,8 +15,12 @@
 # phase. When the right onion pile disappears, the left agent must trade off
 # local cooking against supplying onions through the shared center counters.
 #
-# Each role category exposes the three layouts selected from the cross-play
-# report.
+# Each role category exposes the two layouts selected from the cross-play
+# report, ranked as public tags ``0`` and ``1``.
+
+
+_ROLE_PHASE_STEPS = 150
+_FINAL_PHASE_STEPS = 1000
 
 
 def _role_grid(
@@ -73,7 +77,11 @@ def _build_split_workload(spec, width=11, recipe_row=0):
         recipe_row=recipe_row,
         width=width,
     )
-    return [[open_grid, 40], [closed_grid, 160]]
+    return [
+        [open_grid, _ROLE_PHASE_STEPS],
+        [closed_grid, _ROLE_PHASE_STEPS],
+        [open_grid, _FINAL_PHASE_STEPS],
+    ]
 
 
 def _compact_outage_grid(
@@ -125,7 +133,11 @@ def _build_compact_outage_variant(spec):
         blocker_row,
         notches,
     )
-    return [[normal_grid, 40], [outage_grid, 160]]
+    return [
+        [normal_grid, _ROLE_PHASE_STEPS],
+        [outage_grid, _ROLE_PHASE_STEPS],
+        [normal_grid, _FINAL_PHASE_STEPS],
+    ]
 
 
 def _rotated_take(positions, count, offset):
@@ -139,7 +151,7 @@ def _rotated_take(positions, count, offset):
     return rotated[:count]
 
 
-# Candidate source layouts retain the 7x9 split topology. Only the three
+# Candidate source layouts retain the 7x9 split topology. Only the two
 # cross-play-selected candidates are registered below. The workload tuple is
 # (onion piles, pots, plate piles, serving stations). Resources remain assigned
 # to their role-specific bay, while placement and starting positions vary.
@@ -236,7 +248,7 @@ def _build_split_catalog_variant(variant_index):
 
 
 # Outage candidate sources keep the compact 5x7, permanently separated two-bay
-# topology. Only the three selected candidates are registered. Each side starts
+# topology. Only the two selected candidates are registered. Each side starts
 # with an identical complete kitchen. All right-side
 # onion piles disappear during outage, and the two center handoff counters stay
 # available. Anchors keep an onion-to-handoff and handoff-to-pot route short.
@@ -316,19 +328,16 @@ def _build_outage_catalog_variant(variant_index):
 
 
 def _register_role_catalog():
-    # Ranked candidates from the 2026-08-17 cross-play report. Reindexing the
-    # selected source layouts keeps the public scenario names compact.
-    split_sources = (9, 19, 14)
-    outage_sources = (4, 12, 8)
+    # Ranked by mean absolute XP-SP gap in the 2026-08-22 baseline report.
+    # Public split tags 0/1 come from previous tags 2/0 (sources 14/9), and
+    # outage tags 0/1 come from previous tags 1/0 (sources 12/4).
+    split_sources = (14, 9)
+    outage_sources = (12, 4)
     for new_index, (split_source, outage_source) in enumerate(
         zip(split_sources, outage_sources)
     ):
-        globals()[f"split_{new_index}"] = _build_split_catalog_variant(
-            split_source
-        )
-        globals()[f"outage_{new_index}"] = _build_outage_catalog_variant(
-            outage_source
-        )
+        globals()[f"split_{new_index}"] = _build_split_catalog_variant(split_source)
+        globals()[f"outage_{new_index}"] = _build_outage_catalog_variant(outage_source)
 
 
 _register_role_catalog()
@@ -389,31 +398,10 @@ def _recipe_switch_grid(spec):
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-# Selected from the original ten-map catalog and reindexed as:
-# new 0 <- old 4, new 1 <- old 5, new 2 <- old 7.
+# Ranked by mean absolute XP-SP gap in the 2026-08-22 baseline report and
+# reindexed as new 0 <- previous tag 2 (catalog 7), new 1 <- previous tag 1
+# (catalog 5).
 _RECIPE_SWITCH_SPECS = (
-    {
-        "width": 9,
-        "height": 5,
-        "handoff_rows": (2, 3),
-        "agent_positions": ((3, 2), (5, 2)),
-        "left_resources": (("0", (0, 1)), ("P", (2, 0)), ("X", (3, 4))),
-        "right_resources": (
-            ("1", (8, 1)),
-            ("P", (6, 0)),
-            ("P", (8, 3)),
-            ("B", (5, 4)),
-        ),
-        "notches": ((1, 2), (7, 2)),
-    },
-    {
-        "width": 7,
-        "height": 5,
-        "handoff_rows": (1, 3),
-        "agent_positions": ((2, 2), (4, 2)),
-        "left_resources": (("0", (0, 2)), ("P", (2, 0)), ("X", (1, 4))),
-        "right_resources": (("1", (6, 2)), ("P", (4, 0)), ("B", (5, 4))),
-    },
     {
         "width": 7,
         "height": 5,
@@ -432,16 +420,23 @@ _RECIPE_SWITCH_SPECS = (
             ("B", (4, 4)),
         ),
     },
+    {
+        "width": 7,
+        "height": 5,
+        "handoff_rows": (1, 3),
+        "agent_positions": ((2, 2), (4, 2)),
+        "left_resources": (("0", (0, 2)), ("P", (2, 0)), ("X", (1, 4))),
+        "right_resources": (("1", (6, 2)), ("P", (4, 0)), ("B", (5, 4))),
+    },
 )
 
 _RECIPE_ONION_MAJOR = [0, 0, 1]
 _RECIPE_TOMATO_MAJOR = [0, 1, 1]
 _RECIPE_SWITCH_TIMINGS = (
-    (165, 135),
     (150, 150),
-    (180, 120),
+    (150, 150),
 )
-_RECIPE_SWITCH_ONION_MAJOR_FIRST = (True, False, False)
+_RECIPE_SWITCH_ONION_MAJOR_FIRST = (False, False)
 
 
 def _register_recipe_switch_catalog():
@@ -464,7 +459,7 @@ def _register_recipe_switch_catalog():
             [grid, second_phase_steps, recipe_b],
             # Training episodes stop at step 450. A long final duration avoids
             # displaying a countdown for an unused wraparound transition.
-            [grid, 1000, recipe_a],
+            [grid, _FINAL_PHASE_STEPS, recipe_a],
         ]
 
 
@@ -697,19 +692,13 @@ def _vertical_distance_switch_spec(width, height, extra_counters=()):
     }
 
 
-# Selected from the original ten-map catalog and reindexed as:
-# new 0 <- old 0, new 1 <- old 1, new 2 <- old 6.
+# Selected tags stay new 0 <- previous tag 0 (catalog 0) and new 1 <- previous
+# tag 1 (catalog 1), ranked by the 2026-08-22 baseline report.
 _DISTANCE_SWITCH_SPECS = (
     # Canonical Overcooked-AI asymmetric_advantages.
     _vertical_distance_switch_spec(9, 5),
     # Wider canonical corridor.
     _vertical_distance_switch_spec(11, 5),
-    # Staggered islands make the two work regions visually non-isomorphic.
-    _vertical_distance_switch_spec(
-        11,
-        8,
-        ((2, 2), (2, 3), (3, 3), (3, 5), (7, 2), (8, 2), (8, 3), (7, 5)),
-    ),
 )
 
 
@@ -719,9 +708,9 @@ def _register_distance_switch_catalog():
         phase_a = _distance_switch_grid(spec, roles_swapped=False)
         phase_b = _distance_switch_grid(spec, roles_swapped=True)
         globals()[f"distance_switch_{variant_index}"] = [
-            [phase_a, 150],
-            [phase_b, 150],
-            [phase_a, 1000],
+            [phase_a, _ROLE_PHASE_STEPS],
+            [phase_b, _ROLE_PHASE_STEPS],
+            [phase_a, _FINAL_PHASE_STEPS],
         ]
 
 
@@ -731,480 +720,3 @@ _register_distance_switch_catalog()
 # Short aliases for the first selected layouts.
 split = split_0
 outage = outage_0
-
-dynamic_00 = [
-    [
-        """
-WWWWWWW
-0 AWA X
-W  W  W
-B     P
-WWWWWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWWWW
-0 A A X
-W  W  W
-B  W  P
-WWWWWWW
-""",
-        100,
-    ],
-]
-
-dynamic_01 = [
-    [
-        """
-WWWOWWW
-W     W
-XAWWWAB
-W WWW W
-W     W
-WWWPWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWWWW
-W WWW W
-XAWOWAB
-W     W
-W     W
-WWWPWWW
-""",
-        100,
-    ],
-]
-
-dynamic_02 = [
-    [
-        """
-WWWWW
-0AWAX
-W W W
-B W P
-WWWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWW
-0A AX
-WWWWW
-B   P
-WWWWW
-""",
-        100,
-    ],
-]
-
-dynamic_03 = [
-    [
-        """
-WWWWW
-0A AW
-W   W
-B   P
-WWXWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWW
-WA AO
-W   W
-B   P
-WWXWW
-""",
-        100,
-    ],
-]
-
-dynamic_04 = [
-    [
-        """
-WWWOOWWW
-W      W
-XAWWWWAB
-W      W
-WWWPPWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWPPWWW
-W      W
-BAWWWWAX
-W      W
-WWWOOWWW
-""",
-        100,
-    ],
-]
-
-
-dynamic_05 = [
-    [
-        """
-WWWWWOW
-WWW A P
-X     B
-WWW A P
-WWWWWOW
-""",
-        100,
-    ],
-    [
-        """
-WWWWWOW
-WWW A P
-X W   B
-WWW A P
-WWWWWOW
-""",
-        100,
-    ],
-]
-
-dynamic_06 = [
-    [
-        """
-WWPWW
-W   W
-BA AO
-W   W
-WWXWW
-""",
-        100,
-    ],
-    [
-        """
-WWOWW
-W   W
-PA AX
-W   W
-WWBWW
-""",
-        100,
-    ],
-    [
-        """
-WWXWW
-W   W
-OA AB
-W   W
-WWPWW
-""",
-        100,
-    ],
-    [
-        """
-WWBWW
-W   W
-XA AP
-W   W
-WWOWW
-""",
-        100,
-    ],
-]
-
-
-dynamic_07 = [
-    [
-        """
-WWWWW
-WA AX
-W W P
-W   B
-WWOWW
-""",
-        50,
-    ],
-    [
-        """
-WWWWW
-WA AX
-O W P
-W   B
-WWWWW
-""",
-        50,
-    ],
-    [
-        """
-WWOWW
-WA AX
-W W P
-W   B
-WWWWW
-""",
-        50,
-    ],
-]
-
-dynamic_08 = [
-    [
-        """
-WWWPWWW
-WW   WW
-WW A WW
-WBWWWOW
-W  A  W
-W     W
-WWWXWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWPWWW
-W    WW
-W  A WW
-WBWWWOW
-WW A  W
-WW    W
-WWWXWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWPWWW
-W     W
-W  A  W
-WBWWWOW
-WW A WW
-WW   WW
-WWWXWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWPWWW
-WW    W
-WW A  W
-WBWWWOW
-W  A WW
-W    WW
-WWWXWWW
-""",
-        100,
-    ],
-]
-
-
-dynamic_09 = [
-    [
-        """
-WWWWW
-0AWAX
-W W W
-B W P
-WWWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWW
-XAWAO
-W W W
-P W B
-WWWWW
-""",
-        100,
-    ],
-]
-
-dynamic_10 = [
-    [
-        """
-WWWWWWWWWWW
-0A  B     W
-W   W     W
-XA  P     W
-WWWWWWWWWWW
-""",
-        100,
-    ],
-    [
-        """
-WWWWWWWWWWW
-0A        B
-W         W
-XA        P
-WWWWWWWWWWW
-""",
-        100,
-    ],
-]
-
-dynamic_11 = [
-    [
-        """
-WWWWWWWWWWWW
-B          O
-BAWWWPPWWWAO
-B    WW    O
-WWWWXWWXWWWW
-""",
-        50,
-    ],
-    [
-        """
-WWWWXWWXWWWW
-B    WW    O
-BAWWWPPWWWAO
-B          O
-WWWWWWWWWWWW
-""",
-        50,
-    ],
-]
-
-
-dynamic_12 = [
-    [
-        """
-WOWWWXW
-0A    X
-W WWW W
-W WWW W
-W WWW W
-B  W AP
-WBWWWPW
-""",
-        20,
-    ],
-    [
-        """
-WOWWWXW
-0A    X
-W WWW W
-WWWWW W
-W WWW W
-B    AP
-WBWWWPW
-""",
-        20,
-    ],
-    [
-        """
-WOWWWXW
-0A W  X
-W WWW W
-W WWW W
-W WWW W
-B    AP
-WBWWWPW
-""",
-        20,
-    ],
-    [
-        """
-WOWWWXW
-0A    X
-W WWW W
-W WWWWW
-W WWW W
-B    AP
-WBWWWPW
-""",
-        20,
-    ],
-]
-
-
-dynamic_13 = [
-    [
-        """
-WWWWWWW
-0 AWA X
-W  W  W
-W  WWWW
-W     W
-B     P
-WWWWWWW
-""",
-        10,
-    ],
-    [
-        """
-WWWWWWW
-0 AWA X
-W  W  W
-W  W  W
-W  W  W
-B  W  P
-WWWWWWW
-""",
-        10,
-    ],
-    [
-        """
-WWWWWWW
-0 AWA X
-W  W  W
-WWWW  W
-W     W
-B     P
-WWWWWWW
-""",
-        10,
-    ],
-    [
-        """
-WWWWWWW
-0 AWA X
-W  W  W
-W  W  W
-W  W  W
-B  W  P
-WWWWWWW
-""",
-        10,
-    ],
-]
-
-
-dynamic_14 = [
-    [
-        """
-WXWOWBWPW
-WA  W W W
-W W   W W
-W W W  AW
-WXWOWBWPW
-""",
-        10,
-    ],
-    [
-        """
-WXWOWBWPW
-WAW W   W
-W   W W W
-W W   WAW
-WXWOWBWPW
-""",
-        10,
-    ],
-    [
-        """
-WXWOWBWPW
-WAW   W W
-W W W   W
-W   W WAW
-WXWOWBWPW
-""",
-        10,
-    ],
-]

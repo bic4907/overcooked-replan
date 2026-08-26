@@ -192,31 +192,16 @@ class DynamicLayout:
         return sum(phase.steps for phase in self.phases)
 
 
-dynamic_layouts = {
-    "dynamic_cramped_room": DynamicLayout.from_data(
-        [
-            [
-                """
-WWPWW
-0A A0
-W   W
-WBWXW
-""",
-                100,
-            ],
-            [
-                """
-WWPWW
-0A A0
-W W W
-WBWXW
-""",
-                100,
-            ],
-        ],
-        names=("open", "wall"),
-    )
+ROLE_SCENARIO_LAYOUTS = {
+    family: tuple(f"{family}_{variant}" for variant in range(2))
+    for family in ("split", "outage", "recipe_switch", "distance_switch")
 }
+ROLE_SCENARIO_LAYOUT_NAMES = tuple(
+    name for names in ROLE_SCENARIO_LAYOUTS.values() for name in names
+)
+
+
+dynamic_layouts = {}
 
 
 def _load_named_dynamic_layout(name, data):
@@ -241,7 +226,7 @@ dynamic_layouts.update(
 )
 
 
-POLICY_SWITCH_BASE_LAYOUTS = tuple(dynamic_layouts)
+POLICY_SWITCH_BASE_LAYOUTS = ROLE_SCENARIO_LAYOUT_NAMES
 _STATIC_POLICY_PHASE_STEPS = 1_000_000_000
 
 
@@ -309,18 +294,6 @@ def _register_static_phase_policy_layouts() -> None:
 
 
 _register_static_phase_policy_layouts()
-
-ROLE_SCENARIO_LAYOUTS = {
-    **{
-        family: tuple(f"{family}_{variant}" for variant in range(3))
-        for family in ("split", "outage")
-    },
-    "recipe_switch": tuple(f"recipe_switch_{variant}" for variant in range(3)),
-    "distance_switch": tuple(f"distance_switch_{variant}" for variant in range(3)),
-}
-ROLE_SCENARIO_LAYOUT_NAMES = tuple(
-    name for names in ROLE_SCENARIO_LAYOUTS.values() for name in names
-)
 
 __all__ = [
     "DynamicLayout",
