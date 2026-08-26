@@ -27,22 +27,23 @@ SCENARIOS = {
 SWEEP_SCENARIOS = list(SCENARIOS)
 
 
-def test_default_training_config_preserves_dynamic_00():
+def test_default_training_config_uses_first_role_scenario():
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
         config = compose(config_name="ippo_overcooked_v3")
 
-    assert config.ENV_KWARGS.layout == "dynamic_00"
+    assert config.ENV_KWARGS.layout == "split_0"
     assert config.get("LAYOUT_VARIANT") is None
-    assert config.EXPERIMENT == "dynamic_map"
+    assert config.EXPERIMENT == "kitchen_split"
     assert config.SAVES_DIR == "saves"
     assert config.ENTITY == "cilab-overcooked"
     assert config.PROJECT == "overcooked-v3-ippo_train"
+    assert config.ENV_KWARGS.max_steps == 450
     assert config.ENV_KWARGS.include_transition_countdown is True
     assert config.ENV_KWARGS.include_layout_change_mask is True
     assert config.ENV_KWARGS.transition_warning_steps == 20
     assert config.get("WANDB_DIR") is None
     assert config.RECORD_FINAL_EPISODE is True
-    assert config.RECORD_MAX_STEPS == 400
+    assert config.RECORD_MAX_STEPS == 450
     assert config.RECORD_VIDEO_FPS == 10
     assert config.RECORD_VIDEO_QUALITY == 5
     assert config.upload_final_checkpoint is True
@@ -82,10 +83,9 @@ def test_hydra_scenario_group_composes_all_conditions():
             assert config.wandb_mode == "online"
 
 
-def test_distance_switch_scenarios_use_fixed_positions_and_full_episode():
+def test_role_scenarios_use_fixed_positions_and_full_episode():
     with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
-        for variant in range(2):
-            scenario = f"distance_switch_{variant}"
+        for scenario, experiment in SCENARIOS.items():
             config = compose(
                 config_name="ippo_overcooked_v3",
                 overrides=[f"scenario={scenario}"],
@@ -93,9 +93,10 @@ def test_distance_switch_scenarios_use_fixed_positions_and_full_episode():
             assert config.ENV_KWARGS.layout == scenario
             assert config.ENV_KWARGS.max_steps == 450
             assert config.ENV_KWARGS.random_agent_positions is False
-            assert config.EXPERIMENT == "distance_switch"
+            assert config.RECORD_MAX_STEPS == 450
+            assert config.EXPERIMENT == experiment
             assert config.CONDITION == scenario
-            assert config.WANDB_GROUP == "distance_switch"
+            assert config.WANDB_GROUP == experiment
 
 
 def test_dotenv_configures_wandb_but_not_hydra_saves_dir(tmp_path, monkeypatch):

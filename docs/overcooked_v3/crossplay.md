@@ -55,7 +55,7 @@ python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   --layout split_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
-  --max-steps 400 \
+  --max-steps 450 \
   --gpus 0 1 2 3 \
   --output-project cilab-overcooked/overcooked-v3-ippo_eval
 ```
@@ -74,7 +74,7 @@ python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   --layout split_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
-  --max-steps 400 \
+  --max-steps 450 \
   --gpus 0 1 2 3 \
   --output-project cilab-overcooked/overcooked-v3-ippo_eval \
   --output-dir saves/crossplay/split_0-ippo
@@ -174,7 +174,7 @@ python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   --layout split_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
-  --max-steps 400 \
+  --max-steps 450 \
   --output-project cilab-overcooked/overcooked-v3-ippo_eval
 ```
 
@@ -212,7 +212,7 @@ python -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
   --layout split_0 \
   --seeds 0 1 2 3 4 5 \
   --episodes 20 \
-  --max-steps 400 \
+  --max-steps 450 \
   --output-project cilab-overcooked/overcooked-v3-ippo_eval \
   --output-dir saves/crossplay/split_0-ippo
 ```
@@ -231,7 +231,7 @@ pair와 별개로 다시 계산한다.
 | `--seeds` | training seed 필터 | 전체 |
 | `--vmap-indices` | artifact 내부 정책 index | 모든 최종 vmap |
 | `--episodes` | pair별 episode 수 | `20` |
-| `--max-steps` | episode 최대 step | `400` |
+| `--max-steps` | episode 최대 step | `450` |
 | `--seed` | 평가 환경/action RNG seed | `0` |
 | `--stochastic` | mode 대신 policy action sampling 사용 | 꺼짐 |
 | `--gpus` | pair worker를 실행할 CUDA device ID 목록 | 첫 번째 visible GPU 1개 |

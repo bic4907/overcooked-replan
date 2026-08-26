@@ -144,10 +144,7 @@ def _evenly_spaced(items, count):
         return list(items)
     if count == 1:
         return [items[-1]]
-    indices = [
-        i * (len(items) - 1) // (count - 1)
-        for i in range(count)
-    ]
+    indices = [i * (len(items) - 1) // (count - 1) for i in range(count)]
     return [items[index] for index in dict.fromkeys(indices)]
 
 
@@ -202,9 +199,7 @@ def load_fcp_population(config):
     checkpoint_paths = discover_population_checkpoints(config)
     policies = [load_params(path) for path in checkpoint_paths]
     reference_structure = jax.tree_util.tree_structure(policies[0])
-    reference_shapes = [
-        value.shape for value in jax.tree_util.tree_leaves(policies[0])
-    ]
+    reference_shapes = [value.shape for value in jax.tree_util.tree_leaves(policies[0])]
     for path, policy in zip(checkpoint_paths[1:], policies[1:]):
         if jax.tree_util.tree_structure(policy) != reference_structure:
             raise ValueError(f"Incompatible parameter tree in {path}")
@@ -217,10 +212,7 @@ def load_fcp_population(config):
 
 def _checkpoint_metadata(config):
     layout_name = config["ENV_KWARGS"]["layout"]
-    layout_suffix = layout_name
-    if config["ENV_NAME"] == "overcooked_v3":
-        layout_suffix = layout_suffix.removeprefix("dynamic_")
-    experiment_name = f"{config['ENV_NAME']}_{layout_suffix}"
+    experiment_name = f"{config['ENV_NAME']}_{layout_name}"
     save_dir = os.path.join(config["SAVES_DIR"], experiment_folder(config))
     return experiment_name, save_dir
 
@@ -1332,9 +1324,7 @@ def run(config):
         seed_indices = jnp.arange(num_seeds)
         train_jit = jax.jit(make_train(config))
         train_vmap = jax.vmap(train_jit, in_axes=(0, 0, None))
-        out = jax.block_until_ready(
-            train_vmap(rngs, seed_indices, population_params)
-        )
+        out = jax.block_until_ready(train_vmap(rngs, seed_indices, population_params))
 
     model_state = out["runner_state"][0]
     checkpoint_paths = []

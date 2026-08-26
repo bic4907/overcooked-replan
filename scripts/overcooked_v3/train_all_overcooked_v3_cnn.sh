@@ -19,21 +19,14 @@ if [[ ${#train_seeds[@]} -eq 0 ]]; then
 fi
 
 layouts=(
-    dynamic_00
-    dynamic_01
-    dynamic_02
-    dynamic_03
-    dynamic_04
-    dynamic_05
-    dynamic_06
-    dynamic_07
-    dynamic_08
-    dynamic_09
-    dynamic_10
-    dynamic_11
-    dynamic_12
-    dynamic_13
-    dynamic_14
+    split_0
+    split_1
+    outage_0
+    outage_1
+    recipe_switch_0
+    recipe_switch_1
+    distance_switch_0
+    distance_switch_1
 )
 
 for layout in "${layouts[@]}"; do
@@ -43,9 +36,8 @@ for layout in "${layouts[@]}"; do
         if ! CUDA_VISIBLE_DEVICES="${GPU_ID}" \
             XLA_PYTHON_CLIENT_PREALLOCATE=false \
             python -u baselines/IPPO/ippo_overcooked_v3.py \
+                scenario="${layout}" \
                 ARCHITECTURE=cnn \
-                ENV_NAME=overcooked_v3 \
-                ENV_KWARGS.layout="${layout}" \
                 SEED="${seed}" \
                 NUM_SEEDS=1 \
                 TOTAL_TIMESTEPS="${TOTAL_TIMESTEPS}" \
@@ -60,4 +52,4 @@ for layout in "${layouts[@]}"; do
     done
 done
 
-echo "===== All dynamic CNN training runs completed ====="
+echo "===== All role-scenario CNN training runs completed ====="

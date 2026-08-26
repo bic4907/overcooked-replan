@@ -4,6 +4,7 @@ ENV_KWARGS:
   layout: recipe_switch_0
   max_steps: 450
   random_agent_positions: false
+RECORD_MAX_STEPS: 450
 
 EXPERIMENT: recipe_switch
 CONDITION: recipe_switch_0

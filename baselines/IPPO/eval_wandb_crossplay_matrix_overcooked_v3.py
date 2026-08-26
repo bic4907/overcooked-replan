@@ -22,6 +22,14 @@ matplotlib.use("Agg")
 import numpy as np
 import wandb
 
+from baselines.adaptation_metrics import (
+    ADAPTATION_PAIR_METRIC_KEYS,
+    adaptation_config_dict,
+    adaptation_config_from_args,
+    adaptation_result_metrics,
+    adaptation_wandb_metrics,
+    add_adaptation_metric_args,
+)
 from jaxmarl._env import load_project_env
 from jaxmarl.environments.overcooked_v3 import overcooked_v3_layouts
 from jaxmarl.wrappers.baselines import load_params
@@ -143,7 +151,7 @@ def parse_args(argv=None):
         default=os.getenv("WANDB_MODE", "online"),
     )
     parser.add_argument("--episodes", type=int, default=20)
-    parser.add_argument("--max-steps", type=int, default=400)
+    parser.add_argument("--max-steps", type=int, default=450)
     parser.add_argument("--seed", type=int, default=0, help="Evaluation RNG seed.")
     parser.add_argument(
         "--seeds",
@@ -212,6 +220,7 @@ def parse_args(argv=None):
             "Defaults to a unique run directory under saves/crossplay/."
         ),
     )
+    add_adaptation_metric_args(parser)
     return parser.parse_args(argv)
 
 
@@ -388,6 +397,32 @@ def summarize_records(records):
     }
 
 
+def summarize_adaptation_records(records):
+    """Average pair-level adaptation metrics within SP and XP groups."""
+    summary = {}
+    for pair_type in ("SP", "XP"):
+        pair_records = [
+            record for record in records if record["pair_type"] == pair_type
+        ]
+        averaged = {}
+        for key in ADAPTATION_PAIR_METRIC_KEYS:
+            values = np.asarray(
+                [record[key] for record in pair_records if key in record],
+                dtype=float,
+            )
+            values = values[np.isfinite(values)]
+            if values.size:
+                averaged[key] = float(np.mean(values))
+        summary.update(
+            adaptation_wandb_metrics(averaged, prefix=f"{pair_type}/adaptation")
+        )
+        summary[f"counts/{pair_type}_adaptation_pairs"] = sum(
+            int(record.get("adaptation_transition_count", 0)) > 0
+            for record in pair_records
+        )
+    return summary
+
+
 def build_model_matrix(records, models):
     indices = {model.identity: index for index, model in enumerate(models)}
     matrix = np.full((len(models), len(models)), np.nan, dtype=float)
@@ -451,6 +486,7 @@ def _load_records(path):
 
 
 def _record_key(layout, left_model_id, right_model_id, args):
+    adaptation_config = adaptation_config_from_args(args, layout)
     return (
         layout,
         left_model_id,
@@ -459,6 +495,7 @@ def _record_key(layout, left_model_id, right_model_id, args):
         args.max_steps,
         args.seed,
         args.stochastic,
+        *adaptation_config_dict(adaptation_config).values(),
     )
 
 
@@ -471,6 +508,11 @@ def _cached_record_key(record):
         record["max_steps"],
         record["evaluation_seed"],
         record["stochastic"],
+        record.get("adaptation_metrics_version"),
+        record.get("adaptation_window"),
+        record.get("adaptation_horizon"),
+        record.get("recovery_threshold"),
+        record.get("recovery_persistence"),
     )
 
 
@@ -546,10 +588,14 @@ def write_reproducibility_bundle(output_dir, args, run_name, artifact_dir):
         if source_path.is_file():
             shutil.copy2(source_path, source_dir / filename)
 
-    sweep_path = (
-        script_dir.parents[1]
-        / "experiment/self_play/eval.yaml"
-    )
+    adaptation_metrics_path = script_dir.parent / "adaptation_metrics.py"
+    if adaptation_metrics_path.is_file():
+        shutil.copy2(
+            adaptation_metrics_path,
+            source_dir / adaptation_metrics_path.name,
+        )
+
+    sweep_path = script_dir.parents[1] / "experiment/self_play/eval.yaml"
     if sweep_path.is_file():
         shutil.copy2(sweep_path, source_dir / sweep_path.name)
 
@@ -637,6 +683,7 @@ def _validate_args(args):
         raise ValueError("Pass GPU IDs separated by spaces, for example --gpus 0 1")
     if args.workers_per_gpu < 1:
         raise ValueError("--workers-per-gpu must be at least 1")
+    adaptation_config_from_args(args, args.layout)
 
 
 def build_run_filters(layouts, seeds=None, run_state="finished"):
@@ -650,6 +697,7 @@ def build_run_filters(layouts, seeds=None, run_state="finished"):
 
 
 def build_pair_task(layout, left, right, args, progress_index, total_pairs):
+    adaptation_config = adaptation_config_from_args(args, layout)
     return {
         "layout": layout,
         "pair_type": "SP" if is_self_play(left.identity, right.identity) else "XP",
@@ -675,6 +723,7 @@ def build_pair_task(layout, left, right, args, progress_index, total_pairs):
         "max_steps": args.max_steps,
         "evaluation_seed": args.seed,
         "stochastic": args.stochastic,
+        **adaptation_config_dict(adaptation_config),
     }
 
 
@@ -688,6 +737,10 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
         max_steps=task["max_steps"],
         seed=task["evaluation_seed"],
         stochastic=task["stochastic"],
+        adaptation_window=task["adaptation_window"],
+        adaptation_horizon=task["adaptation_horizon"],
+        recovery_threshold=task["recovery_threshold"],
+        recovery_persistence=task["recovery_persistence"],
     )
     run_configs = (task["agent_0_config"], task["agent_1_config"])
     signature = evaluation_signature(run_configs, pair_args)
@@ -733,12 +786,18 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
         "max_steps",
         "evaluation_seed",
         "stochastic",
+        "adaptation_metrics_version",
+        "adaptation_window",
+        "adaptation_horizon",
+        "recovery_threshold",
+        "recovery_persistence",
     )
     return {
         **{key: task[key] for key in record_keys},
         "mean_return": float(np.mean(result["returns"])),
         "std_return": float(np.std(result["returns"])),
         "mean_episode_length": float(np.mean(result["lengths"])),
+        **adaptation_result_metrics(result["adaptation_metrics"]),
     }
 
 
@@ -828,6 +887,7 @@ def main():
     load_project_env()
     args = parse_args()
     _validate_args(args)
+    adaptation_config = adaptation_config_from_args(args, args.layout)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s | %(levelname)s | %(message)s",
@@ -902,6 +962,7 @@ def main():
             "latest_per_seed": args.latest_per_seed,
             "local_run_dir": str(output_dir),
             "local_artifact_dir": str(artifact_root),
+            **adaptation_config_dict(adaptation_config),
         },
     ) as evaluation_run:
         models = []
@@ -1050,6 +1111,7 @@ def main():
                     "progress/completed_pairs": len(cached),
                     "pair/mean_return": record["mean_return"],
                     "pair/is_self_play": int(record["pair_type"] == "SP"),
+                    **adaptation_wandb_metrics(record, prefix="pair/adaptation"),
                 }
             )
 
@@ -1071,12 +1133,12 @@ def main():
             if record["layout"] == args.layout
             and record["agent_0_model_id"] in active_model_ids
             and record["agent_1_model_id"] in active_model_ids
-            and _cached_record_key(record)[3:]
-            == (
-                args.episodes,
-                args.max_steps,
-                args.seed,
-                args.stochastic,
+            and _cached_record_key(record)
+            == _record_key(
+                args.layout,
+                record["agent_0_model_id"],
+                record["agent_1_model_id"],
+                args,
             )
         }
         active_records = list(active_records_by_key.values())
@@ -1088,6 +1150,7 @@ def main():
             "SP-XP_gap": summary["SP-XP_gap"],
             "counts/SP_pairs": summary["SP_pairs"],
             "counts/XP_pairs": summary["XP_pairs"],
+            **summarize_adaptation_records(active_records),
         }
         matrix_views = select_matrix_views(layout_models, args.algorithms)
         model_heatmap = output_dir / f"{args.layout}_model_matrix.png"
@@ -1139,14 +1202,17 @@ def main():
             summaries_path,
             {
                 "map": args.layout,
-                "overall": {key: _json_safe(value) for key, value in summary.items()},
+                "overall": {
+                    key: _json_safe(value)
+                    for key, value in {**summary, **scalar_metrics}.items()
+                },
             },
         )
         _write_records_csv(output_dir / "pair_results.csv", active_records)
         result_artifact = wandb.Artifact(
             f"crossplay-matrix-{evaluation_run.id}",
             type="crossplay-evaluation",
-            metadata={key: _json_safe(value) for key, value in summary.items()},
+            metadata={key: _json_safe(value) for key, value in scalar_metrics.items()},
         )
         LOGGER.info(
             "Completed %d ordered pairs | SP=%.2f XP=%.2f SP-XP=%.2f",

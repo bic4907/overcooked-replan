@@ -24,7 +24,6 @@ from jaxmarl.environments.overcooked_v3 import (
     phase_policy_sequence,
 )
 
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -82,8 +81,8 @@ def test_static_policy_layouts_disable_all_dynamic_transitions():
                 source_phase.layout.static_objects,
             )
 
-    assert phase_policy_sequence("split_0") == (0, 1)
-    assert phase_policy_sequence("outage_0") == (0, 1)
+    assert phase_policy_sequence("split_0") == (0, 1, 0)
+    assert phase_policy_sequence("outage_0") == (0, 1, 0)
     assert phase_policy_sequence("recipe_switch_0") == (0, 1, 0)
 
 
@@ -103,8 +102,7 @@ def test_policy_switch_sweeps_target_all_role_scenarios_with_six_seeds():
     assert training["parameters"]["scenario"]["values"] == expected_layouts
     assert training["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
     assert (
-        training["parameters"]["PROJECT"]["value"]
-        == "overcooked-v3-policyswitch_train"
+        training["parameters"]["PROJECT"]["value"] == "overcooked-v3-policyswitch_train"
     )
     assert training["metric"]["name"] == "train/episode_return"
     assert evaluation["parameters"]["layout"]["values"] == expected_layouts
@@ -113,10 +111,7 @@ def test_policy_switch_sweeps_target_all_role_scenarios_with_six_seeds():
         evaluation["parameters"]["output-project"]["value"]
         == "cilab-overcooked/overcooked-v3-policyswitch_eval"
     )
-    assert (
-        "cilab-overcooked/overcooked-v3-policyswitch_train"
-        in evaluation["command"]
-    )
+    assert "cilab-overcooked/overcooked-v3-policyswitch_train" in evaluation["command"]
 
 
 def test_phase_gated_params_split_into_existing_checkpoint_format():
@@ -154,7 +149,7 @@ def test_eval_switches_policy_when_non_recipe_map_changes():
     config = _run_config(layout)
     args = SimpleNamespace(
         layout=layout,
-        max_steps=205,
+        max_steps=305,
         stochastic=False,
     )
     runtime = prepare_policy_switch_runtime((config, config), args)
@@ -171,9 +166,9 @@ def test_eval_switches_policy_when_non_recipe_map_changes():
         record_trajectory=False,
     )
 
-    assert length == 205
-    assert policy_trace[:40] == ("policy_0",) * 40
-    assert policy_trace[40:200] == ("policy_1",) * 160
-    assert policy_trace[200:] == ("policy_0",) * 5
+    assert length == 305
+    assert policy_trace[:150] == ("policy_0",) * 150
+    assert policy_trace[150:300] == ("policy_1",) * 150
+    assert policy_trace[300:] == ("policy_0",) * 5
     assert policy_key_for_phase(layout, 0) == "policy_0"
     assert policy_key_for_phase(layout, 1) == "policy_1"

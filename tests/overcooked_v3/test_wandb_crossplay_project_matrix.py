@@ -25,6 +25,7 @@ from baselines.IPPO.eval_wandb_crossplay_matrix_overcooked_v3 import (
     select_matrix_views,
     shard_tasks,
     split_project_path,
+    summarize_adaptation_records,
     summarize_records,
     write_reproducibility_bundle,
 )
@@ -94,9 +95,7 @@ def test_default_run_paths_keep_all_outputs_under_one_saves_directory():
 
     output_dir, artifact_dir = resolve_run_paths(settings, "20260813-120000", 1234)
 
-    assert output_dir == Path(
-        "saves/crossplay/xp-ippo-split_0-20260813-120000-p1234"
-    )
+    assert output_dir == Path("saves/crossplay/xp-ippo-split_0-20260813-120000-p1234")
     assert artifact_dir == output_dir / "artifacts"
 
 
@@ -124,6 +123,7 @@ def test_reproducibility_bundle_saves_command_config_and_executable_sources(
     assert config["artifact_dir"] == str(artifact_dir)
     assert (tmp_path / "source/eval_crossplay_overcooked_v3.py").is_file()
     assert (tmp_path / "source/eval_wandb_crossplay_matrix_overcooked_v3.py").is_file()
+    assert (tmp_path / "source/adaptation_metrics.py").is_file()
     assert (tmp_path / "source/eval_ippo_seedwise.yaml").is_file()
 
 
@@ -154,6 +154,9 @@ def test_eval_cli_accepts_exactly_one_map_with_singular_or_legacy_flag():
 
     parsed = parse_args([*common, "--layout", "split_0"])
     assert parsed.layout == "split_0"
+    assert parsed.max_steps == 450
+    assert parsed.adaptation_window is None
+    assert parsed.adaptation_horizon is None
     assert parsed.workers_per_gpu == 8
     assert parse_args([*common, "--layouts", "split_0"]).layout == "split_0"
 
@@ -362,6 +365,40 @@ def test_exact_model_identity_defines_self_play_and_summary_gap():
         "SP_pairs": 2,
         "XP_pairs": 2,
     }
+
+
+def test_adaptation_summary_uses_stable_sp_xp_wandb_names():
+    records = [
+        {
+            "pair_type": "SP",
+            "adaptation_immediate_drop": 2.0,
+            "adaptation_recovery_time": 30.0,
+            "adaptation_recovery_success_rate": 1.0,
+            "adaptation_auc": 40.0,
+            "adaptation_auc_normalized": 0.8,
+            "adaptation_transition_count": 4,
+        },
+        {
+            "pair_type": "XP",
+            "adaptation_immediate_drop": 4.0,
+            "adaptation_recovery_time": 40.0,
+            "adaptation_recovery_success_rate": 0.5,
+            "adaptation_auc": 20.0,
+            "adaptation_auc_normalized": 0.4,
+            "adaptation_transition_count": 4,
+        },
+    ]
+
+    summary = summarize_adaptation_records(records)
+
+    assert summary["SP/adaptation/immediate_drop"] == 2.0
+    assert summary["SP/adaptation/recovery_time_steps"] == 30.0
+    assert summary["SP/adaptation/recovery_success_rate"] == 1.0
+    assert summary["SP/adaptation/auc"] == 40.0
+    assert summary["SP/adaptation/auc_normalized"] == 0.8
+    assert summary["XP/adaptation/immediate_drop"] == 4.0
+    assert summary["counts/SP_adaptation_pairs"] == 1
+    assert summary["counts/XP_adaptation_pairs"] == 1
 
 
 def test_algorithm_matrix_preserves_agent_order():
