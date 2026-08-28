@@ -33,15 +33,23 @@ from jaxmarl.environments.overcooked_v3.utils import (
 class OvercookedV3(OvercookedV3Base):
     """Overcooked V2-compatible environment whose map changes cyclically."""
 
+    TRANSITION_OBSERVERS = ("none", "agent_0", "agent_1", "both")
+
     def __init__(
         self,
         layout: Union[str, DynamicLayout] = "split_0",
         include_transition_countdown: bool = True,
         include_layout_change_mask: Union[bool, None] = None,
+        transition_observer: str = "both",
         transition_warning_steps: int = 20,
         max_steps: int = 450,
         **kwargs,
     ):
+        if transition_observer not in self.TRANSITION_OBSERVERS:
+            raise ValueError(
+                "transition_observer must be one of "
+                f"{self.TRANSITION_OBSERVERS}, got {transition_observer!r}"
+            )
         if isinstance(transition_warning_steps, bool) or not isinstance(
             transition_warning_steps, int
         ):
@@ -55,6 +63,7 @@ class OvercookedV3(OvercookedV3Base):
             if include_layout_change_mask is None
             else include_layout_change_mask
         )
+        self.transition_observer = transition_observer
         self.transition_warning_steps = transition_warning_steps
         if isinstance(layout, str):
             if layout not in dynamic_layouts:
@@ -118,6 +127,20 @@ class OvercookedV3(OvercookedV3Base):
         )
         self.phase_ends = jnp.cumsum(self.phase_durations)
         self.cycle_steps = int(dynamic_layout.cycle_steps)
+
+        if self.num_agents != 2:
+            raise ValueError(
+                "transition_observer requires the two-agent A/B environment"
+            )
+        self.transition_observer_mask = jnp.asarray(
+            {
+                "none": (False, False),
+                "agent_0": (True, False),
+                "agent_1": (False, True),
+                "both": (True, True),
+            }[transition_observer],
+            dtype=jnp.bool_,
+        )
 
     def _get_obs_shape(self):
         obs_shape = super()._get_obs_shape()
@@ -234,8 +257,11 @@ class OvercookedV3(OvercookedV3Base):
         transition_layers = []
         if self.include_transition_countdown:
             countdown = self.get_transition_countdown(step)
+            countdown_layer = jnp.full(
+                (*obs.shape[:-1], 1), countdown, dtype=jnp.float32
+            )
             transition_layers.append(
-                jnp.full((*obs.shape[:-1], 1), countdown, dtype=jnp.float32)
+                self._select_transition_observers(countdown_layer)
             )
         if self.include_layout_change_mask:
             change_mask = self.get_observation_layout_change_mask(step).astype(
@@ -245,7 +271,9 @@ class OvercookedV3(OvercookedV3Base):
                 change_mask,
                 (*obs.shape[:-3], *change_mask.shape),
             )
-            transition_layers.append(change_mask[..., None])
+            transition_layers.append(
+                self._select_transition_observers(change_mask[..., None])
+            )
         if not transition_layers:
             return obs
         return jnp.concatenate([obs.astype(jnp.float32), *transition_layers], axis=-1)
@@ -254,21 +282,33 @@ class OvercookedV3(OvercookedV3Base):
         transition_features = []
         if self.include_transition_countdown:
             countdown = self.get_transition_countdown(step)
+            countdown_feature = jnp.full(
+                (*obs.shape[:-1], 1), countdown, dtype=jnp.float32
+            )
             transition_features.append(
-                jnp.full((*obs.shape[:-1], 1), countdown, dtype=jnp.float32)
+                self._select_transition_observers(countdown_feature)
             )
         if self.include_layout_change_mask:
             change_mask = self.get_observation_layout_change_mask(step).astype(
                 jnp.float32
             )
             transition_features.append(
-                jnp.broadcast_to(
-                    change_mask.flatten(), (*obs.shape[:-1], change_mask.size)
+                self._select_transition_observers(
+                    jnp.broadcast_to(
+                        change_mask.flatten(), (*obs.shape[:-1], change_mask.size)
+                    )
                 )
             )
         if not transition_features:
             return obs
         return jnp.concatenate([obs.astype(jnp.float32), *transition_features], axis=-1)
+
+    def _select_transition_observers(self, transition_features):
+        """Hide warning-window values without changing policy input shape."""
+
+        gate_shape = (self.num_agents,) + (1,) * (transition_features.ndim - 1)
+        observer_gate = self.transition_observer_mask.reshape(gate_shape)
+        return transition_features * observer_gate
 
     def get_obs_default(self, state: State):
         obs = super().get_obs_default(state)

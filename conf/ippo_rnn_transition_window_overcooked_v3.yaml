@@ -1,0 +1,21 @@
+defaults:
+  - ippo_overcooked_v3
+  - _self_
+
+ARCHITECTURE: rnn
+
+# A/B are the fixed Overcooked identities agent_0/agent_1. Keeping this as a
+# top-level sweep parameter makes the four experimental arms easy to group in
+# W&B while ENV_KWARGS remains the single source consumed by the environment.
+TRANSITION_OBSERVER: both
+ENV_KWARGS:
+  transition_observer: ${TRANSITION_OBSERVER}
+
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-ippo-rnn-transition-window_train}
+EXPERIMENT_FOLDER: transition-window-${TRANSITION_OBSERVER}
+WANDB_GROUP: transition-window-${CONDITION}
+WANDB_TAGS:
+  - transition-window-observer
+  - observer-${TRANSITION_OBSERVER}
+RUN_NAME: ippo_rnn_${CONDITION}_observer-${TRANSITION_OBSERVER}_seed${SEED}
+NOTES: Selective transition-window observation; A=agent_0 and B=agent_1.

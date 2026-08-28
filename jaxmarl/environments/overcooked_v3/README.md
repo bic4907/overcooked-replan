@@ -21,7 +21,11 @@ channels total. Both stay at zero
 until `transition_warning_steps` (20 by default) before a transition. During
 that window, the countdown decreases from `1.0` to `0.05`, and the mask marks
 cells whose static object differs in the next phase. Disable both transition
-features for the 29-channel encoding.
+features for the 29-channel encoding. `transition_observer` can be set to
+`none`, `agent_0`, `agent_1`, or `both` (the default) to expose those two
+warning-window channels selectively while preserving the same observation
+shape for every agent. Scheduled next-recipe preview channels are separate
+task observations and are not affected by this setting.
 
 ## Role-coordination scenarios
 

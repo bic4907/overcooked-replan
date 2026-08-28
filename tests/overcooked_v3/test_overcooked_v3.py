@@ -91,6 +91,41 @@ def test_default_observation_adds_countdown_and_layout_change_mask():
     )
 
 
+@pytest.mark.parametrize(
+    ("transition_observer", "visible_agents"),
+    (
+        ("none", ()),
+        ("agent_0", (0,)),
+        ("agent_1", (1,)),
+        ("both", (0, 1)),
+    ),
+)
+def test_transition_window_can_be_exposed_to_selected_agents(
+    transition_observer, visible_agents
+):
+    env = OvercookedV3(
+        layout="split_0",
+        max_steps=20,
+        transition_observer=transition_observer,
+    )
+    _, state = env.reset(jax.random.PRNGKey(0))
+    obs = env.get_obs(state.replace(step=jnp.array(130)))
+
+    for agent_index, agent in enumerate(env.agents):
+        agent_obs = obs[agent]
+        if agent_index in visible_agents:
+            assert jnp.all(agent_obs[..., -2] == 1.0)
+            assert jnp.any(agent_obs[..., -1])
+        else:
+            assert jnp.all(agent_obs[..., -2:] == 0.0)
+        assert agent_obs.shape == env.obs_shape
+
+
+def test_transition_observer_rejects_unknown_condition():
+    with pytest.raises(ValueError, match="transition_observer must be one of"):
+        OvercookedV3(layout="split_0", transition_observer="agent_a")
+
+
 def test_transition_countdown_decreases_and_resets_after_layout_change():
     env = _env(
         BASE.replace("W A W", "W AWW", 1),

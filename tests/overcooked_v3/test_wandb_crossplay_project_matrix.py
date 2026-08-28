@@ -158,7 +158,13 @@ def test_eval_cli_accepts_exactly_one_map_with_singular_or_legacy_flag():
     assert parsed.adaptation_window is None
     assert parsed.adaptation_horizon is None
     assert parsed.workers_per_gpu == 8
+    assert parsed.transition_observer is None
     assert parse_args([*common, "--layouts", "split_0"]).layout == "split_0"
+
+    selective = parse_args(
+        [*common, "--layout", "split_0", "--transition-observer", "agent_1"]
+    )
+    assert selective.transition_observer == "agent_1"
 
     with pytest.raises(SystemExit):
         parse_args([*common, "--layouts", "split_0", "outage_0"])
@@ -189,8 +195,11 @@ def fake_run(
     seed=0,
     created_at="2026-01-01T00:00:00Z",
     artifact=None,
+    transition_observer=None,
 ):
     config = {"ENV_KWARGS": {"layout": layout}, "SEED": seed}
+    if transition_observer is not None:
+        config["ENV_KWARGS"]["transition_observer"] = transition_observer
     if algorithm is not None:
         config["ALGORITHM"] = algorithm
     artifact = artifact or FakeArtifact()
@@ -220,6 +229,10 @@ def test_run_filters_push_layout_seed_and_state_to_wandb():
         "state": "finished",
     }
     assert "state" not in build_run_filters(["split_0"], run_state="all")
+    selective_filters = build_run_filters(
+        ["split_0"], transition_observer="agent_0"
+    )
+    assert selective_filters["config.ENV_KWARGS.transition_observer"] == "agent_0"
 
 
 def test_shard_tasks_balances_pairs_without_dropping_ordered_tasks():
@@ -335,6 +348,26 @@ def test_discovery_keeps_latest_run_per_algorithm_layout_and_seed():
     )
 
     assert [candidate.run.id for candidate in candidates] == ["new", "seed1"]
+
+
+def test_discovery_filters_and_keeps_transition_observer_arms_separate():
+    no_alert = fake_run("none", algorithm="IPPO", transition_observer="none")
+    agent_0 = fake_run("agent0", algorithm="IPPO", transition_observer="agent_0")
+
+    all_candidates = discover_run_candidates(
+        [no_alert, agent_0],
+        algorithms=["IPPO"],
+        layouts=["split_0"],
+    )
+    filtered = discover_run_candidates(
+        [no_alert, agent_0],
+        algorithms=["IPPO"],
+        layouts=["split_0"],
+        transition_observer="agent_0",
+    )
+
+    assert [candidate.run.id for candidate in all_candidates] == ["agent0", "none"]
+    assert [candidate.run.id for candidate in filtered] == ["agent0"]
 
 
 def test_resolve_vmap_checkpoints_filters_intermediate_and_requested(tmp_path):

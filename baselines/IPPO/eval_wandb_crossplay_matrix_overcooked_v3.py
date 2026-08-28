@@ -38,6 +38,7 @@ try:
     from .eval_wandb_crossplay_overcooked_v3 import (
         _artifact_reference,
         _source_layout,
+        _transition_observer,
         evaluate_crossplay,
         evaluation_signature,
         prepare_crossplay_runtime,
@@ -47,6 +48,7 @@ except ImportError:  # Direct execution: python baselines/IPPO/<script>.py
     from eval_wandb_crossplay_overcooked_v3 import (
         _artifact_reference,
         _source_layout,
+        _transition_observer,
         evaluate_crossplay,
         evaluation_signature,
         prepare_crossplay_runtime,
@@ -158,6 +160,14 @@ def parse_args(argv=None):
         nargs="+",
         type=int,
         help="Optional training-seed filter.",
+    )
+    parser.add_argument(
+        "--transition-observer",
+        choices=("none", "agent_0", "agent_1", "both"),
+        help=(
+            "Optional selective transition-window condition. Required when a "
+            "source project contains more than one observer condition."
+        ),
     )
     parser.add_argument(
         "--vmap-indices",
@@ -284,6 +294,7 @@ def discover_run_candidates(
     artifact_alias="final",
     seeds=None,
     latest_per_seed=True,
+    transition_observer=None,
 ):
     """Filter W&B runs locally and retain checkpoint-bearing candidates."""
     layouts = set(layouts)
@@ -296,7 +307,12 @@ def discover_run_candidates(
         config = dict(getattr(run, "config", {}) or {})
         layout = _source_layout(config)
         seed = _training_seed(config)
-        if layout not in layouts or (seeds is not None and seed not in seeds):
+        observer = _transition_observer(config)
+        if (
+            layout not in layouts
+            or (seeds is not None and seed not in seeds)
+            or (transition_observer is not None and observer != transition_observer)
+        ):
             continue
         try:
             artifact = select_final_artifact(run, artifact_alias)
@@ -322,7 +338,12 @@ def discover_run_candidates(
                 if candidate.seed is not None
                 else getattr(candidate.run, "id", _run_path(candidate.run))
             )
-            key = (candidate.algorithm.casefold(), candidate.layout, seed_key)
+            key = (
+                candidate.algorithm.casefold(),
+                candidate.layout,
+                _transition_observer(candidate.config),
+                seed_key,
+            )
             current = latest.get(key)
             candidate_time = str(getattr(candidate.run, "created_at", ""))
             current_time = (
@@ -495,6 +516,7 @@ def _record_key(layout, left_model_id, right_model_id, args):
         args.max_steps,
         args.seed,
         args.stochastic,
+        getattr(args, "transition_observer", None),
         *adaptation_config_dict(adaptation_config).values(),
     )
 
@@ -508,6 +530,7 @@ def _cached_record_key(record):
         record["max_steps"],
         record["evaluation_seed"],
         record["stochastic"],
+        record.get("transition_observer"),
         record.get("adaptation_metrics_version"),
         record.get("adaptation_window"),
         record.get("adaptation_horizon"),
@@ -537,8 +560,10 @@ def _algorithm_slug(algorithms):
 
 
 def evaluation_run_name(args):
-    """Build a concise W&B run name from algorithm and map only."""
-    return f"xp-{_algorithm_slug(args.algorithms)}-{args.layout}"
+    """Build a concise W&B run name from algorithm, map, and optional arm."""
+    name = f"xp-{_algorithm_slug(args.algorithms)}-{args.layout}"
+    observer = getattr(args, "transition_observer", None)
+    return f"{name}-observer-{observer}" if observer else name
 
 
 def resolve_run_paths(args, timestamp, process_id):
@@ -686,11 +711,15 @@ def _validate_args(args):
     adaptation_config_from_args(args, args.layout)
 
 
-def build_run_filters(layouts, seeds=None, run_state="finished"):
+def build_run_filters(
+    layouts, seeds=None, run_state="finished", transition_observer=None
+):
     """Push stable layout/seed/state selectors into the W&B API query."""
     filters = {"config.ENV_KWARGS.layout": {"$in": list(layouts)}}
     if seeds is not None:
         filters["config.SEED"] = {"$in": list(seeds)}
+    if transition_observer is not None:
+        filters["config.ENV_KWARGS.transition_observer"] = transition_observer
     if run_state != "all":
         filters["state"] = run_state
     return filters
@@ -723,6 +752,7 @@ def build_pair_task(layout, left, right, args, progress_index, total_pairs):
         "max_steps": args.max_steps,
         "evaluation_seed": args.seed,
         "stochastic": args.stochastic,
+        "transition_observer": args.transition_observer,
         **adaptation_config_dict(adaptation_config),
     }
 
@@ -786,6 +816,7 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
         "max_steps",
         "evaluation_seed",
         "stochastic",
+        "transition_observer",
         "adaptation_metrics_version",
         "adaptation_window",
         "adaptation_horizon",
@@ -921,7 +952,12 @@ def main():
     records_path = output_dir / "pair_cache.json"
 
     api = wandb.Api()
-    filters = build_run_filters([args.layout], args.seeds, args.run_state)
+    filters = build_run_filters(
+        [args.layout],
+        args.seeds,
+        args.run_state,
+        args.transition_observer,
+    )
     LOGGER.info("Scanning W&B project %s/%s", source_entity, source_project)
     runs = api.runs(f"{source_entity}/{source_project}", filters=filters)
     candidates = discover_run_candidates(
@@ -931,12 +967,23 @@ def main():
         artifact_alias=args.artifact_alias,
         seeds=args.seeds,
         latest_per_seed=args.latest_per_seed,
+        transition_observer=args.transition_observer,
     )
     LOGGER.info("Selected %d checkpoint artifact(s)", len(candidates))
     if not candidates:
         raise RuntimeError(
             "No matching runs with final checkpoint artifacts were found. Check "
-            "--algorithms, --layout, --seeds, and --artifact-alias."
+            "--algorithms, --layout, --seeds, --transition-observer, and "
+            "--artifact-alias."
+        )
+    selected_observers = {
+        _transition_observer(candidate.config) for candidate in candidates
+    }
+    if len(selected_observers) > 1:
+        raise RuntimeError(
+            "The selected runs contain multiple transition-observer conditions "
+            f"{sorted(selected_observers)}. Pass --transition-observer to evaluate "
+            "one condition at a time."
         )
 
     with wandb.init(
@@ -944,12 +991,17 @@ def main():
         mode=args.wandb_mode,
         name=run_name,
         dir=str(output_dir),
-        group="crossplay-matrix",
+        group=(
+            f"transition-window-{args.layout}"
+            if args.transition_observer
+            else "crossplay-matrix"
+        ),
         job_type="cross-play-matrix-evaluation",
         config={
             "source_project": f"{source_entity}/{source_project}",
             "algorithms": args.algorithms,
             "layout": args.layout,
+            "transition_observer": args.transition_observer,
             "training_seeds": args.seeds,
             "vmap_indices": args.vmap_indices,
             "episodes": args.episodes,
@@ -1025,6 +1077,7 @@ def main():
                 "algorithm": model.algorithm,
                 "layout": model.layout,
                 "training_seed": model.seed,
+                "transition_observer": _transition_observer(model.config),
                 "run": model.run_path,
                 "vmap_index": model.vmap_index,
                 "artifact": model.artifact_name,
@@ -1202,6 +1255,9 @@ def main():
             summaries_path,
             {
                 "map": args.layout,
+                "transition_observer": (
+                    args.transition_observer or next(iter(selected_observers))
+                ),
                 "overall": {
                     key: _json_safe(value)
                     for key, value in {**summary, **scalar_metrics}.items()
@@ -1212,7 +1268,14 @@ def main():
         result_artifact = wandb.Artifact(
             f"crossplay-matrix-{evaluation_run.id}",
             type="crossplay-evaluation",
-            metadata={key: _json_safe(value) for key, value in scalar_metrics.items()},
+            metadata={
+                "transition_observer": (
+                    args.transition_observer or next(iter(selected_observers))
+                ),
+                **{
+                    key: _json_safe(value) for key, value in scalar_metrics.items()
+                },
+            },
         )
         LOGGER.info(
             "Completed %d ordered pairs | SP=%.2f XP=%.2f SP-XP=%.2f",
