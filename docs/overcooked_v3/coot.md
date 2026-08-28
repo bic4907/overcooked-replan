@@ -223,8 +223,22 @@ V3의 기본 설정은 epoch당 수천 step이므로 첫 JIT compile 뒤에도 e
 W&B에 진행률을 기록한다. Sweep agent에서는 `WANDB_API_KEY` 환경변수가 없어도
 agent가 제공한 인증과 run ID를 사용해 online mode를 유지한다.
 학습 중에는 GPU가 현재 batch를 처리하는 동안 다음 NumPy batch 하나를 CPU에서
-미리 생성해 data sampling과 accelerator 계산을 겹친다. 필요하면
-`PREFETCH_BATCHES=false`로 비활성화할 수 있다.
+미리 생성하고 `jax.device_put`으로 전송을 시작해 sampling, host-to-device 전송,
+accelerator 계산을 겹친다. 매 step의 metric은 device에서 누적하고 100-step
+heartbeat에서만 host와 동기화한다. 필요하면 `PREFETCH_BATCHES=false`로
+비활성화할 수 있다.
+
+Dataset sampler는 저장된 observation을 host에서 `float32`로 미리 확장하지 않고
+`float16` 그대로 전송한 뒤 model 진입 시 `float32`로 변환한다. 또한 기본
+`SHARD_CACHE_SIZE=21`로 모든 pair shard를 첫 접근 이후 host RAM에 유지한다.
+이는 매 batch마다 무작위 pair를 고를 때 압축된 NPZ를 반복해서 읽고 해제하는
+병목을 없애기 위한 설정이다. Host RAM이 작은 환경에서는 다음처럼 cache를
+낮출 수 있다.
+
+```bash
+uv run python baselines/CooT/train_overcooked_v3.py \
+  scenario=split_0 SHARD_CACHE_SIZE=2
+```
 
 `COOT_DATASET_ROOT`로 dataset root를, `WANDB_MODE=offline`으로 logging mode를
 바꿀 수 있다.

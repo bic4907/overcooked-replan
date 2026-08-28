@@ -11,7 +11,9 @@ ENV_KWARGS:
 # One directory per layout, produced by collect_overcooked_v3.py.
 DATASET_ROOT: ${oc.env:COOT_DATASET_ROOT,datasets/coot}
 DATASET_PATH: null
-SHARD_CACHE_SIZE: 2
+# Each step chooses uniformly among 21 pair shards. Caching all pairs avoids
+# repeatedly inflating compressed NPZ files after the first access to each one.
+SHARD_CACHE_SIZE: 21
 
 # Paper/supplementary architecture.
 CONTEXT_EPISODES: 5
@@ -41,7 +43,7 @@ EXAMPLES_PER_EPOCH: null
 VALIDATION_BATCHES: 32
 # Emit an online W&B heartbeat and console progress within long V3 epochs.
 LOG_INTERVAL_STEPS: 100
-# Build the next CPU batch while the current JAX step runs on the GPU.
+# Build the next CPU batch and stage it on-device while the current JAX step runs.
 PREFETCH_BATCHES: true
 
 # Released augmentation/masking behavior.

@@ -86,6 +86,7 @@ class CooTShardDataset:
         self.validation_fraction = float(self.metadata.get("validation_fraction", 0.1))
         self.cache_size = max(1, int(cache_size))
         self._cache: OrderedDict[int, dict[str, np.ndarray]] = OrderedDict()
+        self._action_eye = np.eye(self.action_dim, dtype=np.float32)
 
     def _load_pair(self, pair_index: int) -> dict[str, np.ndarray]:
         cached = self._cache.pop(pair_index, None)
@@ -204,15 +205,21 @@ class CooTShardDataset:
             )
 
         sequence_steps = context_episodes * self.horizon
+        # Observations are stored as float16. Keep that representation on the
+        # host and cast in the model after the batch reaches the accelerator;
+        # widening here doubles both host memory traffic and PCIe transfers.
+        observation_dtype = shard["observations"].dtype
         context_states = np.zeros(
-            (batch_size, sequence_steps, self.observation_dim), dtype=np.float32
+            (batch_size, sequence_steps, self.observation_dim),
+            dtype=observation_dtype,
         )
         context_actions = np.zeros(
             (batch_size, sequence_steps, self.action_dim), dtype=np.float32
         )
         context_rewards = np.zeros((batch_size, sequence_steps, 1), dtype=np.float32)
         query_states = np.zeros(
-            (batch_size, num_query_states, self.observation_dim), dtype=np.float32
+            (batch_size, num_query_states, self.observation_dim),
+            dtype=observation_dtype,
         )
         target_actions = np.zeros((batch_size, num_query_states), dtype=np.int32)
         target_mask = np.zeros((batch_size, num_query_states), dtype=np.float32)
@@ -238,9 +245,10 @@ class CooTShardDataset:
                 if context_index < masked_rollouts:
                     continue
                 states = np.asarray(
-                    shard["observations"][trajectory_index], dtype=np.float32
+                    shard["observations"][trajectory_index],
+                    dtype=observation_dtype,
                 ).reshape(self.horizon, -1)
-                actions = np.eye(self.action_dim, dtype=np.float32)[
+                actions = self._action_eye[
                     shard["actions"][trajectory_index].astype(np.int32)
                 ]
                 rewards = np.asarray(
@@ -264,7 +272,7 @@ class CooTShardDataset:
             destination_start = num_query_states - (source_stop - source_start)
             query_states[batch_index, destination_start:] = np.asarray(
                 shard["observations"][query_trajectory, source_start:source_stop],
-                dtype=np.float32,
+                dtype=observation_dtype,
             ).reshape(source_stop - source_start, -1)
             target_actions[batch_index, destination_start:] = shard["actions"][
                 query_trajectory, source_start:source_stop

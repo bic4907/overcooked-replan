@@ -9,6 +9,7 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -273,8 +274,8 @@ def main(hydra_config: DictConfig) -> None:
     )
     label_smoothing = float(config["LABEL_SMOOTHING"])
 
-    @jax.jit
-    def train_step(train_state, batch, dropout_rng):
+    @partial(jax.jit, donate_argnums=(0, 3))
+    def train_step(train_state, batch, dropout_rng, metric_sums):
         def objective(params):
             logits = model.apply(
                 {"params": params},
@@ -303,7 +304,10 @@ def main(hydra_config: DictConfig) -> None:
             "gradient_norm": optax.global_norm(gradients),
             "learning_rate": schedule(train_state.step - 1),
         }
-        return train_state, metrics
+        metric_sums = {
+            name: metric_sums[name] + value for name, value in metrics.items()
+        }
+        return train_state, metrics, metric_sums
 
     @jax.jit
     def validation_step(params, batch):
@@ -375,6 +379,7 @@ def main(hydra_config: DictConfig) -> None:
         f"[{_timestamp()}] CooT training: layout={layout} pairs={len(dataset.pairs)} "
         f"sequence={model_config.sequence_length} examples/epoch={examples_per_epoch} "
         f"batch={batch_size} steps/epoch={steps_per_epoch} "
+        f"shard_cache={dataset.cache_size} "
         f"prefetch={'on' if prefetch_batches else 'off'}",
         flush=True,
     )
@@ -393,15 +398,25 @@ def main(hydra_config: DictConfig) -> None:
             step_mask_count=mask_count,
         )
 
+    def device_batch(numpy_batch):
+        return jax.device_put(
+            {
+                name: value
+                for name, value in numpy_batch.items()
+                if name != "pair_index"
+            }
+        )
+
     def train_batches(mask_count):
         if not prefetch_batches:
             for _ in range(steps_per_epoch):
-                yield sample_train_batch(mask_count)
+                yield device_batch(sample_train_batch(mask_count))
             return
 
-        # Keep exactly one CPU batch ahead while the current batch runs on the
-        # GPU. Dataset sampling is the only consumer of ``rng`` in this scope;
-        # validation starts after the final future has completed.
+        # Keep exactly one CPU batch ahead and start its host-to-device transfer
+        # while the previous asynchronous train step is still executing. Dataset
+        # sampling is the only consumer of ``rng`` in this scope; validation
+        # starts after the final future has completed.
         with ThreadPoolExecutor(
             max_workers=1, thread_name_prefix="coot-batch-prefetch"
         ) as executor:
@@ -410,17 +425,21 @@ def main(hydra_config: DictConfig) -> None:
                 numpy_batch = pending.result()
                 if batch_index + 1 < steps_per_epoch:
                     pending = executor.submit(sample_train_batch, mask_count)
-                yield numpy_batch
+                yield device_batch(numpy_batch)
 
     for epoch in range(max_epochs):
-        train_accumulator = []
+        train_metric_sums = {
+            name: jnp.asarray(0.0, dtype=jnp.float32)
+            for name in (
+                "loss",
+                "accuracy",
+                "entropy",
+                "gradient_norm",
+                "learning_rate",
+            )
+        }
         mask_count = _step_mask_count(config, epoch)
-        for epoch_step, numpy_batch in enumerate(train_batches(mask_count), start=1):
-            batch = {
-                key: jnp.asarray(value)
-                for key, value in numpy_batch.items()
-                if key != "pair_index"
-            }
+        for epoch_step, batch in enumerate(train_batches(mask_count), start=1):
             key, step_key = jax.random.split(key)
             if epoch == 0 and epoch_step == 1:
                 print(
@@ -428,14 +447,18 @@ def main(hydra_config: DictConfig) -> None:
                     "this can take several minutes",
                     flush=True,
                 )
-            state, metrics = train_step(state, batch, step_key)
-            host_metrics = jax.device_get(metrics)
-            train_accumulator.append(host_metrics)
-            if (
+            state, metrics, train_metric_sums = train_step(
+                state, batch, step_key, train_metric_sums
+            )
+            should_log = (
                 epoch_step == 1
                 or epoch_step % log_interval_steps == 0
                 or epoch_step == steps_per_epoch
-            ):
+            )
+            if should_log:
+                # Synchronize only at the configured heartbeat. Doing this for
+                # every step leaves an avoidable host gap between GPU launches.
+                host_metrics = jax.device_get(metrics)
                 global_step = epoch * steps_per_epoch + epoch_step
                 wandb.log(
                     {
@@ -459,6 +482,7 @@ def main(hydra_config: DictConfig) -> None:
                     flush=True,
                 )
 
+        host_train_metric_sums = jax.device_get(train_metric_sums)
         validation_accumulator = []
         for _ in range(validation_batches):
             numpy_batch = dataset.sample_batch(
@@ -482,8 +506,8 @@ def main(hydra_config: DictConfig) -> None:
             )
 
         train_metrics = {
-            name: float(np.mean([entry[name] for entry in train_accumulator]))
-            for name in train_accumulator[0]
+            name: float(value) / steps_per_epoch
+            for name, value in host_train_metric_sums.items()
         }
         validation_metrics = {
             name: float(np.mean([entry[name] for entry in validation_accumulator]))
