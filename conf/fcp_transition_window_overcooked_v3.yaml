@@ -1,0 +1,25 @@
+defaults:
+  - fcp_overcooked_v3
+  - _self_
+
+TRANSITION_OBSERVER: both
+ENV_KWARGS:
+  transition_observer: ${TRANSITION_OBSERVER}
+
+# Must match POPULATION_ROOT in fcp_population_transition_window_overcooked_v3.
+# Each best response only sees frozen partners trained under the same observer
+# condition, preventing observer arms from leaking into one another.
+POPULATION_ROOT: saves/fcp_transition_window_observer_3seed/population
+FCP:
+  population_dir: ${POPULATION_ROOT}/${TRANSITION_OBSERVER}
+
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-fcp-transition-window-3seed_train}
+SAVES_DIR: saves/fcp_transition_window_observer_3seed/train
+EXPERIMENT_FOLDER: transition-window-${TRANSITION_OBSERVER}
+WANDB_GROUP: fcp-transition-window-${CONDITION}
+WANDB_TAGS:
+  - FCP
+  - transition-window-observer
+  - observer-${TRANSITION_OBSERVER}
+RUN_NAME: fcp_rnn_${CONDITION}_observer-${TRANSITION_OBSERVER}_seed${SEED}
+NOTES: FCP best response with observer-matched frozen partners; A=agent_0 and B=agent_1.

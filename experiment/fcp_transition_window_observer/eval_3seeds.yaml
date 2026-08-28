@@ -1,0 +1,47 @@
+program: baselines/IPPO/eval_crossplay_overcooked_v3.py
+name: fcp-transition-window-observer-3seeds-seedwise-xp
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+parameters:
+  algorithms:
+    value: FCP
+  layout:
+    values:
+      - split_0
+      - split_1
+      - outage_0
+      - outage_1
+      - recipe_switch_0
+      - recipe_switch_1
+      - distance_switch_0
+      - distance_switch_1
+  transition-observer:
+    values:
+      - none
+      - agent_0
+      - agent_1
+      - both
+  episodes:
+    value: 20
+  max-steps:
+    value: 450
+  workers-per-gpu:
+    value: 8
+  entity:
+    value: cilab-overcooked
+  output-project:
+    value: cilab-overcooked/overcooked-v3-fcp-transition-window-3seed_eval
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - cilab-overcooked/overcooked-v3-fcp-transition-window-3seed_train
+  - --seeds
+  - "0"
+  - "1"
+  - "2"
+  - ${args_no_equals}

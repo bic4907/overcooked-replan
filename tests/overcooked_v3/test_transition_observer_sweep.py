@@ -7,6 +7,7 @@ from wandb.sdk.launch.sweeps.utils import create_sweep_command_args
 ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = ROOT / "conf"
 EXPERIMENT_DIR = ROOT / "experiment" / "transition_window_observer"
+FCP_EXPERIMENT_DIR = ROOT / "experiment" / "fcp_transition_window_observer"
 OBSERVERS = ["none", "agent_0", "agent_1", "both"]
 LAYOUTS = [
     f"{family}_{variant}"
@@ -59,3 +60,46 @@ def test_transition_observer_eval_sweep_renders_filter_flag():
 
     assert "--transition-observer" in rendered
     assert rendered[rendered.index("--transition-observer") + 1] == "none"
+
+
+def test_fcp_transition_observer_configs_keep_populations_separate():
+    with initialize_config_dir(version_base=None, config_dir=str(CONFIG_DIR)):
+        population = compose(
+            config_name="fcp_population_transition_window_overcooked_v3",
+            overrides=["scenario=split_1", "TRANSITION_OBSERVER=agent_0", "SEED=2"],
+        )
+        training = compose(
+            config_name="fcp_transition_window_overcooked_v3",
+            overrides=["scenario=split_1", "TRANSITION_OBSERVER=agent_0", "SEED=2"],
+        )
+
+    expected_root = "saves/fcp_transition_window_observer_3seed/population"
+    assert population.SAVES_DIR == f"{expected_root}/agent_0"
+    assert population.CHECKPOINT_FRACTIONS == [0.1, 0.5, 1.0]
+    assert population.upload_final_checkpoint is False
+    assert training.ENV_KWARGS.transition_observer == "agent_0"
+    assert training.FCP.population_dir == f"{expected_root}/agent_0"
+    assert training.RUN_NAME == "fcp_rnn_split_1_observer-agent_0_seed2"
+
+
+def test_fcp_transition_observer_sweeps_cover_three_sequential_stages():
+    population = _load_yaml(FCP_EXPERIMENT_DIR / "population_3seeds.yaml")
+    training = _load_yaml(FCP_EXPERIMENT_DIR / "train_3seeds.yaml")
+    evaluation = _load_yaml(FCP_EXPERIMENT_DIR / "eval_3seeds.yaml")
+
+    assert population["parameters"]["scenario"]["values"] == LAYOUTS
+    assert population["parameters"]["TRANSITION_OBSERVER"]["values"] == OBSERVERS
+    assert population["parameters"]["SEED"]["values"] == [0, 1, 2]
+    assert population["parameters"]["PROJECT"]["value"].endswith("_population")
+    assert population["command"][-1] == "${args_no_hyphens}"
+
+    assert training["parameters"]["scenario"]["values"] == LAYOUTS
+    assert training["parameters"]["TRANSITION_OBSERVER"]["values"] == OBSERVERS
+    assert training["parameters"]["SEED"]["values"] == [0, 1, 2]
+    assert training["command"][-1] == "${args_no_hyphens}"
+
+    assert evaluation["parameters"]["algorithms"]["value"] == "FCP"
+    assert evaluation["parameters"]["layout"]["values"] == LAYOUTS
+    assert evaluation["parameters"]["transition-observer"]["values"] == OBSERVERS
+    assert evaluation["command"][4:8] == ["--seeds", "0", "1", "2"]
+    assert evaluation["command"][-1] == "${args_no_equals}"
