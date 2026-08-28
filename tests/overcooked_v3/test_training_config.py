@@ -144,6 +144,11 @@ def test_wandb_mode_stays_online_with_api_key():
     assert _resolve_wandb_mode({"wandb_mode": "online"}, environ) == "online"
 
 
+def test_wandb_mode_stays_online_for_authenticated_sweep_agent():
+    environ = {"WANDB_SWEEP_ID": "test-sweep"}
+    assert _resolve_wandb_mode({"wandb_mode": "online"}, environ) == "online"
+
+
 def test_explicit_offline_and_disabled_modes_are_preserved():
     assert _resolve_wandb_mode({"wandb_mode": "offline"}, {}) == "offline"
     assert _resolve_wandb_mode({"wandb_mode": "disabled"}, {}) == "disabled"

@@ -98,13 +98,17 @@ def _timestamp():
 
 
 def _resolve_wandb_mode(config, environ=None):
-    """Fall back from online to offline when no API key is configured."""
+    """Keep authenticated sweep agents online; otherwise allow offline fallback."""
     if environ is None:
         environ = os.environ
     mode = str(config.get("wandb_mode", "online")).lower()
     if mode not in {"online", "offline", "disabled"}:
         raise ValueError("wandb_mode must be online, offline, or disabled")
-    if mode == "online" and not environ.get("WANDB_API_KEY", "").strip():
+    if (
+        mode == "online"
+        and not environ.get("WANDB_API_KEY", "").strip()
+        and not environ.get("WANDB_SWEEP_ID", "").strip()
+    ):
         return "offline"
     return mode
 
