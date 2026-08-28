@@ -32,9 +32,9 @@ LABEL_SMOOTHING: 0.0
 MAX_EPOCHS: 70
 PATIENCE: 25
 
-# Paper/supplementary default. V3's 450-step context is 2.25x longer than the
-# original 200-step sequence; override this only if the target GPU cannot fit it.
-BATCH_SIZE: 120
+# V3's 2,256-token attention does not fit the paper's batch of 120 on a 40 GB
+# GPU. Use a physical batch of 16 to leave headroom for backward activations.
+BATCH_SIZE: 16
 EXAMPLES_PER_EPOCH: null
 # Prefer manifest pairs with split=validation (five in the release). If none
 # exist, the dataset loader uses its validation_fraction trajectory holdout.

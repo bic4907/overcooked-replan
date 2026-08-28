@@ -358,7 +358,8 @@ def main(hydra_config: DictConfig) -> None:
 
     print(
         f"[{_timestamp()}] CooT training: layout={layout} pairs={len(dataset.pairs)} "
-        f"sequence={model_config.sequence_length} examples/epoch={examples_per_epoch}",
+        f"sequence={model_config.sequence_length} examples/epoch={examples_per_epoch} "
+        f"batch={batch_size}",
         flush=True,
     )
     for epoch in range(max_epochs):

@@ -200,12 +200,14 @@ episode로 바꾸지는 않는다.
 uv run python baselines/CooT/train_overcooked_v3.py scenario=split_0
 ```
 
-기본 `BATCH_SIZE=120`은 원 논문 및 supplementary와 같다. V3의 450-step
-episode 때문에 GPU 메모리가 부족한 경우에만 다음처럼 명시적으로 낮춘다.
+원 논문 및 supplementary의 `BATCH_SIZE=120`은 V3의 2,256-token attention에서
+40GB GPU 메모리를 초과한다. 기본값은 physical `BATCH_SIZE=16`으로 낮췄으며,
+이는 메모리를 위한 명시적인 paper 설정 변경이다. 더 작은 GPU에서는 다음처럼
+8로 낮출 수 있다.
 
 ```bash
 uv run python baselines/CooT/train_overcooked_v3.py \
-  scenario=split_0 BATCH_SIZE=16
+  scenario=split_0 BATCH_SIZE=8
 ```
 
 전체 role-scenario sweep:

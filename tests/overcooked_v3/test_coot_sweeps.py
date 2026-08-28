@@ -67,6 +67,15 @@ def test_coot_projects_are_stage_isolated_from_fcp_and_self_play():
     }
 
 
+def test_train_sweep_uses_memory_safe_v3_batch():
+    sweep = _sweep(REPO_ROOT / "experiment" / "coot" / "train.yaml")
+    batch_size = int(_parameter(sweep, "BATCH_SIZE"))
+    config = _compose("coot_overcooked_v3", ["scenario=split_0"])
+
+    assert batch_size == 16
+    assert config["BATCH_SIZE"] == batch_size
+
+
 def test_response_sweeps_use_distinct_manifest_stages():
     expected = {
         "response_candidates.yaml": "candidates",
