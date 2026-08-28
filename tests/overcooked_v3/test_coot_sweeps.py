@@ -94,6 +94,11 @@ def test_coot_sweeps_stay_online_with_agent_credentials():
     assert resolve_train_wandb_mode({"wandb_mode": "online"}, environ={}) == "offline"
     assert resolve_eval_wandb_mode("online", environ={}) == "offline"
 
+    train_sweep = _sweep(REPO_ROOT / "experiment" / "coot" / "train.yaml")
+    eval_sweep = _sweep(REPO_ROOT / "experiment" / "coot" / "eval.yaml")
+    assert _parameter(train_sweep, "wandb_mode") == "online"
+    assert _parameter(eval_sweep, "wandb-mode") == "online"
+
 
 def test_response_sweeps_use_distinct_manifest_stages():
     expected = {

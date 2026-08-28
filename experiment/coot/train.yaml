@@ -1,5 +1,5 @@
 program: baselines/CooT/train_overcooked_v3.py
-name: coot-role-scenarios-reindexed-v5
+name: coot-role-scenarios-reindexed-v6
 method: grid
 metric:
   goal: minimize
@@ -22,6 +22,8 @@ parameters:
   # Batch 16 measured about 12 GB; 32 leaves peak headroom on a 40 GB GPU.
   BATCH_SIZE:
     value: 32
+  wandb_mode:
+    value: online
   ENTITY:
     value: cilab-overcooked
   PROJECT:
