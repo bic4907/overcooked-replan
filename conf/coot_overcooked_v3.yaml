@@ -11,9 +11,9 @@ ENV_KWARGS:
 # One directory per layout, produced by collect_overcooked_v3.py.
 DATASET_ROOT: ${oc.env:COOT_DATASET_ROOT,datasets/coot}
 DATASET_PATH: null
-# Each step chooses uniformly among 21 pair shards. Caching all pairs avoids
-# repeatedly inflating compressed NPZ files after the first access to each one.
-SHARD_CACHE_SIZE: 21
+# Zero means exactly the number of pair shards declared by each dataset. This
+# keeps the full dataset, but no redundant capacity, resident after preload.
+SHARD_CACHE_SIZE: 0
 # Fail before compilation if any shard cannot be loaded, and keep the full
 # dataset resident in host RAM so training never waits for NPZ decompression.
 PRELOAD_SHARDS: true

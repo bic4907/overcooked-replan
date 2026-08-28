@@ -84,11 +84,21 @@ class CooTShardDataset:
         self.observation_shape = tuple(self.metadata["observation_shape"])
         self.observation_dim = int(np.prod(self.observation_shape))
         self.validation_fraction = float(self.metadata.get("validation_fraction", 0.1))
-        self.cache_size = max(1, int(cache_size))
+        requested_cache_size = int(cache_size)
+        self.cache_size = (
+            len(self.pairs)
+            if requested_cache_size <= 0
+            else max(1, requested_cache_size)
+        )
         self._cache: OrderedDict[int, dict[str, np.ndarray]] = OrderedDict()
+        self._fully_preloaded = False
         self._action_eye = np.eye(self.action_dim, dtype=np.float32)
 
     def _load_pair(self, pair_index: int) -> dict[str, np.ndarray]:
+        if self._fully_preloaded:
+            # Preload freezes the complete dataset in RAM. Avoid LRU mutation
+            # and any filesystem work for the rest of training.
+            return self._cache[pair_index]
         cached = self._cache.pop(pair_index, None)
         if cached is not None:
             self._cache[pair_index] = cached
@@ -118,6 +128,7 @@ class CooTShardDataset:
             )
         for pair_index in range(pair_count):
             self._load_pair(pair_index)
+        self._fully_preloaded = True
         return sum(
             array.nbytes for shard in self._cache.values() for array in shard.values()
         )
