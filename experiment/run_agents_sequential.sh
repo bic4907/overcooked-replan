@@ -54,7 +54,7 @@ stop_runpod_if_needed() {
 
     log "All work completed; stopping RunPod pod $RUNPOD_POD_ID"
     if command -v runpodctl >/dev/null 2>&1; then
-        runpodctl pod stop "$RUNPOD_POD_ID"
+        runpodctl stop pod "$RUNPOD_POD_ID"
     elif command -v curl >/dev/null 2>&1 && [ -n "${RUNPOD_API_KEY:-}" ]; then
         curl \
             --fail \
