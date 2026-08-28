@@ -4,6 +4,7 @@ set -Eeuo pipefail
 
 PROJECT_DIR="${PROJECT_DIR:-$(pwd -P)}"
 IMAGE_NAME="${IMAGE_NAME:-overcooked-replan:uv-cuda12}"
+FALLBACK_IMAGE="${FALLBACK_IMAGE:-bic4907/overcooked:cu13}"
 BASE_IMAGE="${BASE_IMAGE:-python:3.12-slim-bookworm}"
 UV_VERSION="${UV_VERSION:-0.9.7}"
 DOCKER_SHM_SIZE="${DOCKER_SHM_SIZE:-16g}"
@@ -25,7 +26,8 @@ build_image() {
 if [[ "${REBUILD_IMAGE}" == "1" ]]; then
     build_image
 elif ! docker image inspect "${IMAGE_NAME}" >/dev/null 2>&1; then
-    build_image
+    echo "Docker image ${IMAGE_NAME} was not found; falling back to ${FALLBACK_IMAGE}." >&2
+    IMAGE_NAME="${FALLBACK_IMAGE}"
 fi
 
 docker_args=(
