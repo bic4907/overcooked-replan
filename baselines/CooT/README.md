@@ -42,9 +42,10 @@ implementation.
 4. Raw rollouts are stored once in compressed pair shards and the released
    `M x K x L` sampling distribution is drawn online. This avoids materializing
    the same 450-step V3 context 70 times.
-5. The physical batch is reduced from the released value of 120 to 16. V3's
-   2,256-token attention exhausts a 40 GB GPU at 120; the smaller batch is an
-   explicit memory-driven deviation from the paper training configuration.
+5. The physical batch is reduced from the released value of 120 to 32. V3's
+   2,256-token attention exhausts a 40 GB GPU at 120; batch 32 is expected to
+   use about 24 GB based on a measured 12 GB at batch 16. This is an explicit
+   memory-driven deviation from the paper training configuration.
 6. The Transformer is expressed with Flax primitives instead of Hugging Face
    PyTorch. Tensor layout and random initialization are framework-native, while
    architecture, objective, masking, and optimizer settings are preserved.

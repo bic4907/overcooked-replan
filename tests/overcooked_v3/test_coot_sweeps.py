@@ -72,7 +72,7 @@ def test_train_sweep_uses_memory_safe_v3_batch():
     batch_size = int(_parameter(sweep, "BATCH_SIZE"))
     config = _compose("coot_overcooked_v3", ["scenario=split_0"])
 
-    assert batch_size == 16
+    assert batch_size == 32
     assert config["BATCH_SIZE"] == batch_size
 
 

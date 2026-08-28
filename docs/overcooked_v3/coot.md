@@ -201,13 +201,14 @@ uv run python baselines/CooT/train_overcooked_v3.py scenario=split_0
 ```
 
 원 논문 및 supplementary의 `BATCH_SIZE=120`은 V3의 2,256-token attention에서
-40GB GPU 메모리를 초과한다. 기본값은 physical `BATCH_SIZE=16`으로 낮췄으며,
-이는 메모리를 위한 명시적인 paper 설정 변경이다. 더 작은 GPU에서는 다음처럼
-8로 낮출 수 있다.
+40GB GPU 메모리를 초과한다. Batch 16에서 약 12GB를 사용한 측정값을 바탕으로
+기본값은 physical `BATCH_SIZE=32`로 설정했다. 약 24GB 사용을 예상하므로 peak
+여유를 남긴다. 이는 메모리를 위한 명시적인 paper 설정 변경이다. 더 작은
+GPU에서는 다음처럼 16으로 낮출 수 있다.
 
 ```bash
 uv run python baselines/CooT/train_overcooked_v3.py \
-  scenario=split_0 BATCH_SIZE=8
+  scenario=split_0 BATCH_SIZE=16
 ```
 
 전체 role-scenario sweep:

@@ -1,5 +1,5 @@
 program: baselines/CooT/train_overcooked_v3.py
-name: coot-role-scenarios-reindexed-v3
+name: coot-role-scenarios-reindexed-v4
 method: grid
 metric:
   goal: minimize
@@ -19,9 +19,9 @@ parameters:
   SEED:
     # Match the six training seeds used by the existing FCP/Self-play sweeps.
     values: [0, 1, 2, 3, 4, 5]
-  # V3's 2,256-token attention OOMs with the paper's batch of 120 on 40 GB.
+  # Batch 16 measured about 12 GB; 32 leaves peak headroom on a 40 GB GPU.
   BATCH_SIZE:
-    value: 16
+    value: 32
   ENTITY:
     value: cilab-overcooked
   PROJECT:
