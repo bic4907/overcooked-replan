@@ -7,7 +7,9 @@
 #     entity/project/EVAL_SWEEP_ID
 #
 # Every GPU works on the current sweep in parallel. The next sweep starts only
-# after every agent for the current grid sweep exits. No --count is used.
+# after every agent for the current grid sweep exits. No --count is used. When
+# running inside a RunPod Pod, successful completion stops the Pod automatically;
+# set RUNPOD_AUTO_STOP=0 to keep it running.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -36,6 +38,37 @@ cleanup() {
 handle_signal() {
     cleanup
     exit 130
+}
+
+stop_runpod_if_needed() {
+    if [ -z "${RUNPOD_POD_ID:-}" ]; then
+        return 0
+    fi
+
+    case "${RUNPOD_AUTO_STOP:-1}" in
+        0|false|FALSE|no|NO)
+            log "RunPod auto-stop is disabled (pod=$RUNPOD_POD_ID)"
+            return 0
+            ;;
+    esac
+
+    log "All work completed; stopping RunPod pod $RUNPOD_POD_ID"
+    if command -v runpodctl >/dev/null 2>&1; then
+        runpodctl pod stop "$RUNPOD_POD_ID"
+    elif command -v curl >/dev/null 2>&1 && [ -n "${RUNPOD_API_KEY:-}" ]; then
+        curl \
+            --fail \
+            --silent \
+            --show-error \
+            --output /dev/null \
+            --request POST \
+            --url "https://rest.runpod.io/v1/pods/$RUNPOD_POD_ID/stop" \
+            --header "Authorization: Bearer $RUNPOD_API_KEY"
+    else
+        log "Unable to stop RunPod: runpodctl is unavailable and RUNPOD_API_KEY/curl fallback is not configured"
+        return 1
+    fi
+    log "RunPod stop requested successfully"
 }
 
 trap handle_signal INT TERM
@@ -102,3 +135,4 @@ done
 
 trap - INT TERM
 log "All sweeps completed"
+stop_runpod_if_needed
