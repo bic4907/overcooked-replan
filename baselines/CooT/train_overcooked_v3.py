@@ -6,6 +6,7 @@ import json
 import math
 import os
 import tempfile
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from datetime import datetime
@@ -195,6 +196,21 @@ def main(hydra_config: DictConfig) -> None:
         raise ValueError(
             f"Dataset layout {dataset_layout!r} does not match config layout {layout!r}"
         )
+    preload_shards = bool(config["PRELOAD_SHARDS"])
+    if preload_shards:
+        print(
+            f"[{_timestamp()}] preloading {len(dataset.pairs)} CooT pair shards "
+            "into host RAM",
+            flush=True,
+        )
+        preload_started = time.perf_counter()
+        resident_bytes = dataset.preload_all()
+        print(
+            f"[{_timestamp()}] preloaded {len(dataset.pairs)} pair shards: "
+            f"{resident_bytes / (1024**3):.2f} GiB in "
+            f"{time.perf_counter() - preload_started:.1f}s",
+            flush=True,
+        )
 
     model_config = CooTConfig(
         observation_dim=dataset.observation_dim,
@@ -380,6 +396,7 @@ def main(hydra_config: DictConfig) -> None:
         f"sequence={model_config.sequence_length} examples/epoch={examples_per_epoch} "
         f"batch={batch_size} steps/epoch={steps_per_epoch} "
         f"shard_cache={dataset.cache_size} "
+        f"preloaded={'yes' if preload_shards else 'no'} "
         f"prefetch={'on' if prefetch_batches else 'off'}",
         flush=True,
     )

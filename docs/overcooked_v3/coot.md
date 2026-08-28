@@ -232,12 +232,15 @@ Dataset sampler는 저장된 observation을 host에서 `float32`로 미리 확�
 `float16` 그대로 전송한 뒤 model 진입 시 `float32`로 변환한다. 또한 기본
 `SHARD_CACHE_SIZE=21`로 모든 pair shard를 첫 접근 이후 host RAM에 유지한다.
 이는 매 batch마다 무작위 pair를 고를 때 압축된 NPZ를 반복해서 읽고 해제하는
-병목을 없애기 위한 설정이다. Host RAM이 작은 환경에서는 다음처럼 cache를
-낮출 수 있다.
+병목을 없애기 위한 설정이다. 기본 `PRELOAD_SHARDS=true`는 model compile 전에
+21개 shard를 모두 읽어 누락·손상 및 host RAM 문제를 조기에 드러내고, 실제
+training이 시작될 때는 cache가 완전히 warm된 상태를 보장한다. 이 preload는
+host RAM 대상이므로 GPU OOM 여부는 첫 train step compile에서 별도로 확인된다.
+Host RAM이 작은 환경에서는 preload를 끄고 다음처럼 cache를 낮출 수 있다.
 
 ```bash
 uv run python baselines/CooT/train_overcooked_v3.py \
-  scenario=split_0 SHARD_CACHE_SIZE=2
+  scenario=split_0 PRELOAD_SHARDS=false SHARD_CACHE_SIZE=2
 ```
 
 `COOT_DATASET_ROOT`로 dataset root를, `WANDB_MODE=offline`으로 logging mode를

@@ -26,6 +26,8 @@ parameters:
   # repeated NPZ decompression keeps the accelerator input pipeline fed.
   SHARD_CACHE_SIZE:
     value: 21
+  PRELOAD_SHARDS:
+    value: true
   PREFETCH_BATCHES:
     value: true
   wandb_mode:

@@ -107,6 +107,21 @@ class CooTShardDataset:
             self._cache.popitem(last=False)
         return shard
 
+    def preload_all(self) -> int:
+        """Load and retain every pair shard, returning resident array bytes."""
+
+        pair_count = len(self.pairs)
+        if self.cache_size < pair_count:
+            raise ValueError(
+                "PRELOAD_SHARDS requires SHARD_CACHE_SIZE to cover every pair: "
+                f"cache_size={self.cache_size}, pairs={pair_count}"
+            )
+        for pair_index in range(pair_count):
+            self._load_pair(pair_index)
+        return sum(
+            array.nbytes for shard in self._cache.values() for array in shard.values()
+        )
+
     def _candidate_pair_indices(
         self, split: Literal["train", "validation"]
     ) -> list[int]:
