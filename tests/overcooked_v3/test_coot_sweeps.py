@@ -79,6 +79,7 @@ def test_train_sweep_uses_memory_safe_v3_batch():
     assert batch_size == 32
     assert config["BATCH_SIZE"] == batch_size
     assert config["LOG_INTERVAL_STEPS"] == 100
+    assert config["PREFETCH_BATCHES"] is True
 
 
 def test_coot_sweeps_stay_online_with_agent_credentials():

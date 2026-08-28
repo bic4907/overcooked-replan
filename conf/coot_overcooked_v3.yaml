@@ -41,6 +41,8 @@ EXAMPLES_PER_EPOCH: null
 VALIDATION_BATCHES: 32
 # Emit an online W&B heartbeat and console progress within long V3 epochs.
 LOG_INTERVAL_STEPS: 100
+# Build the next CPU batch while the current JAX step runs on the GPU.
+PREFETCH_BATCHES: true
 
 # Released augmentation/masking behavior.
 ROLLOUT_MASKING: true

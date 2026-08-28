@@ -222,6 +222,9 @@ V3의 기본 설정은 epoch당 수천 step이므로 첫 JIT compile 뒤에도 e
 오래 걸린다. Trainer는 첫 compile을 별도로 알리고 이후 100 step마다 console과
 W&B에 진행률을 기록한다. Sweep agent에서는 `WANDB_API_KEY` 환경변수가 없어도
 agent가 제공한 인증과 run ID를 사용해 online mode를 유지한다.
+학습 중에는 GPU가 현재 batch를 처리하는 동안 다음 NumPy batch 하나를 CPU에서
+미리 생성해 data sampling과 accelerator 계산을 겹친다. 필요하면
+`PREFETCH_BATCHES=false`로 비활성화할 수 있다.
 
 `COOT_DATASET_ROOT`로 dataset root를, `WANDB_MODE=offline`으로 logging mode를
 바꿀 수 있다.

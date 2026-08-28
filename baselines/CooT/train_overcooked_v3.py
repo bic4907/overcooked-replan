@@ -6,6 +6,7 @@ import json
 import math
 import os
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -219,6 +220,7 @@ def main(hydra_config: DictConfig) -> None:
     max_epochs = int(config["MAX_EPOCHS"])
     validation_batches = int(config["VALIDATION_BATCHES"])
     log_interval_steps = int(config["LOG_INTERVAL_STEPS"])
+    prefetch_batches = bool(config["PREFETCH_BATCHES"])
     if batch_size < 1:
         raise ValueError("BATCH_SIZE must be positive")
     if max_epochs < 1:
@@ -372,25 +374,48 @@ def main(hydra_config: DictConfig) -> None:
     print(
         f"[{_timestamp()}] CooT training: layout={layout} pairs={len(dataset.pairs)} "
         f"sequence={model_config.sequence_length} examples/epoch={examples_per_epoch} "
-        f"batch={batch_size} steps/epoch={steps_per_epoch}",
+        f"batch={batch_size} steps/epoch={steps_per_epoch} "
+        f"prefetch={'on' if prefetch_batches else 'off'}",
         flush=True,
     )
+
+    def sample_train_batch(mask_count):
+        return dataset.sample_batch(
+            rng,
+            batch_size,
+            split="train",
+            context_episodes=model_config.context_episodes,
+            num_query_states=model_config.num_query_states,
+            rollout_masking=bool(config["ROLLOUT_MASKING"]),
+            rollout_mask_exponent=float(config["ROLLOUT_MASK_EXPONENT"]),
+            chunk_shuffle=bool(config["CHUNK_SHUFFLE"]),
+            chunk_size=int(config["CHUNK_SIZE"]),
+            step_mask_count=mask_count,
+        )
+
+    def train_batches(mask_count):
+        if not prefetch_batches:
+            for _ in range(steps_per_epoch):
+                yield sample_train_batch(mask_count)
+            return
+
+        # Keep exactly one CPU batch ahead while the current batch runs on the
+        # GPU. Dataset sampling is the only consumer of ``rng`` in this scope;
+        # validation starts after the final future has completed.
+        with ThreadPoolExecutor(
+            max_workers=1, thread_name_prefix="coot-batch-prefetch"
+        ) as executor:
+            pending = executor.submit(sample_train_batch, mask_count)
+            for batch_index in range(steps_per_epoch):
+                numpy_batch = pending.result()
+                if batch_index + 1 < steps_per_epoch:
+                    pending = executor.submit(sample_train_batch, mask_count)
+                yield numpy_batch
+
     for epoch in range(max_epochs):
         train_accumulator = []
         mask_count = _step_mask_count(config, epoch)
-        for epoch_step in range(1, steps_per_epoch + 1):
-            numpy_batch = dataset.sample_batch(
-                rng,
-                batch_size,
-                split="train",
-                context_episodes=model_config.context_episodes,
-                num_query_states=model_config.num_query_states,
-                rollout_masking=bool(config["ROLLOUT_MASKING"]),
-                rollout_mask_exponent=float(config["ROLLOUT_MASK_EXPONENT"]),
-                chunk_shuffle=bool(config["CHUNK_SHUFFLE"]),
-                chunk_size=int(config["CHUNK_SIZE"]),
-                step_mask_count=mask_count,
-            )
+        for epoch_step, numpy_batch in enumerate(train_batches(mask_count), start=1):
             batch = {
                 key: jnp.asarray(value)
                 for key, value in numpy_batch.items()
