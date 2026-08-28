@@ -127,9 +127,19 @@ def _validate_args(args) -> None:
         raise ValueError("--transition-warning-steps must be non-negative")
 
 
-def _wandb_mode(raw_mode: str) -> Literal["online", "offline", "disabled"]:
+def _wandb_mode(
+    raw_mode: str, environ=None
+) -> Literal["online", "offline", "disabled"]:
+    if environ is None:
+        environ = os.environ
     mode = raw_mode.lower()
-    if mode == "online" and not os.environ.get("WANDB_API_KEY", "").strip():
+    if mode not in {"online", "offline", "disabled"}:
+        raise ValueError("wandb_mode must be online, offline, or disabled")
+    if (
+        mode == "online"
+        and not environ.get("WANDB_API_KEY", "").strip()
+        and not environ.get("WANDB_SWEEP_ID", "").strip()
+    ):
         return "offline"
     return cast(Literal["online", "offline", "disabled"], mode)
 

@@ -706,7 +706,11 @@ def main(hydra_config: DictConfig) -> None:
     if raw_mode not in {"online", "offline", "disabled"}:
         raise ValueError("wandb_mode must be online, offline, or disabled")
     mode = cast(Literal["online", "offline", "disabled"], raw_mode)
-    if mode == "online" and not os.environ.get("WANDB_API_KEY", "").strip():
+    if (
+        mode == "online"
+        and not os.environ.get("WANDB_API_KEY", "").strip()
+        and not os.environ.get("WANDB_SWEEP_ID", "").strip()
+    ):
         mode = "offline"
     target = {}
     if not os.environ.get("WANDB_SWEEP_ID"):

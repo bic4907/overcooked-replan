@@ -39,6 +39,8 @@ EXAMPLES_PER_EPOCH: null
 # Prefer manifest pairs with split=validation (five in the release). If none
 # exist, the dataset loader uses its validation_fraction trajectory holdout.
 VALIDATION_BATCHES: 32
+# Emit an online W&B heartbeat and console progress within long V3 epochs.
+LOG_INTERVAL_STEPS: 100
 
 # Released augmentation/masking behavior.
 ROLLOUT_MASKING: true

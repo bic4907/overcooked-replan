@@ -47,11 +47,21 @@ def _resolve_dataset_path(config: dict) -> Path:
     )
 
 
-def _wandb_mode(config: dict) -> Literal["online", "offline", "disabled"]:
+def _wandb_mode(
+    config: dict, environ=None
+) -> Literal["online", "offline", "disabled"]:
+    if environ is None:
+        environ = os.environ
     mode = str(config.get("wandb_mode", "online")).lower()
     if mode not in {"online", "offline", "disabled"}:
         raise ValueError("wandb_mode must be online, offline, or disabled")
-    if mode == "online" and not os.environ.get("WANDB_API_KEY", "").strip():
+    # A sweep agent is already authenticated and supplies the run identity.
+    # It commonly uses ~/.netrc instead of exporting WANDB_API_KEY.
+    if (
+        mode == "online"
+        and not environ.get("WANDB_API_KEY", "").strip()
+        and not environ.get("WANDB_SWEEP_ID", "").strip()
+    ):
         return "offline"
     return cast(Literal["online", "offline", "disabled"], mode)
 
@@ -208,12 +218,15 @@ def main(hydra_config: DictConfig) -> None:
     batch_size = int(config["BATCH_SIZE"])
     max_epochs = int(config["MAX_EPOCHS"])
     validation_batches = int(config["VALIDATION_BATCHES"])
+    log_interval_steps = int(config["LOG_INTERVAL_STEPS"])
     if batch_size < 1:
         raise ValueError("BATCH_SIZE must be positive")
     if max_epochs < 1:
         raise ValueError("MAX_EPOCHS must be positive")
     if validation_batches < 1:
         raise ValueError("VALIDATION_BATCHES must be positive")
+    if log_interval_steps < 1:
+        raise ValueError("LOG_INTERVAL_STEPS must be positive")
     if int(config["PATIENCE"]) < 1:
         raise ValueError("PATIENCE must be positive")
     examples_per_epoch = int(
@@ -359,13 +372,13 @@ def main(hydra_config: DictConfig) -> None:
     print(
         f"[{_timestamp()}] CooT training: layout={layout} pairs={len(dataset.pairs)} "
         f"sequence={model_config.sequence_length} examples/epoch={examples_per_epoch} "
-        f"batch={batch_size}",
+        f"batch={batch_size} steps/epoch={steps_per_epoch}",
         flush=True,
     )
     for epoch in range(max_epochs):
         train_accumulator = []
         mask_count = _step_mask_count(config, epoch)
-        for _ in range(steps_per_epoch):
+        for epoch_step in range(1, steps_per_epoch + 1):
             numpy_batch = dataset.sample_batch(
                 rng,
                 batch_size,
@@ -384,8 +397,42 @@ def main(hydra_config: DictConfig) -> None:
                 if key != "pair_index"
             }
             key, step_key = jax.random.split(key)
+            if epoch == 0 and epoch_step == 1:
+                print(
+                    f"[{_timestamp()}] compiling first CooT train step; "
+                    "this can take several minutes",
+                    flush=True,
+                )
             state, metrics = train_step(state, batch, step_key)
-            train_accumulator.append(jax.device_get(metrics))
+            host_metrics = jax.device_get(metrics)
+            train_accumulator.append(host_metrics)
+            if (
+                epoch_step == 1
+                or epoch_step % log_interval_steps == 0
+                or epoch_step == steps_per_epoch
+            ):
+                global_step = epoch * steps_per_epoch + epoch_step
+                wandb.log(
+                    {
+                        "progress/epoch": epoch + 1,
+                        "progress/train_step": epoch_step,
+                        "progress/train_steps_per_epoch": steps_per_epoch,
+                        "progress/global_step": global_step,
+                        "train/step_loss": float(host_metrics["loss"]),
+                        "train/step_action_accuracy": float(
+                            host_metrics["accuracy"]
+                        ),
+                        "train/step_gradient_norm": float(
+                            host_metrics["gradient_norm"]
+                        ),
+                    }
+                )
+                print(
+                    f"[{_timestamp()}] epoch={epoch + 1}/{max_epochs} "
+                    f"step={epoch_step}/{steps_per_epoch} "
+                    f"loss={float(host_metrics['loss']):.5f}",
+                    flush=True,
+                )
 
         validation_accumulator = []
         for _ in range(validation_batches):

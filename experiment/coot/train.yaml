@@ -1,5 +1,5 @@
 program: baselines/CooT/train_overcooked_v3.py
-name: coot-role-scenarios-reindexed-v4
+name: coot-role-scenarios-reindexed-v5
 method: grid
 metric:
   goal: minimize

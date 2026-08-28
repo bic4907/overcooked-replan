@@ -1,5 +1,5 @@
 program: baselines/CooT/eval_crossplay_overcooked_v3.py
-name: coot-role-scenarios-seedwise-xp-reindexed-v2
+name: coot-role-scenarios-seedwise-xp-reindexed-v3
 method: grid
 metric:
   goal: maximize

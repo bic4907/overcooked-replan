@@ -218,6 +218,11 @@ wandb sweep --entity cilab-overcooked \
   --project overcooked-v3-coot-train experiment/coot/train.yaml
 ```
 
+V3의 기본 설정은 epoch당 수천 step이므로 첫 JIT compile 뒤에도 epoch metric까지
+오래 걸린다. Trainer는 첫 compile을 별도로 알리고 이후 100 step마다 console과
+W&B에 진행률을 기록한다. Sweep agent에서는 `WANDB_API_KEY` 환경변수가 없어도
+agent가 제공한 인증과 run ID를 사용해 online mode를 유지한다.
+
 `COOT_DATASET_ROOT`로 dataset root를, `WANDB_MODE=offline`으로 logging mode를
 바꿀 수 있다.
 

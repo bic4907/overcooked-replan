@@ -9,9 +9,13 @@ from baselines.CooT.build_population_manifest import (
     parse_args as parse_builder_args,
     select_scored_hsp,
 )
-from baselines.CooT.eval_crossplay_overcooked_v3 import parse_args as parse_eval_args
+from baselines.CooT.eval_crossplay_overcooked_v3 import (
+    _wandb_mode as resolve_eval_wandb_mode,
+    parse_args as parse_eval_args,
+)
 from baselines.CooT.hsp_population import resolve_hsp_config
 from baselines.CooT.preflight_sweep import REPO_ROOT, _compose, preflight
+from baselines.CooT.train_overcooked_v3 import _wandb_mode as resolve_train_wandb_mode
 from baselines.CooT.train_best_response_overcooked_v3 import resolve_response_job
 from baselines.IPPO.ippo_overcooked_v3 import _isolate_hsp_output
 from jaxmarl._experiment import experiment_folder
@@ -74,6 +78,21 @@ def test_train_sweep_uses_memory_safe_v3_batch():
 
     assert batch_size == 32
     assert config["BATCH_SIZE"] == batch_size
+    assert config["LOG_INTERVAL_STEPS"] == 100
+
+
+def test_coot_sweeps_stay_online_with_agent_credentials():
+    sweep_environment = {"WANDB_SWEEP_ID": "test-sweep"}
+
+    assert (
+        resolve_train_wandb_mode(
+            {"wandb_mode": "online"}, environ=sweep_environment
+        )
+        == "online"
+    )
+    assert resolve_eval_wandb_mode("online", environ=sweep_environment) == "online"
+    assert resolve_train_wandb_mode({"wandb_mode": "online"}, environ={}) == "offline"
+    assert resolve_eval_wandb_mode("online", environ={}) == "offline"
 
 
 def test_response_sweeps_use_distinct_manifest_stages():
