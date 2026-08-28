@@ -60,3 +60,10 @@ scripts/overcooked_v3/run_wandb_agents.sh \
 `{SP,XP}/adaptation/*`를 observer condition에 따라 묶어 보면 된다. 학습 sweep은
 비디오 recording을 꺼서 192개 run의 저장·업로드 비용을 줄였지만 final checkpoint
 artifact는 계속 업로드한다.
+
+## 3-seed pilot
+
+비용을 줄인 pilot은 `train_3seeds.yaml`과 `eval_3seeds.yaml`을 사용한다.
+Training seed는 `0,1,2`로 제한되며, eval도 `--seeds 0 1 2`를 명시해 같은
+checkpoint만 선택한다. 8 layouts × 4 observer conditions × 3 seeds = 96개의
+training run과 32개의 evaluation run으로 구성된다.
