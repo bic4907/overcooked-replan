@@ -1,0 +1,32 @@
+program: baselines/CooT/pipeline_stage_overcooked_v3.py
+name: coot-score-select-recovery-20260903
+method: grid
+metric:
+  goal: maximize
+  name: pipeline/completed
+
+parameters:
+  stage:
+    value: score_and_select
+  layout:
+    values: [split_0, split_1, outage_0, outage_1, recipe_switch_0, recipe_switch_1, distance_switch_0, distance_switch_1]
+  namespace:
+    value: reindexed_v3_recovery_20260903
+  response-sweep-manifest:
+    value: experiment/coot/recovery_candidate_response_sweeps.json
+  response-result-root:
+    value: saves/coot_responses
+  score-episodes:
+    value: 50
+  allow-low-return-fill:
+    value: true
+  entity:
+    value: cilab-overcooked
+  project:
+    value: overcooked-v3-coot-score-select
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_equals}

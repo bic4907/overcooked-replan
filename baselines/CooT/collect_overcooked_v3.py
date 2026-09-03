@@ -300,8 +300,16 @@ def main(argv=None):
             )
             variant_obs, variant_actions, variant_rewards, lengths, key = collect_pair(
                 env,
-                CheckpointPolicy(variant_partner_spec, action_dim),
-                CheckpointPolicy(variant_response_spec, action_dim),
+                CheckpointPolicy(
+                    variant_partner_spec,
+                    action_dim,
+                    observation_shape=observation_shape,
+                ),
+                CheckpointPolicy(
+                    variant_response_spec,
+                    action_dim,
+                    observation_shape=observation_shape,
+                ),
                 rollouts=variant_count,
                 max_steps=args.max_steps,
                 key=key,

@@ -78,7 +78,13 @@ def load_pair_manifest(path: str | Path) -> tuple[dict[str, Any], Path]:
 class CheckpointPolicy:
     """Small stateful wrapper around an IPPO/FCP CNN or RNN checkpoint."""
 
-    def __init__(self, spec: PolicySpec, action_dim: int):
+    def __init__(
+        self,
+        spec: PolicySpec,
+        action_dim: int,
+        *,
+        observation_shape: tuple[int, ...] | None = None,
+    ):
         if not spec.checkpoint.is_file():
             raise FileNotFoundError(f"Policy checkpoint not found: {spec.checkpoint}")
         config = {
@@ -94,6 +100,9 @@ class CheckpointPolicy:
         self.spec = spec
         self.action_dim = int(action_dim)
         self.hidden = ScannedRNN.initialize_carry(1, spec.gru_hidden_dim)
+
+        if observation_shape is not None:
+            self._validate_parameter_shapes(tuple(observation_shape))
 
         def _select(params, hidden, observation, done, key, stochastic):
             hidden, distribution, _ = cast(
@@ -117,6 +126,45 @@ class CheckpointPolicy:
             return hidden, action, jax.nn.softmax(logits)
 
         self._select = jax.jit(_select, static_argnums=(5,))
+
+    def _validate_parameter_shapes(self, observation_shape: tuple[int, ...]) -> None:
+        """Reject checkpoints trained against a different V3 observation grid."""
+
+        dummy_observation = jnp.zeros(
+            (1, 1, *observation_shape), dtype=jnp.float32
+        )
+        dummy_done = jnp.zeros((1, 1), dtype=jnp.bool_)
+        expected = self.network.init(
+            jax.random.PRNGKey(0),
+            ScannedRNN.initialize_carry(1, self.spec.gru_hidden_dim),
+            (dummy_observation, dummy_done),
+        )
+        expected_leaves = jax.tree_util.tree_leaves(expected)
+        checkpoint_leaves = jax.tree_util.tree_leaves(self.params)
+        if len(expected_leaves) != len(checkpoint_leaves):
+            raise ValueError(
+                "Checkpoint policy parameter tree is incompatible with the "
+                f"current environment observation shape {observation_shape}: "
+                f"expected {len(expected_leaves)} leaves, found "
+                f"{len(checkpoint_leaves)} in {self.spec.checkpoint}. Recreate "
+                "the population and response checkpoint with the current layout."
+            )
+        mismatches = [
+            (index, tuple(expected_leaf.shape), tuple(checkpoint_leaf.shape))
+            for index, (expected_leaf, checkpoint_leaf) in enumerate(
+                zip(expected_leaves, checkpoint_leaves)
+            )
+            if expected_leaf.shape != checkpoint_leaf.shape
+        ]
+        if mismatches:
+            index, expected_shape, checkpoint_shape = mismatches[0]
+            raise ValueError(
+                "Checkpoint policy is incompatible with the current environment "
+                f"observation shape {observation_shape}: parameter leaf {index} "
+                f"expects {expected_shape}, checkpoint has {checkpoint_shape} "
+                f"({self.spec.checkpoint}). Recreate the population and response "
+                "checkpoint with the current layout before collecting data."
+            )
 
     def reset(self) -> None:
         self.hidden = ScannedRNN.initialize_carry(1, self.spec.gru_hidden_dim)

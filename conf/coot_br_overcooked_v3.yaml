@@ -15,6 +15,9 @@ RESPONSE_JOB_ROOTS:
   hsp_only: ${oc.env:COOT_RESPONSE_HSP_ONLY_JOB_ROOT,manifests/coot/response_jobs_hsp_only}
 RESPONSE_JOB_MANIFEST: null  # Optional exact manifest override.
 JOB_INDEX: 0
+# Non-default recovery namespaces require matching manifest provenance and keep
+# newly generated response checkpoints separate from earlier pipeline attempts.
+PIPELINE_NAMESPACE: ${oc.env:COOT_PIPELINE_NAMESPACE,default}
 
 ENV_NAME: overcooked_v3
 ALGORITHM: CooT-BR

@@ -1,0 +1,30 @@
+program: baselines/CooT/pipeline_stage_overcooked_v3.py
+name: coot-build-dataset-recovery-20260903
+method: grid
+metric:
+  goal: maximize
+  name: pipeline/completed
+
+parameters:
+  stage:
+    value: build_dataset
+  layout:
+    values: [split_0, split_1, outage_0, outage_1, recipe_switch_0, recipe_switch_1, distance_switch_0, distance_switch_1]
+  namespace:
+    value: reindexed_v3_recovery_20260903
+  response-sweep-manifest:
+    value: experiment/coot/recovery_hsp_response_sweeps.json
+  response-result-root:
+    value: saves/coot_responses
+  allow-low-return-fill:
+    value: true
+  entity:
+    value: cilab-overcooked
+  project:
+    value: overcooked-v3-coot-build-dataset
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_equals}

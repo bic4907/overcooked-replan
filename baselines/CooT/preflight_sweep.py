@@ -132,13 +132,17 @@ def _response_manifest(config: Mapping[str, Any], layout: str) -> Path:
 def _validate_response_inputs(sweep: Mapping[str, Any]) -> list[str]:
     scenarios = [str(value) for value in _parameter_values(sweep, "scenario")]
     stage = str(_single_parameter(sweep, "RESPONSE_JOB_STAGE") or "exact")
+    root_override = _single_parameter(sweep, "RESPONSE_JOB_ROOT")
+    namespace = str(_single_parameter(sweep, "PIPELINE_NAMESPACE") or "default")
     job_indices = [int(value) for value in _parameter_values(sweep, "JOB_INDEX")]
     messages = []
     for scenario in scenarios:
-        config = _compose(
-            "coot_br_overcooked_v3",
-            [f"scenario={scenario}", f"RESPONSE_JOB_STAGE={stage}"],
-        )
+        overrides = [f"scenario={scenario}", f"RESPONSE_JOB_STAGE={stage}"]
+        if root_override is not None:
+            overrides.append(f"RESPONSE_JOB_ROOT={root_override}")
+        if namespace != "default":
+            overrides.append(f"PIPELINE_NAMESPACE={namespace}")
+        config = _compose("coot_br_overcooked_v3", overrides)
         layout = str(config["ENV_KWARGS"]["layout"])
         manifest = _response_manifest(config, layout)
         if not manifest.is_file():
@@ -147,6 +151,14 @@ def _validate_response_inputs(sweep: Mapping[str, Any]) -> list[str]:
         jobs = payload.get("jobs") if isinstance(payload, Mapping) else payload
         if not isinstance(jobs, list) or not jobs:
             raise ValueError(f"Response manifest has no jobs: {manifest}")
+        if namespace != "default":
+            provenance = payload.get("pipeline_provenance")
+            if not isinstance(provenance, Mapping):
+                raise ValueError(f"Response manifest lacks provenance: {manifest}")
+            if provenance.get("namespace") != namespace:
+                raise ValueError(
+                    f"Response manifest namespace mismatch: {manifest}"
+                )
         if job_indices and max(job_indices) >= len(jobs):
             raise IndexError(
                 f"{manifest} has {len(jobs)} jobs but sweep requests "
@@ -177,11 +189,14 @@ def _validate_response_inputs(sweep: Mapping[str, Any]) -> list[str]:
 def _validate_train_inputs(sweep: Mapping[str, Any]) -> list[str]:
     scenarios = [str(value) for value in _parameter_values(sweep, "scenario")]
     dataset_override = _single_parameter(sweep, "DATASET_ROOT")
+    namespace = str(_single_parameter(sweep, "PIPELINE_NAMESPACE") or "default")
     messages = []
     for scenario in scenarios:
         overrides = [f"scenario={scenario}"]
         if dataset_override is not None:
             overrides.append(f"DATASET_ROOT={dataset_override}")
+        if namespace != "default":
+            overrides.append(f"PIPELINE_NAMESPACE={namespace}")
         config = _compose("coot_overcooked_v3", overrides)
         layout = str(config["ENV_KWARGS"]["layout"])
         dataset = _resolve_repo_path(config["DATASET_ROOT"]) / layout
@@ -191,6 +206,13 @@ def _validate_train_inputs(sweep: Mapping[str, Any]) -> list[str]:
             raise FileNotFoundError(
                 f"CooT dataset is incomplete for {layout}: expected {metadata} and pair_*.npz"
             )
+        if namespace != "default":
+            payload = json.loads(metadata.read_text(encoding="utf-8"))
+            provenance = payload.get("pipeline_provenance")
+            if not isinstance(provenance, Mapping) or provenance.get(
+                "namespace"
+            ) != namespace:
+                raise ValueError(f"Dataset namespace mismatch: {metadata}")
         messages.append(f"dataset ready: {dataset} ({len(shards)} shards)")
     return messages
 
@@ -219,6 +241,7 @@ def _validate_eval_inputs(sweep: Mapping[str, Any]) -> list[str]:
     if not root.is_dir():
         raise FileNotFoundError(f"CooT checkpoint root not found: {root}")
     seeds = _command_seeds(sweep)
+    namespace = str(_single_parameter(sweep, "pipeline-namespace") or "default")
     messages = []
     for layout in layouts:
         for seed in seeds:
@@ -230,6 +253,17 @@ def _validate_eval_inputs(sweep: Mapping[str, Any]) -> list[str]:
                 raise FileNotFoundError(
                     f"Checkpoint sidecar not found: {matches[-1].with_suffix('.json')}"
                 )
+            if namespace != "default":
+                sidecar = matches[-1].with_suffix(".json")
+                payload = json.loads(sidecar.read_text(encoding="utf-8"))
+                train_config = payload.get("train_config")
+                actual = (
+                    str(train_config.get("PIPELINE_NAMESPACE") or "default")
+                    if isinstance(train_config, Mapping)
+                    else "default"
+                )
+                if actual != namespace:
+                    raise ValueError(f"Checkpoint namespace mismatch: {sidecar}")
         messages.append(f"eval checkpoints ready: {layout} seeds={seeds}")
     return messages
 

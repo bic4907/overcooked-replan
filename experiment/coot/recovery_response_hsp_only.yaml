@@ -1,0 +1,30 @@
+program: baselines/CooT/train_best_response_overcooked_v3.py
+name: coot-selected-hsp-responses-recovery-20260903
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+parameters:
+  RESPONSE_JOB_STAGE:
+    value: hsp_only
+  scenario:
+    values: [split_0, split_1, outage_0, outage_1, recipe_switch_0, recipe_switch_1, distance_switch_0, distance_switch_1]
+  JOB_INDEX:
+    values: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+  RESPONSE_JOB_ROOT:
+    value: manifests/coot/reindexed_v3_recovery_20260903/response_jobs_hsp_only
+  PIPELINE_NAMESPACE:
+    value: reindexed_v3_recovery_20260903
+  SAVES_DIR:
+    value: saves/coot_responses/reindexed_v3_recovery_20260903/hsp_only
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-coot-response
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

@@ -11,6 +11,8 @@ ENV_KWARGS:
 # One directory per layout, produced by collect_overcooked_v3.py.
 DATASET_ROOT: ${oc.env:COOT_DATASET_ROOT,datasets/coot}
 DATASET_PATH: null
+# Non-default recovery namespaces must match the stamped dataset metadata.
+PIPELINE_NAMESPACE: ${oc.env:COOT_PIPELINE_NAMESPACE,default}
 # Zero means exactly the number of pair shards declared by each dataset. This
 # keeps the full dataset, but no redundant capacity, resident after preload.
 SHARD_CACHE_SIZE: 0

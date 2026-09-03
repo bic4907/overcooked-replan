@@ -1,0 +1,29 @@
+program: baselines/CooT/pipeline_stage_overcooked_v3.py
+name: coot-prepare-candidates-existing-recovery-20260903
+method: grid
+metric:
+  goal: maximize
+  name: pipeline/completed
+
+# These seven populations completed successfully and are reused read-only.
+parameters:
+  stage:
+    value: prepare_candidates
+  layout:
+    values: [split_0, split_1, outage_0, outage_1, recipe_switch_1, distance_switch_0, distance_switch_1]
+  namespace:
+    value: reindexed_v3_recovery_20260903
+  population-root:
+    value: saves/coot_population
+  population-sweep-manifest:
+    value: experiment/coot/recovery_population_sweeps.json
+  entity:
+    value: cilab-overcooked
+  project:
+    value: overcooked-v3-coot-prepare-candidates
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_equals}

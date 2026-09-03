@@ -101,6 +101,28 @@ def resolve_response_job(config: DictConfig) -> DictConfig:
 
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     jobs, manifest_defaults = _manifest_jobs(payload)
+    expected_namespace = str(raw_config.get("PIPELINE_NAMESPACE") or "default")
+    if expected_namespace != "default":
+        provenance = manifest_defaults.get("pipeline_provenance")
+        expected_producer = {
+            "candidates": "prepare_candidates",
+            "hsp_only": "score_and_select",
+        }.get(stage)
+        if not isinstance(provenance, Mapping):
+            raise ValueError(
+                f"Response manifest lacks pipeline provenance: {manifest_path}"
+            )
+        if provenance.get("namespace") != expected_namespace:
+            raise ValueError(
+                f"Response manifest namespace {provenance.get('namespace')!r} "
+                f"does not match PIPELINE_NAMESPACE={expected_namespace!r}: "
+                f"{manifest_path}"
+            )
+        if expected_producer and provenance.get("stage") != expected_producer:
+            raise ValueError(
+                f"Response manifest stage {provenance.get('stage')!r} does not "
+                f"match expected producer {expected_producer!r}: {manifest_path}"
+            )
     job_index = int(raw_config.get("JOB_INDEX", 0))
     if not 0 <= job_index < len(jobs):
         raise IndexError(
@@ -304,6 +326,7 @@ def main(config: DictConfig) -> None:
             "run_id": run_id,
             "response_job_manifest": str(job["manifest"]),
             "response_job_stage": str(job["stage"]),
+            "pipeline_namespace": str(resolved_config["PIPELINE_NAMESPACE"]),
             "job_index": int(job["job_index"]),
             "original_job": OmegaConf.to_container(job["source_job"], resolve=True),
             "resolved_job": {

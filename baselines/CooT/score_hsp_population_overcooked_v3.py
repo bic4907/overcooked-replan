@@ -863,8 +863,17 @@ def _rollout_candidate(
     evaluation_seed: int,
 ) -> dict[str, Any]:
     action_dim = int(env.action_space("agent_0").n)
-    partner = CheckpointPolicy(replace(partner_spec, stochastic=True), action_dim)
-    response = CheckpointPolicy(replace(response_spec, stochastic=True), action_dim)
+    observation_shape = tuple(env.observation_space("agent_0").shape)
+    partner = CheckpointPolicy(
+        replace(partner_spec, stochastic=True),
+        action_dim,
+        observation_shape=observation_shape,
+    )
+    response = CheckpointPolicy(
+        replace(response_spec, stochastic=True),
+        action_dim,
+        observation_shape=observation_shape,
+    )
     selection_features: list[float] = []
     episode_event_counts: list[list[float]] = []
     episode_returns: list[float] = []

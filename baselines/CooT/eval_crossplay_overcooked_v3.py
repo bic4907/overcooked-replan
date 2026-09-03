@@ -56,6 +56,10 @@ def parse_args(argv=None):
             "best-checkpoint filename produced by train_overcooked_v3.py."
         ),
     )
+    parser.add_argument(
+        "--pipeline-namespace",
+        default=os.getenv("COOT_PIPELINE_NAMESPACE", "default"),
+    )
     parser.add_argument("--seeds", nargs="+", type=int, default=list(range(6)))
     parser.add_argument("--episodes", type=int, default=20)
     parser.add_argument("--max-steps", type=int, default=450)
@@ -149,6 +153,7 @@ def discover_checkpoints(
     layout: str,
     seeds: list[int],
     pattern: str | None,
+    pipeline_namespace: str = "default",
 ) -> dict[int, Path]:
     """Resolve the newest matching local checkpoint for every training seed."""
 
@@ -173,6 +178,19 @@ def discover_checkpoints(
         sidecar = checkpoint.with_suffix(".json")
         if not sidecar.is_file():
             raise FileNotFoundError(f"CooT checkpoint sidecar not found: {sidecar}")
+        if pipeline_namespace != "default":
+            payload = json.loads(sidecar.read_text(encoding="utf-8"))
+            train_config = payload.get("train_config")
+            if not isinstance(train_config, dict):
+                raise ValueError(f"Checkpoint sidecar lacks train_config: {sidecar}")
+            actual_namespace = str(
+                train_config.get("PIPELINE_NAMESPACE") or "default"
+            )
+            if actual_namespace != pipeline_namespace:
+                raise ValueError(
+                    f"Checkpoint namespace {actual_namespace!r} does not match "
+                    f"--pipeline-namespace={pipeline_namespace!r}: {sidecar}"
+                )
         checkpoints[seed] = checkpoint
     if len(set(checkpoints.values())) != len(checkpoints):
         raise ValueError("Every training seed must resolve to a distinct checkpoint")
@@ -391,7 +409,11 @@ def main(argv=None) -> None:
     args = parse_args(argv)
     _validate_args(args)
     checkpoints = discover_checkpoints(
-        args.checkpoint_root, args.layout, args.seeds, args.checkpoint_pattern
+        args.checkpoint_root,
+        args.layout,
+        args.seeds,
+        args.checkpoint_pattern,
+        args.pipeline_namespace,
     )
     checkpoint_identities = _checkpoint_identities(checkpoints)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")

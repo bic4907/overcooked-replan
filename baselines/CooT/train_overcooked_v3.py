@@ -196,6 +196,23 @@ def main(hydra_config: DictConfig) -> None:
         raise ValueError(
             f"Dataset layout {dataset_layout!r} does not match config layout {layout!r}"
         )
+    expected_namespace = str(config.get("PIPELINE_NAMESPACE") or "default")
+    if expected_namespace != "default":
+        provenance = dataset.metadata.get("pipeline_provenance")
+        if not isinstance(provenance, dict):
+            raise ValueError(
+                f"Dataset lacks pipeline provenance: {dataset_path / 'metadata.json'}"
+            )
+        if provenance.get("namespace") != expected_namespace:
+            raise ValueError(
+                f"Dataset namespace {provenance.get('namespace')!r} does not match "
+                f"PIPELINE_NAMESPACE={expected_namespace!r}: {dataset_path}"
+            )
+        if provenance.get("stage") != "build_dataset":
+            raise ValueError(
+                f"Dataset provenance stage must be 'build_dataset', found "
+                f"{provenance.get('stage')!r}: {dataset_path}"
+            )
     preload_shards = bool(config["PRELOAD_SHARDS"])
     if preload_shards:
         print(

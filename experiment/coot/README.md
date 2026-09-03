@@ -19,3 +19,7 @@ uv run python baselines/CooT/preflight_sweep.py \
 
 Use `baselines/CooT/README.md` and `docs/overcooked_v3/coot.md` for the
 implementation details and manifest requirements of each stage.
+
+The isolated 2026-09-03 recovery sweeps, their registered W&B IDs, and the
+strict manual launch order are recorded in
+[`RECOVERY_20260903.md`](RECOVERY_20260903.md).
