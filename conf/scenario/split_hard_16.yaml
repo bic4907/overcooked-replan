@@ -1,0 +1,13 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: split_hard_16
+  max_steps: 450
+  random_agent_positions: false
+  agent_view_size: 4
+  distinguish_blockers: true
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: kitchen_split_hard
+CONDITION: split_hard_16
+WANDB_GROUP: kitchen_split_hard

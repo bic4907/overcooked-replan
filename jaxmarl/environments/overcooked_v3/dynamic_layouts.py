@@ -5,7 +5,10 @@ from typing import Optional, Sequence, Tuple
 
 import numpy as np
 
-from jaxmarl.environments.overcooked_v3 import dynamic_layout_data
+from jaxmarl.environments.overcooked_v3 import (
+    dynamic_layout_data,
+    hard_dynamic_layout_data,
+)
 from jaxmarl.environments.overcooked_v3.common import StaticObject
 from jaxmarl.environments.overcooked_v3.layouts import Layout
 
@@ -13,6 +16,7 @@ _ALLOWED_SYMBOLS = set(" WAXBP RNO0123456789")
 _DEFAULT_RECIPES = [[0, 0, 0]]
 _OUTAGE_RECIPES = [[0, 0]]
 _RECIPE_SWITCH_RECIPES = [[0, 0, 1], [0, 1, 1]]
+_HARD_RECIPE_SWITCH_RECIPES = [[0, 0, 2], [1, 1, 2]]
 
 
 def _parse_grid(
@@ -199,6 +203,20 @@ ROLE_SCENARIO_LAYOUTS = {
 ROLE_SCENARIO_LAYOUT_NAMES = tuple(
     name for names in ROLE_SCENARIO_LAYOUTS.values() for name in names
 )
+HARD_ROLE_SCENARIO_VARIANT_COUNT = 20
+HARD_ROLE_SCENARIO_LAYOUTS = {
+    family: tuple(
+        f"{family}_hard_{variant}"
+        for variant in range(HARD_ROLE_SCENARIO_VARIANT_COUNT)
+    )
+    for family in ("split", "outage", "recipe_switch", "distance_switch")
+}
+HARD_ROLE_SCENARIO_LAYOUT_NAMES = tuple(
+    name for names in HARD_ROLE_SCENARIO_LAYOUTS.values() for name in names
+)
+ALL_ROLE_SCENARIO_LAYOUT_NAMES = (
+    ROLE_SCENARIO_LAYOUT_NAMES + HARD_ROLE_SCENARIO_LAYOUT_NAMES
+)
 
 
 dynamic_layouts = {}
@@ -206,7 +224,9 @@ dynamic_layouts = {}
 
 def _load_named_dynamic_layout(name, data):
     try:
-        if name.startswith("outage"):
+        if name.startswith("recipe_switch_hard"):
+            possible_recipes = _HARD_RECIPE_SWITCH_RECIPES
+        elif name.startswith("outage"):
             possible_recipes = _OUTAGE_RECIPES
         elif name.startswith("recipe_switch"):
             possible_recipes = _RECIPE_SWITCH_RECIPES
@@ -220,7 +240,8 @@ def _load_named_dynamic_layout(name, data):
 dynamic_layouts.update(
     {
         name: _load_named_dynamic_layout(name, data)
-        for name, data in vars(dynamic_layout_data).items()
+        for data_module in (dynamic_layout_data, hard_dynamic_layout_data)
+        for name, data in vars(data_module).items()
         if not name.startswith("_") and isinstance(data, (list, tuple))
     }
 )
@@ -256,21 +277,28 @@ def phase_policy_layout_name(base_layout: str, policy_index: int) -> str:
     return f"{base_layout}_policy_{policy_index}"
 
 
-def phase_policy_sequence(base_layout: str) -> Tuple[int, ...]:
-    """Map every dynamic phase to a deduplicated static policy index."""
-    if base_layout not in POLICY_SWITCH_BASE_LAYOUTS:
-        raise ValueError(f"Unsupported policy-switch layout: {base_layout}")
+def phase_task_sequence(base_layout: str) -> Tuple[int, ...]:
+    """Map dynamic phases to deduplicated task identities for adaptation."""
+    if base_layout not in ALL_ROLE_SCENARIO_LAYOUT_NAMES:
+        raise ValueError(f"Unsupported role-scenario layout: {base_layout}")
     signatures = []
     sequence = []
     for phase in dynamic_layouts[base_layout].phases:
         signature = _phase_policy_signature(phase)
         try:
-            policy_index = signatures.index(signature)
+            task_index = signatures.index(signature)
         except ValueError:
-            policy_index = len(signatures)
+            task_index = len(signatures)
             signatures.append(signature)
-        sequence.append(policy_index)
+        sequence.append(task_index)
     return tuple(sequence)
+
+
+def phase_policy_sequence(base_layout: str) -> Tuple[int, ...]:
+    """Map every dynamic phase to a deduplicated static policy index."""
+    if base_layout not in POLICY_SWITCH_BASE_LAYOUTS:
+        raise ValueError(f"Unsupported policy-switch layout: {base_layout}")
+    return phase_task_sequence(base_layout)
 
 
 def _register_static_phase_policy_layouts() -> None:
@@ -296,12 +324,17 @@ def _register_static_phase_policy_layouts() -> None:
 _register_static_phase_policy_layouts()
 
 __all__ = [
+    "ALL_ROLE_SCENARIO_LAYOUT_NAMES",
     "DynamicLayout",
     "DynamicLayoutPhase",
+    "HARD_ROLE_SCENARIO_LAYOUTS",
+    "HARD_ROLE_SCENARIO_LAYOUT_NAMES",
+    "HARD_ROLE_SCENARIO_VARIANT_COUNT",
     "POLICY_SWITCH_BASE_LAYOUTS",
     "ROLE_SCENARIO_LAYOUTS",
     "ROLE_SCENARIO_LAYOUT_NAMES",
     "dynamic_layouts",
     "phase_policy_layout_name",
     "phase_policy_sequence",
+    "phase_task_sequence",
 ]

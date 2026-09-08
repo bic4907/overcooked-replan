@@ -196,7 +196,10 @@ def _policy_config(run_config):
 
 def _observation_config(run_config):
     env_kwargs = dict(run_config.get("ENV_KWARGS") or {})
+    agent_view_size = env_kwargs.get("agent_view_size")
     return {
+        "agent_view_size": (None if agent_view_size is None else int(agent_view_size)),
+        "distinguish_blockers": bool(env_kwargs.get("distinguish_blockers", False)),
         "include_transition_countdown": bool(
             env_kwargs.get("include_transition_countdown", True)
         ),
@@ -485,6 +488,7 @@ def main():
             tile_size=24,
             seconds_per_step=1.0 / args.video_fps,
             transition_warning_steps=env.transition_warning_steps,
+            distinguish_blockers=env.distinguish_blockers,
         )
         visualizer.save_video(
             result["states"],

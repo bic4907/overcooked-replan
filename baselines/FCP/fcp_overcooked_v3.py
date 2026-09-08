@@ -355,6 +355,7 @@ def _record_final_episode(config, params, video_path):
         tile_size=24,
         seconds_per_step=1.0 / fps,
         transition_warning_steps=env.transition_warning_steps,
+        distinguish_blockers=env.distinguish_blockers,
     )
     visualizer.save_video(
         states,
