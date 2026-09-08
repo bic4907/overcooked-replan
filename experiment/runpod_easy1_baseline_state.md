@@ -9,8 +9,22 @@ Created: 2026-09-08 (Asia/Seoul)
 | FCP | `8rpv077f11ol4x` | PRO 6000 MIG 24GB | 8 | $4.72 |
 | IPPO + IPPO-RNN | `aa6v2u0iyhwbtl` | PRO 6000 MIG 24GB | 8 | $4.72 |
 
-Both pods use `bic4907/overcooked:cu13-rp` and a 100 GB pod volume mounted at
-`/workspace`. Total live compute cost is $9.44/hour.
+Both original pods use `bic4907/overcooked:cu13-rp` and a 100 GB pod volume
+mounted at `/workspace`. They were stopped with desired status `EXITED` at
+16:01 UTC after the host interruption, preserving their volumes and preventing
+unexpected reactivation.
+
+| Recovery role | Pod ID | Datacenter | GPU | Count | Cost/hour |
+| --- | --- | --- | --- | ---: | ---: |
+| IPPO-RNN | `4y95cc7af0hb03` | EUR-IS-2 | PRO 6000 MIG 24GB | 8 | $4.72 |
+| FCP | `6dekvjdn7y1nul` | US-NE-1 | PRO 6000 MIG 24GB | 8 | $4.72 |
+
+The recovery pods were created at 16:02 UTC in separate, non-WA datacenters to
+avoid a shared-host failure. Both initially remained in
+`initializing/awaiting_container`; do not create further pods while these two
+are provisioning. Once ready, validate eight JAX CUDA devices before launching
+replacement sweeps. Delete all four pods after verified completion; stopped pod
+volumes can still incur storage charges.
 
 ### 2026-09-08 host interruption
 
@@ -28,11 +42,10 @@ was:
 
 Restart attempts returned Runpod internal `server_error`/deadline-exceeded
 responses. Do not delete either pod or launch duplicate W&B agents while the
-old processes cannot be inspected. Re-query with backoff. When a pod returns to
-`running`, first verify `/workspace`, gateway SSH, tmux, logs, completion
-markers, and process state. If the old jobs did not survive, preserve every
-finished artifact-bearing run and create a versioned replacement sweep for only
-the interrupted/missing configurations after the old W&B runs are terminal.
+old processes cannot be inspected. W&B subsequently marked all eight active
+IPPO-RNN runs and all eight active FCP runs `crashed`, which proves the old
+processes are terminal. Preserve every finished artifact-bearing run and create
+a versioned replacement sweep for only the interrupted/missing configurations.
 
 ## W&B sweeps
 
