@@ -24,10 +24,11 @@ the left cook must trade off local production against supplying the right bay.
 Both conditions keep a recipe indicator at a separate fixed tile and use a
 generic non-storage blocker in the center column.
 
-Each category has two cross-play-selected layouts ranked and tagged `_0` and `_1`.
-The tags are ordered by mean absolute XP-SP gap in the 2026-08-22 baseline
-report. Split `_0`/`_1` come from the previous `_2`/`_0`, and Outage `_0`/`_1`
-come from the previous `_1`/`_0`.
+Each category has two cross-play-selected layouts tagged `_0` and `_1`.
+The paper-facing Easy layouts are `split_0`, `outage_0`, and
+`distance_switch_0`. Split `_0`/`_1` come from the previous `_2`/`_0`.
+Outage was reordered so the layout recorded as `outage_1` in the existing
+observer W&B runs is now `outage_0`; the former `outage_0` is now `outage_1`.
 Split uses a 7×9 map, while Outage uses a compact 5×7 map whose phases last
 150 steps each. Outage keeps each onion-to-handoff and handoff-to-pot leg
 within one movement step. The central wall always
@@ -46,7 +47,7 @@ as `_0` and `_1`. Both are 7×5 tomato-major-first layouts. The map stays fixed 
 recipe changes at steps 150 and 300 within a 450-step episode. All eight role
 scenarios use the same A → B → A phase schedule and episode length.
 Select any layout through its Hydra scenario name, such as
-`scenario=outage_1`.
+`scenario=outage_0`.
 
 Distance-Driven Role Switch keeps the standard three-onion recipe fixed and
 follows the original `asymm_advantages` comparative-cost structure. The two

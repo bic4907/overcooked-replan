@@ -47,10 +47,11 @@ The blocker occupies the bottom center tile, leaving two adjacent counters above
 it where the left cook can preload onions.
 Outage uses a two-onion recipe, so its pots begin cooking as soon as the second
 onion is added. Split retains the standard three-onion recipe, and both
-scenarios retain the standard 20-step cooking timer. The two layouts per
-category were ranked by mean absolute XP-SP gap in the 2026-08-22 baseline
-report and tagged `_0` and `_1`. Split uses previous tags `_2`, `_0`; Outage
-uses previous tags `_1`, `_0`.
+scenarios retain the standard 20-step cooking timer. The paper-facing Easy
+layouts are `split_0`, `outage_0`, and `distance_switch_0`. Split uses previous
+tags `_2`, `_0`. Outage was reordered so the geometry recorded as `outage_1`
+in the existing observer W&B runs is now `outage_0`; the former `outage_0` is
+now `outage_1`.
 
 `recipe_switch_0` and `recipe_switch_1` are Mixed Recipe Relay layouts.
 The center divider permanently separates an onion/serving bay from a

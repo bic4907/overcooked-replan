@@ -328,11 +328,11 @@ def _build_outage_catalog_variant(variant_index):
 
 
 def _register_role_catalog():
-    # Ranked by mean absolute XP-SP gap in the 2026-08-22 baseline report.
-    # Public split tags 0/1 come from previous tags 2/0 (sources 14/9), and
-    # outage tags 0/1 come from previous tags 1/0 (sources 12/4).
+    # Public split tags 0/1 come from previous tags 2/0 (sources 14/9).
+    # Outage is ordered so the observer-positive paper layout is public tag 0:
+    # the former public tags 1/0 are now 0/1 (sources 4/12).
     split_sources = (14, 9)
-    outage_sources = (12, 4)
+    outage_sources = (4, 12)
     for new_index, (split_source, outage_source) in enumerate(
         zip(split_sources, outage_sources)
     ):
