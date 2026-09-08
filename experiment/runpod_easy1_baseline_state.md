@@ -26,6 +26,16 @@ are provisioning. Once ready, validate eight JAX CUDA devices before launching
 replacement sweeps. Delete all four pods after verified completion; stopped pod
 volumes can still incur storage charges.
 
+Runpod's proxied SSH suffix is pod-specific, not account-wide. The FCP
+recovery pod's Connect-tab command is:
+
+```text
+ssh 6dekvjdn7y1nul-644122c4@ssh.runpod.io -i ~/.ssh/id_ed25519
+```
+
+Read each replacement pod's exact command from the Runpod Connect tab; do not
+reuse the original pods' `64411dd2` suffix and do not use direct TCP SSH.
+
 ### 2026-09-08 host interruption
 
 At approximately 15:57 UTC, both pods simultaneously changed from `running` to
@@ -46,6 +56,23 @@ old processes cannot be inspected. W&B subsequently marked all eight active
 IPPO-RNN runs and all eight active FCP runs `crashed`, which proves the old
 processes are terminal. Preserve every finished artifact-bearing run and create
 a versioned replacement sweep for only the interrupted/missing configurations.
+
+### FCP population recovery artifact
+
+The original population sweep did not log its checkpoint files to W&B. The
+original FCP pod was briefly resumed, and the preserved volume was revalidated
+as exactly 27 checkpoints. They were then uploaded to:
+
+```text
+cilab-overcooked/overcooked-v3-fcp-easy1-population-recovery/
+fcp-easy1-population-checkpoints:latest
+```
+
+Recovery run: `uhqx4d03`. The W&B API independently reports 27 `.safetensors`
+files and metadata `source_sweep=46qfe84z`, `checkpoint_count=27`. Download the
+artifact's `fcp_population/` subtree to
+`saves/fcp_easy1/fcp_population/`, rerun the verifier, and only then launch FCP
+best-response training. The original FCP pod was stopped again after upload.
 
 ## W&B sweeps
 
