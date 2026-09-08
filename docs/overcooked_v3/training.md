@@ -43,9 +43,12 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 | Hydra option | Scenario |
 | --- | --- |
 | `scenario=split_0` | Kitchen Split |
+| `scenario=split_1` | Kitchen Split candidate |
 | `scenario=outage_0` | Resource Outage |
+| `scenario=outage_1` | Resource Outage candidate |
 | `scenario=recipe_switch_0` | Mixed Recipe Relay |
 | `scenario=distance_switch_0` | Distance-Driven Role Switch |
+| `scenario=distance_switch_1` | Distance-Driven Role Switch candidate |
 
 Kitchen Split은 처음 150 step 동안 중앙 통로 하나가 열려 있고, 이후 150 step 동안
 그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
@@ -60,8 +63,10 @@ shared counter로 양파를 넘겨야 오른쪽 주방이 조리를 계속할 �
 recipe indicator는 맵 위쪽 중앙의 별도 타일에 유지한다. 중앙열에는 이동과 물건
 보관을 모두 막는 일반 non-storage blocker를 둔다.
 
-각 category에는 선별한 Easy 레이아웃 하나가 `_0`으로 등록되어 있다. 현재
-`outage_0` geometry는 기존 observer W&B run에서 `outage_1`로 기록되었다.
+각 category에는 선별한 Easy 레이아웃 하나가 `_0`으로 등록되어 있다. Split,
+Outage, Distance Switch에는 직접 실행용 `_1` 후보도 있다. 현재 `outage_0`
+geometry는 기존 observer W&B run에서 `outage_1`로 기록되었으므로, 새
+`outage_1` run은 `LAYOUT_REVISION`까지 함께 필터링해야 한다.
 Split은 7×9, Resource Outage는 5×7이다. Outage는 normal과 outage를 각각 150 step 유지한다.
 모든 Outage variant는 onion→handoff와 handoff→pot 각각을 최대 1 step으로 제한한다.
 중앙은 항상 wall/counter로
@@ -89,14 +94,16 @@ Distance-Driven Role Switch는 표준 onion 3개 레시피를 episode 전체에�
 원본 `asymm_advantages`의 비교비용 구조를 사용한다. 두 agent의 이동 영역은
 분리되어 있지만, 양쪽 영역 모두 onion·중앙 pot·plate·serving station을 직접
 사용할 수 있다. Phase A에서는 agent 0의 pot→plate→serving loop가 짧고 agent
-1의 onion→pot loop가 짧다. 150 step에는 각 영역의 onion과 serving endpoint만
-서로 바뀌어 두 역할의 비용 우위가 역전되며, 300 step에는 초기 배치로 돌아온다.
-Pot, plate, counter, floor와 agent 위치는 전환 중 고정된다. 레시피는 바뀌지
-않으므로 관측은 표준 V3 31채널이다.
+1의 onion→pot loop가 짧다. `_0`은 150 step에 endpoint 타입을 같은 자리에서
+교환한다. `_1`은 A/B에서 서로 다른 counter 위치로 onion과 serving station을
+이동해 비용 우위를 역전한다. 300 step에는 초기 배치로 돌아온다. Pot, plate,
+floor와 agent 위치는 전환 중 고정된다. 레시피는 바뀌지 않으므로 관측은 표준
+V3 31채널이다.
 
 | Layout | Size | Near-station axis |
 | --- | --- | --- |
 | `distance_switch_0` | 9×5 | canonical `asymm_advantages` (former `_0`) |
+| `distance_switch_1` | 9×6 | relocating stations; four-step role advantage |
 
 V3의 signal-free grid encoding은 29채널이며, phase 전환 countdown과 change
 mask를 추가한 기본 관측은 31채널이다. 마지막 두 채널은 전환 20 step 전까지

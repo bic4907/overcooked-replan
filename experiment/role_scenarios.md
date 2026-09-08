@@ -8,28 +8,38 @@
 `SP-XP_gap`이 큰 조건을 목표로 다시 설계했다. 기존 Outage는 SP와 XP가 모두
 높아 독립 조리만으로도 성공하는 문제가 확인되어 이동 비용을 낮춘 맵으로 대체했다.
 
-| Category | Selected layouts | Status |
+| Category | Layout | Status |
 | --- | --- | --- |
 | Split | `split_0` | selected Split design |
+| Split | `split_1` | centered-choke candidate; direct runs only |
 | Outage | `outage_0` | selected Outage design |
+| Outage | `outage_1` | offset-handoff candidate; direct runs only |
 | Recipe Switch | `recipe_switch_0` | selected mixed-recipe design |
 | Distance Switch | `distance_switch_0` | selected asymmetric-distance design |
+| Distance Switch | `distance_switch_1` | relocating-station candidate; direct runs only |
 
-각 category에는 선별된 Easy layout 하나만 `_0`으로 등록한다. 현재
+각 category의 선별된 Easy layout은 `_0`으로 유지한다. Split, Outage,
+Distance Switch에는 경로 구조를 바꾼 `_1` 후보도 등록하지만, 시각 검토가
+끝나기 전까지 기본 W&B sweep에는 넣지 않는다. 현재
 `outage_0` geometry는 기존 observer W&B run에서 `outage_1`로 기록되었다.
+그 과거 run label은 이번에 새로 등록한 `outage_1` 후보와 다른 맵이다.
+새 후보 config는 top-level `LAYOUT_REVISION`을 기록하므로 W&B 조회 시
+layout 이름과 revision을 함께 필터링한다.
 recipe indicator는 위쪽 중앙의 별도 타일에 고정하고,
 중앙열의 구분 타일은 일반 non-storage blocker로 유지한다.
 Split은 선별된 workload와 배치를 유지하면서 7×9 크기를 사용한다.
 Split은 표준 양파 3개 레시피를 유지한다. Outage는 조리시간을 바꾸지 않고
 양파 2개가 pot에 들어오면 조리를 시작하는 레시피를 사용한다.
 
-Distance Switch는 기존 `_0` layout을 유지한다. 표준 양파
+Distance Switch는 기존 `_0` layout을 유지하고 9×6 relocation 구조의 `_1`
+후보를 추가한다. 표준 양파
 3개 레시피는 고정하며 각 agent의 분리된
 작업 영역에서 onion·pot·plate·serving station에 모두 접근할 수 있다.
-Phase A의 가까운 역할 배치는 agent 0=onion/pot, agent 1=plate/serve이고,
-150 step 뒤 station 위치를 교환해 역할 거리 우위를 반대로 만든다. 300 step에는
-초기 위치로 돌아온다. 각 가까운 agent와 먼 agent의 spawn-to-station 최단거리
-차이는 station마다 최소 3 step이다.
+Phase A의 가까운 역할 배치는 agent 0=onion/pot, agent 1=plate/serve이다.
+`_0`은 150 step 뒤 onion/serve의 타입을 같은 endpoint에서 교환한다. `_1`은
+서로 맞바꾸지 않고 Phase A에서 비어 있던 다른 counter 위치로 station을 옮겨
+역할 거리 우위를 반대로 만든다. 300 step에는 초기 위치로 돌아온다. 각 가까운
+agent와 먼 agent의 task-loop 거리 차이는 최소 3 step이다.
 
 Outage는 5×7로 줄이고 normal/outage phase를 각각 150 step으로 설정했다.
 각 layout은 onion→handoff와 handoff→right pot 구간을 각각 최대 1 movement
@@ -38,11 +48,13 @@ movement region을
 완전히 분리한다. 따라서 right agent는 남아 있는 왼쪽 onion을 직접 가져올 수
 없고, left agent가 shared counter로 양파를 공급해야만 right cook이 150-step
 outage 동안 지속적으로 생산할 수 있다.
-blocker는 중앙열 아래쪽에 두고 그 위에 인접한 handoff counter 2칸을
-확보해, left agent가 onion 두 개를 미리 적재할 수 있게 한다.
+선별된 `outage_0`은 blocker를 중앙열 아래쪽에 두고 그 위에 인접한
+handoff counter 2칸을 확보해, left agent가 onion 두 개를 미리 적재할 수
+있게 한다. `outage_1` 후보는 blocker 위·아래에 handoff를 하나씩 둔다.
 
-현재 `experiment/self_play/train.yaml`은 4개 Easy catalog와 seed 6개를
-조합한다. 개별 실행할 때는 `scenario=<family>_0`을 사용한다.
+현재 `experiment/self_play/train.yaml`은 확정된 4개 `_0` catalog와 seed
+6개를 조합한다. 후보는 `scenario=split_1`, `scenario=outage_1`, 또는
+`scenario=distance_switch_1`로 개별 실행할 수 있다.
 
 ## 2. Training sweep 생성
 

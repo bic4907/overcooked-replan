@@ -15,8 +15,9 @@
 # phase. When the right onion pile disappears, the left agent must trade off
 # local cooking against supplying onions through the shared center counters.
 #
-# Each role category exposes the two layouts selected from the cross-play
-# report, ranked as public tags ``0`` and ``1``.
+# Each paper category keeps its selected ``0`` layout. The Split, Outage, and
+# Distance Switch families additionally expose a deliberately redesigned ``1``
+# candidate with the same scenario mechanics and a different route geometry.
 
 
 _ROLE_PHASE_STEPS = 150
@@ -29,6 +30,7 @@ def _role_grid(
     blocker_row,
     door=None,
     recipe_row=None,
+    counters=(),
     width=11,
     height=7,
 ):
@@ -47,6 +49,10 @@ def _role_grid(
         door_row, is_open = door
         rows[door_row][center_x] = " " if is_open else "W"
 
+    for x, y in counters:
+        if rows[y][x] != " ":
+            raise ValueError(f"Role-layout counter collision at {(x, y)}")
+        rows[y][x] = "W"
     for symbol, (x, y) in resources:
         if rows[y][x] not in {"W", " "}:
             raise ValueError(f"Role-layout resource collision at {(x, y)}")
@@ -58,7 +64,7 @@ def _role_grid(
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-def _build_split_workload(spec, width=11, recipe_row=0):
+def _build_split_workload(spec, width=11, recipe_row=0, counters=()):
     door_row, blocker_row, agents, left_resources, right_resources = spec
     resources = [*left_resources, *right_resources]
     open_grid = _role_grid(
@@ -67,6 +73,7 @@ def _build_split_workload(spec, width=11, recipe_row=0):
         blocker_row,
         door=(door_row, True),
         recipe_row=recipe_row,
+        counters=counters,
         width=width,
     )
     closed_grid = _role_grid(
@@ -75,6 +82,7 @@ def _build_split_workload(spec, width=11, recipe_row=0):
         blocker_row,
         door=(door_row, False),
         recipe_row=recipe_row,
+        counters=counters,
         width=width,
     )
     return [
@@ -151,8 +159,9 @@ def _rotated_take(positions, count, offset):
     return rotated[:count]
 
 
-# Candidate source layouts retain the 7x9 split topology. Only the two
-# cross-play-selected candidates are registered below. The workload tuple is
+# Candidate source layouts retain the 7x9 split topology. The observer-positive
+# source is registered as ``split_0``; a hand-designed route variant is added as
+# ``split_1`` below. The workload tuple is
 # (onion piles, pots, plate piles, serving stations). Resources remain assigned
 # to their role-specific bay, while placement and starting positions vary.
 _SPLIT_WORKLOADS = (
@@ -248,8 +257,9 @@ def _build_split_catalog_variant(variant_index):
 
 
 # Outage candidate sources keep the compact 5x7, permanently separated two-bay
-# topology. Only the two selected candidates are registered. Each side starts
-# with an identical complete kitchen. All right-side
+# topology. The observer-positive source becomes ``outage_0`` and the new
+# route variant becomes ``outage_1``. Each side starts with an identical
+# complete kitchen. All right-side
 # onion piles disappear during outage, and the two center handoff counters stay
 # available. Anchors keep an onion-to-handoff and handoff-to-pot route short.
 _OUTAGE_WORKLOADS = (
@@ -336,6 +346,38 @@ def _register_role_catalog():
     ):
         globals()[f"split_{new_index}"] = _build_split_catalog_variant(split_source)
         globals()[f"outage_{new_index}"] = _build_outage_catalog_variant(outage_source)
+
+    # Candidate 1 places both agents in mirrored branches two moves from the
+    # centered doorway. Their shortest routes share the same first tile, so one
+    # must yield before an agent can cross to the right bay.
+    split_candidate = (
+        3,
+        1,
+        ((3, 2), (3, 4)),
+        (("0", (2, 0)), ("P", (0, 2)), ("P", (1, 6))),
+        (("B", (6, 0)), ("B", (8, 4)), ("X", (8, 1)), ("X", (7, 6))),
+    )
+    globals()["split_1"] = _build_split_workload(
+        split_candidate,
+        width=9,
+        counters=((2, 2), (2, 4), (6, 2), (6, 4)),
+    )
+
+    # Candidate 1 keeps the two disconnected Outage bays. The mirrored notches
+    # form narrow vertical spines while two separated handoff rows remain open.
+    outage_candidate = (
+        2,
+        ((2, 2), (4, 2)),
+        (
+            ("0", (0, 3)),
+            ("P", (2, 0)),
+            ("B", (0, 1)),
+            ("B", (1, 4)),
+            ("X", (2, 4)),
+        ),
+        ((1, 2),),
+    )
+    globals()["outage_1"] = _build_compact_outage_variant(outage_candidate)
 
 
 _register_role_catalog()
@@ -462,9 +504,35 @@ _register_recipe_switch_catalog()
 # cost advantage rather than an access restriction.
 #
 # Phase A gives agent 0 the short pot-to-plate-to-serving loop and agent 1 the
-# short onion-to-pot loop. Phase B swaps only the onion and serving endpoints on
-# each side, reversing those loop costs without moving pots, plates, counters,
-# agents, or walkable floor. Phase C returns to the original assignment.
+# short onion-to-pot loop. Phase B reverses those loop costs without moving
+# pots, plates, agents, or walkable floor. The canonical layout swaps endpoint
+# types in place, while the route candidate moves them onto previously unused
+# counters. Phase C returns to the original assignment.
+
+
+def _distance_switch_role_resources(spec, roles_swapped):
+    """Return the role-dependent onion and serving placements for one phase."""
+    phase_key = (
+        "phase_b_role_resources" if roles_swapped else "phase_a_role_resources"
+    )
+    if phase_key in spec:
+        return spec[phase_key]
+
+    left_far, left_near = spec["left_role_slots"]
+    right_near, right_far = spec["right_role_slots"]
+    if roles_swapped:
+        return (
+            (left_far, "X"),
+            (left_near, "0"),
+            (right_near, "X"),
+            (right_far, "0"),
+        )
+    return (
+        (left_far, "0"),
+        (left_near, "X"),
+        (right_near, "0"),
+        (right_far, "X"),
+    )
 
 
 def _distance_switch_grid(spec, roles_swapped=False):
@@ -496,14 +564,7 @@ def _distance_switch_grid(spec, roles_swapped=False):
             )
         rows[y][x] = symbol
 
-    left_far, left_near = spec["left_role_slots"]
-    right_near, right_far = spec["right_role_slots"]
-    role_resources = (
-        ((left_far, "X"), (left_near, "0"), (right_near, "X"), (right_far, "0"))
-        if roles_swapped
-        else ((left_far, "0"), (left_near, "X"), (right_near, "0"), (right_far, "X"))
-    )
-    for (x, y), symbol in role_resources:
+    for (x, y), symbol in _distance_switch_role_resources(spec, roles_swapped):
         if rows[y][x] != "W":
             raise ValueError(
                 f"Distance-switch role station needs a counter at {(x, y)}"
@@ -592,9 +653,6 @@ def _validate_distance_switch_spec(spec):
     minimum_advantage = spec.get("minimum_advantage", 3)
     pots = spec["pot_positions"]
     plates = spec["plate_positions"]
-    left_far, left_near = spec["left_role_slots"]
-    right_near, right_far = spec["right_role_slots"]
-
     local_pots_by_agent = []
     local_plates_by_agent = []
     for agent_index, distances in enumerate(reachable):
@@ -628,21 +686,49 @@ def _validate_distance_switch_spec(spec):
             for plate in local_plates_by_agent[agent_index]
         )
 
+    def local_role_station(rows, agent_index, symbol):
+        positions = [
+            (x, y)
+            for y, row in enumerate(rows)
+            for x, cell in enumerate(row)
+            if cell == symbol
+            and _distance_switch_interaction_floors(
+                (x, y), reachable[agent_index]
+            )
+        ]
+        if len(positions) != 1:
+            raise ValueError(
+                f"Agent {agent_index} needs exactly one local {symbol!r} station"
+            )
+        return positions[0]
+
+    phase_a_onions = tuple(
+        local_role_station(rows_a, agent_index, "0") for agent_index in range(2)
+    )
+    phase_a_goals = tuple(
+        local_role_station(rows_a, agent_index, "X") for agent_index in range(2)
+    )
+    phase_b_onions = tuple(
+        local_role_station(rows_b, agent_index, "0") for agent_index in range(2)
+    )
+    phase_b_goals = tuple(
+        local_role_station(rows_b, agent_index, "X") for agent_index in range(2)
+    )
     phase_a_input = (
-        input_cost(0, left_far),
-        input_cost(1, right_near),
+        input_cost(0, phase_a_onions[0]),
+        input_cost(1, phase_a_onions[1]),
     )
     phase_a_serve = (
-        serving_cost(0, left_near),
-        serving_cost(1, right_far),
+        serving_cost(0, phase_a_goals[0]),
+        serving_cost(1, phase_a_goals[1]),
     )
     phase_b_input = (
-        input_cost(0, left_near),
-        input_cost(1, right_far),
+        input_cost(0, phase_b_onions[0]),
+        input_cost(1, phase_b_onions[1]),
     )
     phase_b_serve = (
-        serving_cost(0, left_far),
-        serving_cost(1, right_near),
+        serving_cost(0, phase_b_goals[0]),
+        serving_cost(1, phase_b_goals[1]),
     )
 
     if phase_a_input[1] + minimum_advantage > phase_a_input[0]:
@@ -682,6 +768,28 @@ def _vertical_distance_switch_spec(width, height, extra_counters=()):
 # Retain the canonical Overcooked-AI asymmetric_advantages map as Easy tag 0.
 _DISTANCE_SWITCH_SPECS = (
     _vertical_distance_switch_spec(9, 5),
+    {
+        "width": 9,
+        "height": 6,
+        "pot_positions": ((4, 2), (4, 4)),
+        "plate_positions": ((3, 5), (5, 5)),
+        "agent_positions": ((2, 4), (6, 4)),
+        "divider": tuple((4, y) for y in range(1, 5)),
+        "counters": ((2, 2), (6, 2)),
+        "phase_a_role_resources": (
+            ((0, 2), "0"),
+            ((2, 5), "X"),
+            ((6, 2), "0"),
+            ((8, 1), "X"),
+        ),
+        "phase_b_role_resources": (
+            ((2, 2), "0"),
+            ((0, 1), "X"),
+            ((8, 2), "0"),
+            ((6, 5), "X"),
+        ),
+        "minimum_advantage": 3,
+    },
 )
 
 

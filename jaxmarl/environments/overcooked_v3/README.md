@@ -43,13 +43,17 @@ requires at most one move,
 making cross-kitchen supply competitive with continuing local production. The
 center column remains blocked in every phase: agents cannot cross bays and can
 exchange onions only through shared handoff counters.
-The blocker occupies the bottom center tile, leaving two adjacent counters above
-it where the left cook can preload onions.
+In selected `outage_0`, the blocker occupies the bottom center tile, leaving two
+adjacent counters above it where the left cook can preload onions. Candidate
+`outage_1` moves the blocker to the middle and leaves one handoff above and one
+below it.
 Outage uses a two-onion recipe, so its pots begin cooking as soon as the second
 onion is added. Split retains the standard three-onion recipe, and both
-scenarios retain the standard 20-step cooking timer. Each family currently
-exposes one selected Easy layout under `_0`. The existing observer W&B runs
-recorded the current `outage_0` geometry under the historical `outage_1` name.
+scenarios retain the standard 20-step cooking timer. Each family exposes one
+selected Easy layout under `_0`; Split and Outage also expose redesigned `_1`
+candidates. The existing observer W&B runs recorded the current `outage_0`
+geometry under the historical `outage_1` name, so new candidate runs must also
+be filtered by their `LAYOUT_REVISION`.
 
 `recipe_switch_0` is a Mixed Recipe Relay layout.
 The center divider permanently separates an onion/serving bay from a
@@ -62,14 +66,15 @@ that had already started cooking before a switch remains deliverable, but a new
 pot can start only when its contents match the current recipe. Recipe Relay
 adds two next-recipe preview channels to the standard V3 observation.
 
-`distance_switch_0` is a Distance-Driven Role Switch layout based on
-`asymm_advantages`. All four Easy role scenarios use the
+`distance_switch_0` and `distance_switch_1` are Distance-Driven Role Switch
+layouts based on `asymm_advantages`. All four selected Easy role scenarios use the
 same 450-step A → B → A schedule, with changes at steps 150 and 300.
 The standard three-onion recipe is
 fixed, and each agent's separate work region contains access to an onion pile,
-central pot, plate pile, and serving station. Pots and plates remain fixed;
-only the onion and serving endpoints exchange at steps 150 and 300. This
-reverses which agent has the short onion-input loop and which has the short
-serving loop. The retained `_0` tag is the canonical 9×5 map.
+central pot, plate pile, and serving station. Pots and plates remain fixed.
+Canonical `_0` exchanges endpoint types in place; 9×6 candidate `_1` relocates
+all onion and serving stations onto positions that were inactive counters in
+the other phase. Both reverse which agent has the short onion-input loop and
+which has the short serving loop.
 Because no recipe is scheduled, this layout uses the standard 31-channel V3
 observation rather than next-recipe preview channels.

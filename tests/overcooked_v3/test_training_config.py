@@ -19,12 +19,23 @@ SCENARIO_FAMILIES = {
     "recipe_switch": "recipe_switch",
     "distance_switch": "distance_switch",
 }
+SCENARIO_VARIANT_COUNTS = {
+    "split": 2,
+    "outage": 2,
+    "recipe_switch": 1,
+    "distance_switch": 2,
+}
+CANDIDATE_LAYOUT_REVISIONS = {
+    "split_1": "split-1-centered-choke-v2",
+    "outage_1": "outage-1-offset-handoff-v1",
+    "distance_switch_1": "distance-switch-1-relocation-v2",
+}
 SCENARIOS = {
     f"{family}_{variant}": metadata
     for family, metadata in SCENARIO_FAMILIES.items()
-    for variant in range(1)
+    for variant in range(SCENARIO_VARIANT_COUNTS[family])
 }
-SWEEP_SCENARIOS = list(SCENARIOS)
+SWEEP_SCENARIOS = [f"{family}_0" for family in SCENARIO_FAMILIES]
 
 
 def test_default_training_config_uses_first_role_scenario():
@@ -81,6 +92,9 @@ def test_hydra_scenario_group_composes_all_conditions():
             assert config.EXPERIMENT == experiment
             assert config.CONDITION == scenario
             assert config.wandb_mode == "online"
+            assert config.get("LAYOUT_REVISION") == CANDIDATE_LAYOUT_REVISIONS.get(
+                scenario
+            )
 
 
 def test_role_scenarios_use_fixed_positions_and_full_episode():

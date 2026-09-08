@@ -1,0 +1,12 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: distance_switch_1
+  max_steps: 450
+  random_agent_positions: false
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: distance_switch
+CONDITION: distance_switch_1
+WANDB_GROUP: distance_switch
+LAYOUT_REVISION: distance-switch-1-relocation-v2

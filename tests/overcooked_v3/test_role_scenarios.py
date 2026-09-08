@@ -79,10 +79,10 @@ def _shortest_floor_distance(static_objects, starts, goals):
 
 def test_each_role_scenario_family_has_expected_unique_layouts():
     expected_counts = {
-        "split": 1,
-        "outage": 1,
+        "split": 2,
+        "outage": 2,
         "recipe_switch": 1,
-        "distance_switch": 1,
+        "distance_switch": 2,
     }
     assert set(ROLE_SCENARIO_LAYOUTS) == set(expected_counts)
     for family, names in ROLE_SCENARIO_LAYOUTS.items():
@@ -138,7 +138,8 @@ def test_distance_switch_keeps_local_access_and_reverses_role_costs(
     reachable_1 = _reachable_floor(phase_a, agent_1_start)
     assert agent_1_start not in reachable_0
     assert agent_0_start not in reachable_1
-    assert np.sum(phase_a != phase_b) == 4
+    expected_changed_cells = 4 if layout_name == "distance_switch_0" else 8
+    assert np.sum(phase_a != phase_b) == expected_changed_cells
 
     onion = StaticObject.ingredient_pile(0)
     station_types = (
@@ -164,12 +165,31 @@ def test_distance_switch_keeps_local_access_and_reverses_role_costs(
         np.argwhere(phase_a == StaticObject.PLATE_PILE),
         np.argwhere(phase_b == StaticObject.PLATE_PILE),
     )
-    assert {tuple(position) for position in np.argwhere(phase_a == onion)} == {
-        tuple(position) for position in np.argwhere(phase_b == StaticObject.GOAL)
+    phase_a_role_positions = {
+        tuple(position)
+        for object_type in (onion, StaticObject.GOAL)
+        for position in np.argwhere(phase_a == object_type)
     }
-    assert {
-        tuple(position) for position in np.argwhere(phase_a == StaticObject.GOAL)
-    } == {tuple(position) for position in np.argwhere(phase_b == onion)}
+    phase_b_role_positions = {
+        tuple(position)
+        for object_type in (onion, StaticObject.GOAL)
+        for position in np.argwhere(phase_b == object_type)
+    }
+    if layout_name == "distance_switch_0":
+        assert phase_a_role_positions == phase_b_role_positions
+        assert {tuple(position) for position in np.argwhere(phase_a == onion)} == {
+            tuple(position)
+            for position in np.argwhere(phase_b == StaticObject.GOAL)
+        }
+        assert {
+            tuple(position) for position in np.argwhere(phase_a == StaticObject.GOAL)
+        } == {tuple(position) for position in np.argwhere(phase_b == onion)}
+    else:
+        assert phase_a_role_positions.isdisjoint(phase_b_role_positions)
+        for y, x in phase_a_role_positions:
+            assert phase_b[y, x] == StaticObject.WALL
+        for y, x in phase_b_role_positions:
+            assert phase_a[y, x] == StaticObject.WALL
 
 
 def test_distance_switch_zero_starts_from_canonical_asymmetric_advantages():
@@ -223,7 +243,7 @@ def test_outage_pot_starts_cooking_after_second_onion():
     assert state.grid[0, 2, 2] == 19
 
 
-@pytest.mark.parametrize("variant", range(1))
+@pytest.mark.parametrize("variant", range(2))
 def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     layout = dynamic_layouts[f"outage_{variant}"]
     assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
@@ -328,13 +348,13 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     )
 
 
-@pytest.mark.parametrize("variant", range(1))
+@pytest.mark.parametrize("variant", range(2))
 def test_split_variants_keep_complementary_resources_in_separate_bays(variant):
     layout = dynamic_layouts[f"split_{variant}"]
     assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
     open_phase = layout.phases[0].layout.static_objects
     closed_phase = layout.phases[1].layout.static_objects
-    left_start, right_start = layout.phases[0].agent_positions
+    agent_starts = layout.phases[0].agent_positions
     onion = StaticObject.ingredient_pile(0)
     expected_onions = np.sum(open_phase[:, :4] == onion)
     expected_pots = np.sum(open_phase[:, :4] == StaticObject.POT)
@@ -348,8 +368,20 @@ def test_split_variants_keep_complementary_resources_in_separate_bays(variant):
     assert door_x == 4
     assert open_phase[door_y, door_x] == StaticObject.EMPTY
     assert closed_phase[door_y, door_x] == StaticObject.WALL
-    assert right_start in _reachable_floor(open_phase, left_start)
-    assert right_start not in _reachable_floor(closed_phase, left_start)
+    left_floor = next(
+        (x, y)
+        for y in range(closed_phase.shape[0])
+        for x in range(4)
+        if closed_phase[y, x] == StaticObject.EMPTY
+    )
+    right_floor = next(
+        (x, y)
+        for y in range(closed_phase.shape[0])
+        for x in range(5, closed_phase.shape[1])
+        if closed_phase[y, x] == StaticObject.EMPTY
+    )
+    assert right_floor in _reachable_floor(open_phase, left_floor)
+    assert right_floor not in _reachable_floor(closed_phase, left_floor)
 
     expected_left = {onion: expected_onions, StaticObject.POT: expected_pots}
     expected_right = {
@@ -364,14 +396,30 @@ def test_split_variants_keep_complementary_resources_in_separate_bays(variant):
             assert np.sum(phase[:, :4] == object_type) == 0
             assert np.sum(phase[:, 5:] == object_type) == count
 
-    left_reachable = _reachable_floor(closed_phase, left_start)
-    right_reachable = _reachable_floor(closed_phase, right_start)
+    left_reachable = _reachable_floor(closed_phase, left_floor)
+    right_reachable = _reachable_floor(closed_phase, right_floor)
     for object_type in expected_left:
         for y, x in np.argwhere(closed_phase == object_type):
             assert _can_interact_from(closed_phase, (x, y), left_reachable)
     for object_type in expected_right:
         for y, x in np.argwhere(closed_phase == object_type):
             assert _can_interact_from(closed_phase, (x, y), right_reachable)
+
+    if variant == 1:
+        doorway = (door_x, door_y)
+        assert agent_starts == ((3, 2), (3, 4))
+        distances = tuple(
+            _shortest_floor_distance(open_phase, {start}, {doorway})
+            for start in agent_starts
+        )
+        assert distances == (2, 2)
+        shared_ingress = (door_x - 1, door_y)
+        ingress_distances = tuple(
+            _shortest_floor_distance(open_phase, {start}, {shared_ingress})
+            for start in agent_starts
+        )
+        assert ingress_distances == (1, 1)
+        assert all(start in left_reachable for start in agent_starts)
 
 
 @pytest.mark.parametrize(
