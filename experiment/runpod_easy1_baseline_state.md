@@ -21,7 +21,7 @@ Both pods use `bic4907/overcooked:cu13-rp` and a 100 GB pod volume mounted at
 | IPPO-RNN train | `overcooked-v3-ippo-rnn-easy1_train` | `mglz038p` | 18 |
 | IPPO-RNN eval | `overcooked-v3-ippo-rnn-easy1_eval` | `7wgsgrh5` | 3 |
 | FCP population | `overcooked-v3-fcp-easy1_population` | `46qfe84z` | 9 |
-| FCP best response | `overcooked-v3-fcp-easy1_train` | `74otspw7` | 18 |
+| FCP best response | `overcooked-v3-fcp-easy1_train` | `ayst2t4g` | 18 |
 | FCP eval | `overcooked-v3-fcp-easy1_eval` | `040dx6ha` | 3 |
 
 Execution order is encoded in `scripts/runpod_easy1_baselines.sh`. Remove both
@@ -34,3 +34,7 @@ Their outputs are excluded; the replacement IDs above are the authoritative runs
 The first downstream FCP sweeps (`33zac3rf`, `2vep0tev`) were cancelled before
 they started. The launcher validates all 27 population snapshots before starting
 the replacement best-response and evaluation sweeps.
+
+The subsequent best-response sweep `74otspw7` was cancelled after one assignment
+started without the Runpod launcher environment (one GPU and offline W&B). That
+run is excluded. `ayst2t4g` is the clean replacement started through the launcher.

@@ -38,7 +38,7 @@ case "${ROLE}" in
         python scripts/verify_easy1_fcp_population.py \
             saves/fcp_easy1/fcp_population
         bash experiment/run_agents_sequential.sh \
-            cilab-overcooked/overcooked-v3-fcp-easy1_train/74otspw7 \
+            cilab-overcooked/overcooked-v3-fcp-easy1_train/ayst2t4g \
             cilab-overcooked/overcooked-v3-fcp-easy1_eval/040dx6ha
         ;;
     *)
