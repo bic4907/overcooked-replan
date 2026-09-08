@@ -12,6 +12,28 @@ Created: 2026-09-08 (Asia/Seoul)
 Both pods use `bic4907/overcooked:cu13-rp` and a 100 GB pod volume mounted at
 `/workspace`. Total live compute cost is $9.44/hour.
 
+### 2026-09-08 host interruption
+
+At approximately 15:57 UTC, both pods simultaneously changed from `running` to
+`initializing` with reason `awaiting_container`. Gateway SSH became unavailable
+and W&B stopped advancing. Both pods were exposed through the same public host,
+so this is being treated as a shared Runpod host/control-plane interruption, not
+as two independent training failures. The last observed authoritative progress
+was:
+
+- IPPO-RNN `mglz038p`: 8 finished, 8 running, 16 of 18 assignments started;
+  active `_step` values ranged from 134 to 334.
+- FCP best response `ayst2t4g`: 8 running; active `_step` values ranged from
+  157 to 290.
+
+Restart attempts returned Runpod internal `server_error`/deadline-exceeded
+responses. Do not delete either pod or launch duplicate W&B agents while the
+old processes cannot be inspected. Re-query with backoff. When a pod returns to
+`running`, first verify `/workspace`, gateway SSH, tmux, logs, completion
+markers, and process state. If the old jobs did not survive, preserve every
+finished artifact-bearing run and create a versioned replacement sweep for only
+the interrupted/missing configurations after the old W&B runs are terminal.
+
 ## W&B sweeps
 
 | Stage | Project | Sweep ID | Runs |
