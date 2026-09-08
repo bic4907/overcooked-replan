@@ -130,3 +130,45 @@ started without the Runpod launcher environment (one GPU and offline W&B). That
 run is excluded. `ayst2t4g` is the clean replacement started through the launcher.
 When the population is already complete, use the launcher's `fcp-post` role so
 W&B agents do not re-query the closed population sweep before validation.
+
+## Outage candidate v2 rerun
+
+The completed baseline screen showed that `split_1` and `distance_switch_1`
+have clear SP-XP gaps for IPPO and IPPO-RNN, while `outage_1` v1 does not:
+
+| Algorithm | Layout | SP | XP | SP-XP |
+| --- | --- | ---: | ---: | ---: |
+| IPPO | `split_1` | 166.67 | 33.33 | 133.33 |
+| IPPO | `outage_1` v1 | 396.67 | 398.67 | -2.00 |
+| IPPO | `distance_switch_1` | 393.33 | 163.33 | 230.00 |
+| IPPO-RNN | `split_1` | 190.00 | 78.00 | 112.00 |
+| IPPO-RNN | `outage_1` v1 | 400.00 | 400.00 | 0.00 |
+| IPPO-RNN | `distance_switch_1` | 496.67 | 310.67 | 186.00 |
+| FCP | `split_1` | 70.00 | 102.67 | -32.67 |
+| FCP | `outage_1` v1 | 340.00 | 338.67 | 1.33 |
+| FCP | `distance_switch_1` | 356.67 | 380.67 | -24.00 |
+
+FCP is inverted on two maps that pass strongly for both self-play algorithms.
+That systematic result is retained for reporting, but it is not being used to
+redesign otherwise valid maps because an FCP best response is trained against
+a policy population rather than its own clone; its diagonal `SP` has a
+different interpretation from IPPO self-play.
+
+Only `outage_1` was revised. `outage-1-adjacent-relay-v2` keeps the 5x7 outage
+mechanic and uses two adjacent handoffs, a one-move onion relay, changed
+resource positions, and mirrored lower notches. The fresh versioned sweeps are:
+
+| Stage | Project | Sweep ID | Runs |
+| --- | --- | --- | ---: |
+| IPPO train | `overcooked-v3-ippo-outage1-v2_train` | `8ixm9jvx` | 6 |
+| IPPO eval | `overcooked-v3-ippo-outage1-v2_eval` | `2laq6eg0` | 1 |
+| IPPO-RNN train | `overcooked-v3-ippo-rnn-outage1-v2_train` | `nlxajili` | 6 |
+| IPPO-RNN eval | `overcooked-v3-ippo-rnn-outage1-v2_eval` | `9k8ezs3b` | 1 |
+| FCP population | `overcooked-v3-fcp-outage1-v2_population` | `xfkub379` | 3 |
+| FCP best response | `overcooked-v3-fcp-outage1-v2_train` | `hqovh4vz` | 6 |
+| FCP eval | `overcooked-v3-fcp-outage1-v2_eval` | `zzc8mi9z` | 1 |
+
+The v2 IPPO rerun completed with SP 406.67, XP 377.33, and a 29.33 gap
+(7.2%), passing the absolute 10 and relative 5% screening thresholds.
+`outage1-v2-ippo-rnn` runs on pod `aa6v2u0iyhwbtl`; `outage1-v2-fcp` runs on
+pod `6dekvjdn7y1nul`.
