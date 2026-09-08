@@ -13,7 +13,7 @@
 | Split | `split_0` | selected Split design |
 | Split | `split_1` | centered-choke candidate; direct runs only |
 | Outage | `outage_0` | selected Outage design |
-| Outage | `outage_1` | offset-handoff candidate; direct runs only |
+| Outage | `outage_1` | adjacent-relay candidate; direct runs only |
 | Recipe Switch | `recipe_switch_0` | selected mixed-recipe design |
 | Distance Switch | `distance_switch_0` | selected asymmetric-distance design |
 | Distance Switch | `distance_switch_1` | relocating-station candidate; direct runs only |
@@ -50,7 +50,9 @@ movement region을
 outage 동안 지속적으로 생산할 수 있다.
 선별된 `outage_0`은 blocker를 중앙열 아래쪽에 두고 그 위에 인접한
 handoff counter 2칸을 확보해, left agent가 onion 두 개를 미리 적재할 수
-있게 한다. `outage_1` 후보는 blocker 위·아래에 handoff를 하나씩 둔다.
+있게 한다. `outage_1` 후보도 두 칸 relay를 유지하지만 resource 위치와
+하단의 대칭 notch를 바꿔, outage 직후 local cooking과 상대 bay 공급 중
+하나를 빠르게 선택하도록 만든다.
 
 현재 `experiment/self_play/train.yaml`은 확정된 4개 `_0` catalog와 seed
 6개를 조합한다. 후보는 `scenario=split_1`, `scenario=outage_1`, 또는

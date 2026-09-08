@@ -45,8 +45,10 @@ center column remains blocked in every phase: agents cannot cross bays and can
 exchange onions only through shared handoff counters.
 In selected `outage_0`, the blocker occupies the bottom center tile, leaving two
 adjacent counters above it where the left cook can preload onions. Candidate
-`outage_1` moves the blocker to the middle and leaves one handoff above and one
-below it.
+`outage_1` retains adjacent handoffs but changes the resource locations and adds
+mirrored lower notches. The surviving onion-to-handoff and handoff-to-pot relay
+therefore stays short while the left cook must choose between local production
+and supplying the right bay as soon as the outage begins.
 Outage uses a two-onion recipe, so its pots begin cooking as soon as the second
 onion is added. Split retains the standard three-onion recipe, and both
 scenarios retain the standard 20-step cooking timer. Each family exposes one

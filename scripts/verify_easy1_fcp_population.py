@@ -16,10 +16,10 @@ SNAPSHOT_SUFFIXES = (
 )
 
 
-def expected_paths(root: Path) -> set[Path]:
+def expected_paths(root: Path, layouts, seeds) -> set[Path]:
     paths = set()
-    for layout in LAYOUTS:
-        for seed in SEEDS:
+    for layout in layouts:
+        for seed in seeds:
             folder = root / f"{layout}_rnn_seed{seed}"
             stem = f"ippo_rnn_overcooked_v3_{layout}_seed{seed}_vmap0"
             paths.update(folder / f"{stem}{suffix}" for suffix in SNAPSHOT_SUFFIXES)
@@ -29,10 +29,12 @@ def expected_paths(root: Path) -> set[Path]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("population_dir", type=Path)
+    parser.add_argument("--layouts", nargs="+", default=list(LAYOUTS))
+    parser.add_argument("--seeds", nargs="+", type=int, default=list(SEEDS))
     args = parser.parse_args()
 
     root = args.population_dir.expanduser().resolve()
-    expected = expected_paths(root)
+    expected = expected_paths(root, args.layouts, args.seeds)
     actual = set(root.rglob("*.safetensors")) if root.is_dir() else set()
     missing = sorted(expected - actual)
     unexpected = sorted(actual - expected)

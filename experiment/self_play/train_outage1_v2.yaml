@@ -1,0 +1,24 @@
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: ippo-outage1-v2
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+parameters:
+  scenario:
+    value: outage_1
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-ippo-outage1-v2_train
+  recording:
+    value: enabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

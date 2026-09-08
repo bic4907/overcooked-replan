@@ -27,7 +27,7 @@ SCENARIO_VARIANT_COUNTS = {
 }
 CANDIDATE_LAYOUT_REVISIONS = {
     "split_1": "split-1-centered-choke-v2",
-    "outage_1": "outage-1-offset-handoff-v1",
+    "outage_1": "outage-1-adjacent-relay-v2",
     "distance_switch_1": "distance-switch-1-relocation-v2",
 }
 SCENARIOS = {

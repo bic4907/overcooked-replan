@@ -363,19 +363,23 @@ def _register_role_catalog():
         counters=((2, 2), (2, 4), (6, 2), (6, 4)),
     )
 
-    # Candidate 1 keeps the two disconnected Outage bays. The mirrored notches
-    # form narrow vertical spines while two separated handoff rows remain open.
+    # Candidate 1 keeps the two disconnected Outage bays, but places the two
+    # handoff counters next to each other above the blocker.  The surviving
+    # onion pile, handoff, and right pot form a one-move relay during outage;
+    # mirrored lower notches prevent the relay from degenerating into a wide
+    # open loop.  This preserves the 5x7 concept while making the transition
+    # demand an immediate local-cook-versus-supplier decision.
     outage_candidate = (
-        2,
-        ((2, 2), (4, 2)),
+        3,
+        ((1, 2), (5, 2)),
         (
-            ("0", (0, 3)),
+            ("0", (1, 0)),
             ("P", (2, 0)),
             ("B", (0, 1)),
-            ("B", (1, 4)),
+            ("B", (0, 2)),
             ("X", (2, 4)),
         ),
-        ((1, 2),),
+        ((1, 3),),
     )
     globals()["outage_1"] = _build_compact_outage_variant(outage_candidate)
 

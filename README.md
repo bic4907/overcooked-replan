@@ -12,7 +12,7 @@ The following role-coordination experiments are currently available:
 | `split_0` | Kitchen Split | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
 | `split_1` | Kitchen Split candidate | Does a centered choke point force a rapid, symmetric stay-versus-switch decision? |
 | `outage_0` | Resource Outage | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
-| `outage_1` | Resource Outage candidate | Can agents reroute through narrow local spines and choose between separated handoff rows? |
+| `outage_1` | Resource Outage candidate | Can agents rapidly choose local cooking versus a short two-slot onion relay? |
 | `recipe_switch_0` | Mixed Recipe Relay | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
 | `distance_switch_0` | Distance-Driven Role Switch | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
 | `distance_switch_1` | Distance-Driven Role Switch candidate | Does relocating stations onto inactive counters induce rapid route reassignment? |
@@ -47,9 +47,10 @@ allowing it to walk to the surviving onion pile directly.
 Split keeps the standard three-onion recipe, while Outage completes and starts
 cooking a pot with two onions. Pot cooking time remains 20 steps in every
 scenario.
-Selected `outage_0` places two adjacent storage counters above the blocker tile,
-allowing the left cook to preload two onions for the right cook. Candidate
-`outage_1` instead places one handoff above and one below the blocker.
+Selected `outage_0` places two adjacent storage counters above the blocker tile.
+Candidate `outage_1` keeps that two-slot relay principle but changes the resource
+placement and adds mirrored lower notches, so the left cook must immediately
+choose between its own pot and supplying the right cook when the outage begins.
 Mixed Recipe Relay permanently separates an onion/serving bay from a
 tomato/plate bay and exposes exactly two shared handoff counters. Both bays have
 pots. The retained layout is former catalog `_7`, reindexed as `_0`. It is a

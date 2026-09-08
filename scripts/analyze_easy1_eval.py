@@ -18,8 +18,11 @@ DEFAULT_ENTITY = "cilab-overcooked"
 DEFAULT_LAYOUTS = ("split_1", "outage_1", "distance_switch_1")
 DEFAULT_SWEEPS = {
     "IPPO": ("overcooked-v3-ippo-easy1_eval", "j9y1n577"),
-    "IPPO-RNN": ("overcooked-v3-ippo-rnn-easy1_eval", "7wgsgrh5"),
-    "FCP": ("overcooked-v3-fcp-easy1_eval", "040dx6ha"),
+    "IPPO-RNN": (
+        "overcooked-v3-ippo-rnn-easy1-recovery1_eval",
+        "wvet20aa",
+    ),
+    "FCP": ("overcooked-v3-fcp-easy1-recovery1_eval", "6wtspgb1"),
 }
 
 

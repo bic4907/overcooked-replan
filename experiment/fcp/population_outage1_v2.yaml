@@ -1,0 +1,35 @@
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: fcp-outage1-v2-population
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+# Three seeds x three snapshots produce a nine-policy outage_1 population.
+parameters:
+  scenario:
+    value: outage_1
+  SEED:
+    values: [0, 1, 2]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-fcp-outage1-v2_population
+  ARCHITECTURE:
+    value: rnn
+  SAVES_DIR:
+    value: saves/fcp_outage1_v2/fcp_population
+  CHECKPOINT_INTERVAL:
+    value: 0
+  CHECKPOINT_FRACTIONS:
+    value: [0.1, 0.5, 1.0]
+  upload_final_checkpoint:
+    value: false
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}
