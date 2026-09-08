@@ -38,3 +38,5 @@ the replacement best-response and evaluation sweeps.
 The subsequent best-response sweep `74otspw7` was cancelled after one assignment
 started without the Runpod launcher environment (one GPU and offline W&B). That
 run is excluded. `ayst2t4g` is the clean replacement started through the launcher.
+When the population is already complete, use the launcher's `fcp-post` role so
+W&B agents do not re-query the closed population sweep before validation.

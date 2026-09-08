@@ -4,7 +4,7 @@
 # deliberately separate because FCP needs its local population checkpoints.
 set -Eeuo pipefail
 
-ROLE="${1:?usage: $0 <ippo|fcp>}"
+ROLE="${1:?usage: $0 <ippo|fcp|fcp-post>}"
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 export GPUS="${GPUS:-0 1 2 3 4 5 6 7}"
 export PYTHONPATH="${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
@@ -41,8 +41,15 @@ case "${ROLE}" in
             cilab-overcooked/overcooked-v3-fcp-easy1_train/ayst2t4g \
             cilab-overcooked/overcooked-v3-fcp-easy1_eval/040dx6ha
         ;;
+    fcp-post)
+        python scripts/verify_easy1_fcp_population.py \
+            saves/fcp_easy1/fcp_population
+        bash experiment/run_agents_sequential.sh \
+            cilab-overcooked/overcooked-v3-fcp-easy1_train/ayst2t4g \
+            cilab-overcooked/overcooked-v3-fcp-easy1_eval/040dx6ha
+        ;;
     *)
-        echo "Unknown role: ${ROLE}; expected ippo or fcp" >&2
+        echo "Unknown role: ${ROLE}; expected ippo, fcp, or fcp-post" >&2
         exit 2
         ;;
 esac
