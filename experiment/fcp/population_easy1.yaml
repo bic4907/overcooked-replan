@@ -1,0 +1,36 @@
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: fcp-easy1-only-population
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+# 3 layouts x 3 seeds = 9 runs. Each run saves 10%, 50%, and 100%, yielding
+# nine frozen partner policies per layout.
+parameters:
+  scenario:
+    values: [split_1, outage_1, distance_switch_1]
+  SEED:
+    values: [0, 1, 2]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-fcp-easy1_population
+  ARCHITECTURE:
+    value: rnn
+  SAVES_DIR:
+    value: saves/fcp_easy1/fcp_population
+  CHECKPOINT_INTERVAL:
+    value: 0
+  CHECKPOINT_FRACTIONS:
+    value: [0.1, 0.5, 1.0]
+  upload_final_checkpoint:
+    value: false
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

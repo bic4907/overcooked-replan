@@ -1,0 +1,26 @@
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: ippo-rnn-easy1-only
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+parameters:
+  scenario:
+    values: [split_1, outage_1, distance_switch_1]
+  ARCHITECTURE:
+    value: rnn
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-ippo-rnn-easy1_train
+  recording:
+    value: enabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

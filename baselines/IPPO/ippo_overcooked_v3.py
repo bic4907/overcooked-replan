@@ -182,6 +182,9 @@ def _log_final_checkpoint_artifact(config, checkpoint_paths, config_path):
             "algorithm": str(config.get("ALGORITHM", "IPPO")),
             "architecture": _architecture(config),
             "layout": config["ENV_KWARGS"]["layout"],
+            "transition_observer": config["ENV_KWARGS"].get(
+                "transition_observer", "both"
+            ),
             "seed": int(config["SEED"]),
             "num_seeds": int(config["NUM_SEEDS"]),
             "checkpoint_format": "safetensors",

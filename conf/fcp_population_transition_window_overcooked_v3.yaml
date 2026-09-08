@@ -1,0 +1,22 @@
+defaults:
+  - ippo_rnn_transition_window_overcooked_v3
+  - _self_
+
+# Keep each observer arm in its own tree so population discovery cannot mix
+# frozen partners trained with different transition-signal visibility.
+POPULATION_ROOT: saves/fcp_transition_window_easy1/population
+SAVES_DIR: ${POPULATION_ROOT}/${TRANSITION_OBSERVER}
+
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-fcp-transition-window-easy1_population}
+CHECKPOINT_INTERVAL: 0
+CHECKPOINT_FRACTIONS: [0.1, 0.5, 1.0]
+upload_final_checkpoint: false
+
+EXPERIMENT_FOLDER: fcp-population-transition-window-${TRANSITION_OBSERVER}
+WANDB_GROUP: fcp-population-transition-window-${CONDITION}
+WANDB_TAGS:
+  - FCP-Population
+  - transition-window-observer
+  - observer-${TRANSITION_OBSERVER}
+RUN_NAME: ippo_rnn_fcp_population_${CONDITION}_observer-${TRANSITION_OBSERVER}_seed${SEED}
+NOTES: FCP frozen partner population for selective transition-window observation.

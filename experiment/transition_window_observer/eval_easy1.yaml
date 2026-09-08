@@ -1,0 +1,38 @@
+program: baselines/IPPO/eval_crossplay_overcooked_v3.py
+name: ippo-rnn-transition-window-easy1-only-seedwise-xp
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+parameters:
+  algorithms:
+    value: IPPO
+  layout:
+    values: [split_1, outage_1, distance_switch_1]
+  transition-observer:
+    values: [none, agent_0, agent_1, both]
+  episodes:
+    value: 20
+  max-steps:
+    value: 450
+  workers-per-gpu:
+    value: 8
+  entity:
+    value: cilab-overcooked
+  output-project:
+    value: cilab-overcooked/overcooked-v3-ippo-rnn-transition-window-easy1_eval
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - cilab-overcooked/overcooked-v3-ippo-rnn-transition-window-easy1_train
+  - --seeds
+  - "0"
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+  - "5"
+  - ${args_no_equals}

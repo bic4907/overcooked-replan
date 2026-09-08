@@ -1,0 +1,27 @@
+program: baselines/FCP/fcp_overcooked_v3.py
+name: fcp-easy1-only-best-response
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+# Run only after population_easy1.yaml finishes on the same filesystem.
+parameters:
+  scenario:
+    values: [split_1, outage_1, distance_switch_1]
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-fcp-easy1_train
+  SAVES_DIR:
+    value: saves/fcp_easy1
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

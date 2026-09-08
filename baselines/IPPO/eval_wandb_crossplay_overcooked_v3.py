@@ -194,6 +194,18 @@ def _policy_config(run_config):
     }
 
 
+def _transition_observer(run_config):
+    """Read the selective warning-window condition with legacy compatibility."""
+
+    env_kwargs = dict(run_config.get("ENV_KWARGS") or {})
+    return str(
+        env_kwargs.get(
+            "transition_observer",
+            run_config.get("TRANSITION_OBSERVER", "both"),
+        )
+    )
+
+
 def _observation_config(run_config):
     env_kwargs = dict(run_config.get("ENV_KWARGS") or {})
     return {
@@ -203,6 +215,7 @@ def _observation_config(run_config):
         "include_layout_change_mask": bool(
             env_kwargs.get("include_layout_change_mask", True)
         ),
+        "transition_observer": _transition_observer(run_config),
         "transition_warning_steps": int(env_kwargs.get("transition_warning_steps", 20)),
     }
 
