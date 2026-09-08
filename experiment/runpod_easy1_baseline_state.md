@@ -172,3 +172,23 @@ The v2 IPPO rerun completed with SP 406.67, XP 377.33, and a 29.33 gap
 (7.2%), passing the absolute 10 and relative 5% screening thresholds.
 `outage1-v2-ippo-rnn` runs on pod `aa6v2u0iyhwbtl`; `outage1-v2-fcp` runs on
 pod `6dekvjdn7y1nul`.
+
+The completed v2 evaluation is:
+
+| Algorithm | SP | XP | SP-XP | Gap / SP | Screen |
+| --- | ---: | ---: | ---: | ---: | --- |
+| IPPO | 406.67 | 377.33 | 29.33 | 7.2% | pass |
+| IPPO-RNN | 453.33 | 404.67 | 48.67 | 10.7% | pass |
+| FCP | 480.00 | 476.67 | 3.33 | 0.7% | small gap |
+
+The v2 FCP population was independently verified and archived before deleting
+the pod. The artifact contains exactly nine `.safetensors` files and records
+`source_sweep=xfkub379`, `layout=outage_1`, and
+`layout_revision=outage-1-adjacent-relay-v2`:
+
+```text
+cilab-overcooked/overcooked-v3-fcp-outage1-v2-population-recovery/
+fcp-outage1-v2-population-checkpoints:latest
+```
+
+Recovery run: `i1ljp2n3`.
