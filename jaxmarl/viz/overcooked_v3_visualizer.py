@@ -32,7 +32,6 @@ COLORS = {
     "cyan": jnp.array([0, 255, 255], dtype=jnp.uint8),
     "light_blue": jnp.array([173, 216, 230], dtype=jnp.uint8),
     "dark_green": jnp.array([0, 150, 0], dtype=jnp.uint8),
-    "dark_grey": jnp.array([55, 55, 55], dtype=jnp.uint8),
 }
 
 INGREDIENT_COLORS = jnp.array(
@@ -76,7 +75,6 @@ class OvercookedV3Visualizer:
         subdivs=3,
         seconds_per_step=DEFAULT_SECONDS_PER_STEP,
         transition_warning_steps=DEFAULT_TRANSITION_WARNING_STEPS,
-        distinguish_blockers=False,
     ):
         if seconds_per_step <= 0:
             raise ValueError("seconds_per_step must be greater than zero")
@@ -88,7 +86,6 @@ class OvercookedV3Visualizer:
         self.subdivs = subdivs
         self.seconds_per_step = seconds_per_step
         self.transition_warning_steps = transition_warning_steps
-        self.distinguish_blockers = distinguish_blockers
 
     def _lazy_init_window(self) -> Window:
         if self.window is None:
@@ -111,7 +108,7 @@ class OvercookedV3Visualizer:
     def _recipe_label(recipe):
         encoded = int(np.asarray(recipe))
         labels = []
-        ingredient_names = ("O", "T", "I2:")
+        ingredient_names = ("O", "T")
         for ingredient_index, name in enumerate(ingredient_names):
             count = (encoded >> (2 + 2 * ingredient_index)) & 0x3
             if count:
@@ -440,13 +437,6 @@ class OvercookedV3Visualizer:
 
             return img
 
-        def _render_blocker(cell, img):
-            # Blockers are not storage surfaces. Render them darker than WALL
-            # counters so hard-mode inactive anchors are visually unambiguous.
-            return rendering.fill_coords(
-                img, rendering.point_in_rect(0, 1, 0, 1), COLORS["dark_grey"]
-            )
-
         def _render_agent(cell, img):
             tri_fn = rendering.point_in_triangle(
                 (0.12, 0.19),
@@ -549,9 +539,7 @@ class OvercookedV3Visualizer:
             StaticObject.GOAL: _render_goal,
             StaticObject.POT: _render_pot,
             StaticObject.RECIPE_INDICATOR: _render_recipe_indicator,
-            StaticObject.BLOCKER: (
-                _render_blocker if self.distinguish_blockers else _render_wall
-            ),
+            StaticObject.BLOCKER: _render_wall,
             StaticObject.PLATE_PILE: _render_plate_pile,
         }
 

@@ -73,21 +73,3 @@ reverses which agent has the short onion-input loop and which has the short
 serving loop. The retained `_0` tag is the canonical 9×5 map.
 Because no recipe is scheduled, this layout uses the standard 31-channel V3
 observation rather than next-recipe preview channels.
-
-## Hard role scenarios
-
-The Easy layouts remain unchanged. A separate hard catalog adds
-`<family>_hard_{0..19}` for all four role families, for 20 variants per family
-and 80 hard layouts in total. Variants `_0..4` range from 13×9 through 21×15;
-variants `_5..19` add deliberately varied wide, tall, and balanced geometries.
-Their counter islands, boundary stations, handoff counts, and spawn sides also
-vary. Every Hydra scenario uses a radius-4 local view, a 450-step episode, and
-transitions at steps 150 and 300.
-
-Hard Split closes every interior center-column crossover at once. Hard Outage
-removes every right onion source and left serving station, then relocates the
-usable handoff bank. Hard Recipe Switch keeps geometry fixed but changes a
-three-ingredient goal. Hard Distance Switch keeps pots and floor fixed while
-moving onion, plate, and serving stations to disjoint inactive anchors. Hard
-scenarios distinguish usable counters (`1.0`) from non-storage blockers (`0.5`)
-in the existing wall channel without changing its shape.

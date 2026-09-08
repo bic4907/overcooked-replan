@@ -6,19 +6,13 @@ from pathlib import Path
 import jax
 
 from jaxmarl import make
-from jaxmarl.environments.overcooked_v3 import ALL_ROLE_SCENARIO_LAYOUT_NAMES
+from jaxmarl.environments.overcooked_v3 import ROLE_SCENARIO_LAYOUT_NAMES
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--layout", choices=ALL_ROLE_SCENARIO_LAYOUT_NAMES, required=True
-    )
-    parser.add_argument(
-        "--steps",
-        type=int,
-        help="rollout length (defaults to 450 for hard layouts, 220 otherwise)",
-    )
+    parser.add_argument("--layout", choices=ROLE_SCENARIO_LAYOUT_NAMES, required=True)
+    parser.add_argument("--steps", type=int, default=220)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--gif", type=Path)
     return parser.parse_args()
@@ -26,9 +20,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    hard_mode = "_hard_" in args.layout
-    steps = args.steps if args.steps is not None else (450 if hard_mode else 220)
-    if steps < 1:
+    if args.steps < 1:
         raise ValueError("--steps must be at least 1")
 
     env = make(
@@ -36,10 +28,8 @@ def main():
         layout=args.layout,
         # Keep the final requested transition from triggering the base API's
         # automatic reset before we print/save the last state.
-        max_steps=steps + 1,
+        max_steps=args.steps + 1,
         random_agent_positions=False,
-        agent_view_size=4 if hard_mode else None,
-        distinguish_blockers=hard_mode,
     )
     key = jax.random.PRNGKey(args.seed)
     key, reset_key = jax.random.split(key)
@@ -50,7 +40,7 @@ def main():
     captions = ["step=0 phase=0 return=0"] if args.gif else None
     print(f"layout={args.layout} phase=0 step=0")
 
-    for step in range(steps):
+    for step in range(args.steps):
         key, action_key, step_key = jax.random.split(key, 3)
         action_keys = jax.random.split(action_key, env.num_agents)
         actions = {
@@ -79,7 +69,6 @@ def main():
         args.gif.parent.mkdir(parents=True, exist_ok=True)
         OvercookedV3Visualizer(
             transition_warning_steps=env.transition_warning_steps,
-            distinguish_blockers=env.distinguish_blockers,
         ).animate(
             states,
             filename=str(args.gif),

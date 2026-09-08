@@ -219,7 +219,6 @@ def evaluate_episode(
 
 def main(default_architecture="cnn"):
     args = parse_args(default_architecture)
-    hard_mode = "_hard_" in args.layout
     if args.episodes < 1:
         raise ValueError("--episodes must be at least 1")
     if args.render_delay < 0:
@@ -255,8 +254,6 @@ def main(default_architecture="cnn"):
         layout=args.layout,
         max_steps=args.max_steps,
         random_agent_positions=False,
-        agent_view_size=4 if hard_mode else None,
-        distinguish_blockers=hard_mode,
         include_transition_countdown=not args.legacy_observation,
         include_layout_change_mask=(
             not args.legacy_observation and not args.no_layout_change_mask
@@ -340,7 +337,6 @@ def main(default_architecture="cnn"):
         args.gif.parent.mkdir(parents=True, exist_ok=True)
         viz = OvercookedV3Visualizer(
             transition_warning_steps=env.transition_warning_steps,
-            distinguish_blockers=env.distinguish_blockers,
         )
         viz.animate(
             first_states,
@@ -353,7 +349,6 @@ def main(default_architecture="cnn"):
     if args.render:
         viz = OvercookedV3Visualizer(
             transition_warning_steps=env.transition_warning_steps,
-            distinguish_blockers=env.distinguish_blockers,
         )
         window = viz._lazy_init_window()
         for state, caption in zip(first_states, first_captions):

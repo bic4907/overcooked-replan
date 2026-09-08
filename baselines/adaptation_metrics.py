@@ -137,16 +137,12 @@ def adaptation_config_dict(config: AdaptationMetricConfig) -> dict:
 def canonical_phase_mapping(layout: str, phase_count: int) -> tuple[int, ...]:
     """Map repeated physical phases (for example A-B-A) back to task IDs."""
     from jaxmarl.environments.overcooked_v3 import (
-        ALL_ROLE_SCENARIO_LAYOUT_NAMES,
         POLICY_SWITCH_BASE_LAYOUTS,
         phase_policy_sequence,
-        phase_task_sequence,
     )
 
     if layout in POLICY_SWITCH_BASE_LAYOUTS:
         return tuple(int(index) for index in phase_policy_sequence(layout))
-    if layout in ALL_ROLE_SCENARIO_LAYOUT_NAMES:
-        return tuple(int(index) for index in phase_task_sequence(layout))
     return tuple(range(phase_count))
 
 

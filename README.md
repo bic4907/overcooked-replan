@@ -14,13 +14,6 @@ The following role-coordination experiments are currently available:
 | `recipe_switch_0` | Mixed Recipe Relay | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
 | `distance_switch_0` | Distance-Driven Role Switch | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
 
-An additional hard catalog is available as `split_hard_{0..19}`,
-`outage_hard_{0..19}`, `recipe_switch_hard_{0..19}`, and
-`distance_switch_hard_{0..19}`: 20 variants per family and 80 layouts in all.
-Every hard scenario keeps the 150/150/1000 A → B → A phase schedule and uses
-a radius-4 local view. Its scenario config also distinguishes usable storage
-counters from non-storage blockers without changing the observation shape.
-
 Kitchen Split starts with one central doorway open for 150 steps. It then becomes
 a handoff counter for 150 steps, preventing agents from changing bays. The left
 bay has onions and pots; the right bay has plates and serving. Agents must

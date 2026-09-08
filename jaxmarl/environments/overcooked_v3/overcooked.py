@@ -126,7 +126,6 @@ class OvercookedV3Base(MultiAgentEnv):
         op_ingredient_permutations: Optional[List[int]] = None,
         initial_state_buffer: Optional[State] = None,
         force_path_planning: bool = False,
-        distinguish_blockers: bool = False,
     ):
         """
         Initializes the OvercookedV3Base environment.
@@ -136,7 +135,6 @@ class OvercookedV3Base(MultiAgentEnv):
             max_steps (int): The maximum number of steps in the environment.
             observation_type (Union[ObservationType, List[ObservationType]]): The type of observation to use. Can be a single ObservationType or a list of ObservationTypes, one for each agent.
             agent_view_size (Optional[int]): The number of blocks the agent can view in each direction, None for full grid.
-            distinguish_blockers (bool): Encode non-storage blockers as 0.5 instead of 1.0 in the existing wall/counter channel. This preserves the observation shape while distinguishing them from storage counters.
             random_reset (bool): Whether to reset the environment with random agent positions, inventories and pot states.
             random_agent_positions (bool): Whether to randomize agent positions. Agents will not be moved outside of their room if they are placed in an enclosed space.
             start_cooking_interaction (bool): If false the pot starts cooking automatically once the current recipe is complete, if true the pot starts cooking only after the agent interacts with it.
@@ -180,7 +178,6 @@ class OvercookedV3Base(MultiAgentEnv):
         self.observation_type = observation_type
 
         self.agent_view_size = agent_view_size
-        self.distinguish_blockers = distinguish_blockers
         self.indicate_successful_delivery = indicate_successful_delivery
         self.obs_shape = self._get_obs_shape()
 
@@ -659,19 +656,10 @@ class OvercookedV3Base(MultiAgentEnv):
             ]
         )
         static_layers = static_objects[..., None] == static_encoding
-        blocker_mask = static_objects == StaticObject.BLOCKER
-        if self.distinguish_blockers:
-            # Keep the observation shape checkpoint-compatible: storage counters
-            # remain 1.0, while non-storage blockers use a distinct intensity.
-            static_layers = static_layers.astype(jnp.float32)
-            wall_or_blocker = jnp.where(
-                blocker_mask,
-                jnp.asarray(0.5, dtype=jnp.float32),
-                static_layers[..., 0],
-            )
-        else:
-            wall_or_blocker = static_layers[..., 0] | blocker_mask
-        static_layers = static_layers.at[..., 0].set(wall_or_blocker)
+        static_layers = static_layers.at[..., 0].set(
+            static_layers[..., 0]
+            | (static_objects == StaticObject.BLOCKER)
+        )
         # print("static_layers: ", static_layers.shape)
 
         def _ingridient_layers(ingredients, ingredient_mapping=None):
