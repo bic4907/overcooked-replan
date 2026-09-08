@@ -4,7 +4,7 @@
 # deliberately separate because FCP needs its local population checkpoints.
 set -Eeuo pipefail
 
-ROLE="${1:?usage: $0 <ippo|fcp|fcp-post|fcp-recovery1>}"
+ROLE="${1:?usage: $0 <ippo|rnn-recovery1|fcp|fcp-post|fcp-recovery1>}"
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 export GPUS="${GPUS:-0 1 2 3 4 5 6 7}"
 export PYTHONPATH="${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
@@ -32,6 +32,12 @@ case "${ROLE}" in
             cilab-overcooked/overcooked-v3-ippo-easy1_eval/j9y1n577 \
             cilab-overcooked/overcooked-v3-ippo-rnn-easy1_eval/7wgsgrh5
         ;;
+    rnn-recovery1)
+        bash experiment/run_agents_sequential.sh \
+            cilab-overcooked/overcooked-v3-ippo-rnn-easy1_train/zegiopgh \
+            cilab-overcooked/overcooked-v3-ippo-rnn-easy1-recovery1_eval/wvet20aa \
+            cilab-overcooked/overcooked-v3-ippo-easy1_eval/j9y1n577
+        ;;
     fcp)
         bash experiment/run_agents_sequential.sh \
             cilab-overcooked/overcooked-v3-fcp-easy1_population/46qfe84z
@@ -56,7 +62,7 @@ case "${ROLE}" in
             cilab-overcooked/overcooked-v3-fcp-easy1-recovery1_eval/6wtspgb1
         ;;
     *)
-        echo "Unknown role: ${ROLE}; expected ippo, fcp, fcp-post, or fcp-recovery1" >&2
+        echo "Unknown role: ${ROLE}; expected ippo, rnn-recovery1, fcp, fcp-post, or fcp-recovery1" >&2
         exit 2
         ;;
 esac

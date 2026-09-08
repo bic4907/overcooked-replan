@@ -97,6 +97,23 @@ best-response sweep. Its authoritative full replacement is:
 Launch both sequentially with `scripts/runpod_easy1_baselines.sh fcp-recovery1`
 after the recovered population tree passes validation.
 
+The original IPPO-RNN sweep retained eight finished artifact-bearing runs. Its
+recovery sweep reruns only these ten interrupted or unassigned configurations:
+`split_1` seeds 3-5, `outage_1` seeds 3-5, and `distance_switch_1` seeds 2-5.
+
+| Recovery stage | Project | Sweep ID | Runs |
+| --- | --- | --- | ---: |
+| IPPO-RNN missing train jobs | `overcooked-v3-ippo-rnn-easy1_train` | `zegiopgh` | 10 |
+| IPPO-RNN combined eval | `overcooked-v3-ippo-rnn-easy1-recovery1_eval` | `wvet20aa` | 3 |
+
+Launch the recovery training, combined RNN evaluation, and the already-pending
+IPPO evaluation sequentially with
+`scripts/runpod_easy1_baselines.sh rnn-recovery1`.
+
+The FCP recovery launcher started at 16:20 UTC on pod `6dekvjdn7y1nul`. All
+eight W&B agents connected online after validating the 27 population
+checkpoints and eight JAX CUDA devices.
+
 Execution order is encoded in `scripts/runpod_easy1_baselines.sh`. Remove both
 pods after the evaluation artifacts and W&B summaries have been verified.
 

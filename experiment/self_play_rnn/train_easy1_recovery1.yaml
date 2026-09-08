@@ -1,0 +1,36 @@
+program: scripts/run_ippo_rnn_recovery_job.py
+name: ippo-rnn-easy1-recovery1-missing-only
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+# Correlated map/seed jobs prevent W&B's grid expansion from rerunning the
+# eight configurations that completed before the Runpod host interruption.
+parameters:
+  job:
+    values:
+      - split_1:3
+      - split_1:4
+      - split_1:5
+      - outage_1:3
+      - outage_1:4
+      - outage_1:5
+      - distance_switch_1:2
+      - distance_switch_1:3
+      - distance_switch_1:4
+      - distance_switch_1:5
+  ARCHITECTURE:
+    value: rnn
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-ippo-rnn-easy1_train
+  recording:
+    value: enabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}
