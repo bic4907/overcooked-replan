@@ -16,13 +16,31 @@ import wandb
 
 DEFAULT_ENTITY = "cilab-overcooked"
 DEFAULT_LAYOUTS = ("split_1", "outage_1", "distance_switch_1")
-DEFAULT_SWEEPS = {
-    "IPPO": ("overcooked-v3-ippo-easy1_eval", "j9y1n577"),
-    "IPPO-RNN": (
-        "overcooked-v3-ippo-rnn-easy1-recovery1_eval",
-        "wvet20aa",
-    ),
-    "FCP": ("overcooked-v3-fcp-easy1-recovery1_eval", "6wtspgb1"),
+DEFAULT_SOURCES = {
+    "IPPO": {
+        "split_1": ("overcooked-v3-ippo-easy1_eval", "j9y1n577"),
+        "outage_1": ("overcooked-v3-ippo-outage1-v2_eval", "2laq6eg0"),
+        "distance_switch_1": ("overcooked-v3-ippo-easy1_eval", "j9y1n577"),
+    },
+    "IPPO-RNN": {
+        "split_1": (
+            "overcooked-v3-ippo-rnn-easy1-recovery1_eval",
+            "wvet20aa",
+        ),
+        "outage_1": ("overcooked-v3-ippo-rnn-outage1-v2_eval", "9k8ezs3b"),
+        "distance_switch_1": (
+            "overcooked-v3-ippo-rnn-easy1-recovery1_eval",
+            "wvet20aa",
+        ),
+    },
+    "FCP": {
+        "split_1": ("overcooked-v3-fcp-easy1-recovery1_eval", "6wtspgb1"),
+        "outage_1": ("overcooked-v3-fcp-outage1-v2_eval", "zzc8mi9z"),
+        "distance_switch_1": (
+            "overcooked-v3-fcp-easy1-recovery1_eval",
+            "6wtspgb1",
+        ),
+    },
 }
 
 
@@ -74,16 +92,22 @@ def main() -> int:
     rows = []
     all_pass = True
 
-    for algorithm, (project, sweep_id) in DEFAULT_SWEEPS.items():
-        sweep = api.sweep(f"{args.entity}/{project}/{sweep_id}")
-        runs_by_layout = {}
-        for run in sweep.runs:
-            layout = (run.config or {}).get("layout")
-            if layout in args.layouts:
-                runs_by_layout.setdefault(layout, []).append(run)
-
+    for algorithm, sources in DEFAULT_SOURCES.items():
         for layout in args.layouts:
-            runs = runs_by_layout.get(layout, [])
+            source = sources.get(layout)
+            if source is None:
+                rows.append(
+                    (algorithm, layout, "missing-source", None, None, None, None, "INCOMPLETE")
+                )
+                all_pass = False
+                continue
+            project, sweep_id = source
+            sweep = api.sweep(f"{args.entity}/{project}/{sweep_id}")
+            runs = [
+                run
+                for run in sweep.runs
+                if (run.config or {}).get("layout") == layout
+            ]
             finished = [run for run in runs if run.state == "finished"]
             if not finished:
                 state = runs[0].state if runs else sweep.state.lower()

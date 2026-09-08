@@ -4,7 +4,7 @@
 # deliberately separate because FCP needs its local population checkpoints.
 set -Eeuo pipefail
 
-ROLE="${1:?usage: $0 <ippo|rnn-recovery1|fcp|fcp-post|fcp-recovery1>}"
+ROLE="${1:?usage: $0 <ippo|rnn-recovery1|fcp|fcp-post|fcp-recovery1|outage1-v2-ippo-rnn|outage1-v2-fcp>}"
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 export GPUS="${GPUS:-0 1 2 3 4 5 6 7}"
 export PYTHONPATH="${REPO_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
@@ -61,8 +61,25 @@ case "${ROLE}" in
             cilab-overcooked/overcooked-v3-fcp-easy1-recovery1_train/iq5qa8n0 \
             cilab-overcooked/overcooked-v3-fcp-easy1-recovery1_eval/6wtspgb1
         ;;
+    outage1-v2-ippo-rnn)
+        bash experiment/run_agents_sequential.sh \
+            cilab-overcooked/overcooked-v3-ippo-outage1-v2_train/8ixm9jvx \
+            cilab-overcooked/overcooked-v3-ippo-outage1-v2_eval/2laq6eg0 \
+            cilab-overcooked/overcooked-v3-ippo-rnn-outage1-v2_train/nlxajili \
+            cilab-overcooked/overcooked-v3-ippo-rnn-outage1-v2_eval/9k8ezs3b
+        ;;
+    outage1-v2-fcp)
+        bash experiment/run_agents_sequential.sh \
+            cilab-overcooked/overcooked-v3-fcp-outage1-v2_population/xfkub379
+        python scripts/verify_easy1_fcp_population.py \
+            saves/fcp_outage1_v2/fcp_population \
+            --layouts outage_1
+        bash experiment/run_agents_sequential.sh \
+            cilab-overcooked/overcooked-v3-fcp-outage1-v2_train/hqovh4vz \
+            cilab-overcooked/overcooked-v3-fcp-outage1-v2_eval/zzc8mi9z
+        ;;
     *)
-        echo "Unknown role: ${ROLE}; expected ippo, rnn-recovery1, fcp, fcp-post, or fcp-recovery1" >&2
+        echo "Unknown role: ${ROLE}" >&2
         exit 2
         ;;
 esac
