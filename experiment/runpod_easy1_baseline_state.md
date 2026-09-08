@@ -86,6 +86,17 @@ best-response training. The original FCP pod was stopped again after upload.
 | FCP best response | `overcooked-v3-fcp-easy1_train` | `ayst2t4g` | 18 |
 | FCP eval | `overcooked-v3-fcp-easy1_eval` | `040dx6ha` | 3 |
 
+The shared-host interruption left no finished runs in the original FCP
+best-response sweep. Its authoritative full replacement is:
+
+| Recovery stage | Project | Sweep ID | Runs |
+| --- | --- | --- | ---: |
+| FCP best response | `overcooked-v3-fcp-easy1-recovery1_train` | `iq5qa8n0` | 18 |
+| FCP eval | `overcooked-v3-fcp-easy1-recovery1_eval` | `6wtspgb1` | 3 |
+
+Launch both sequentially with `scripts/runpod_easy1_baselines.sh fcp-recovery1`
+after the recovered population tree passes validation.
+
 Execution order is encoded in `scripts/runpod_easy1_baselines.sh`. Remove both
 pods after the evaluation artifacts and W&B summaries have been verified.
 
