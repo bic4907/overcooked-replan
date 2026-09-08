@@ -197,7 +197,7 @@ class DynamicLayout:
 
 
 ROLE_SCENARIO_LAYOUTS = {
-    family: tuple(f"{family}_{variant}" for variant in range(2))
+    family: (f"{family}_0",)
     for family in ("split", "outage", "recipe_switch", "distance_switch")
 }
 ROLE_SCENARIO_LAYOUT_NAMES = tuple(

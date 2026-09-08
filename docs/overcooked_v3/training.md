@@ -42,10 +42,10 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 
 | Hydra option | Scenario |
 | --- | --- |
-| `scenario=split_<0-1>` | Kitchen Split |
-| `scenario=outage_<0-1>` | Resource Outage |
-| `scenario=recipe_switch_<0-1>` | Mixed Recipe Relay |
-| `scenario=distance_switch_<0-1>` | Distance-Driven Role Switch |
+| `scenario=split_0` | Kitchen Split |
+| `scenario=outage_0` | Resource Outage |
+| `scenario=recipe_switch_0` | Mixed Recipe Relay |
+| `scenario=distance_switch_0` | Distance-Driven Role Switch |
 
 Kitchen Split은 처음 150 step 동안 중앙 통로 하나가 열려 있고, 이후 150 step 동안
 그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
@@ -60,9 +60,8 @@ shared counter로 양파를 넘겨야 오른쪽 주방이 조리를 계속할 �
 recipe indicator는 맵 위쪽 중앙의 별도 타일에 유지한다. 중앙열에는 이동과 물건
 보관을 모두 막는 일반 non-storage blocker를 둔다.
 
-각 category에는 2026-08-22 baseline report의 method 평균 `|XP-SP|`가 큰 순서로
-선별한 `_0`, `_1` 두 레이아웃이 등록되어 있다. Split의 새 `_0`, `_1`은 각각
-기존 `_2`, `_0`이고, Outage의 새 `_0`, `_1`은 각각 기존 `_1`, `_0`이다.
+각 category에는 선별한 Easy 레이아웃 하나가 `_0`으로 등록되어 있다. 현재
+`outage_0` geometry는 기존 observer W&B run에서 `outage_1`로 기록되었다.
 Split은 7×9, Resource Outage는 5×7이다. Outage는 normal과 outage를 각각 150 step 유지한다.
 모든 Outage variant는 onion→handoff와 handoff→pot 각각을 최대 1 step으로 제한한다.
 중앙은 항상 wall/counter로
@@ -72,17 +71,17 @@ blocker는 중앙열 아래쪽에 두고, 그 위의 인접한 counter 2칸에 o
 적재할 수 있다.
 Split은 기존의 양파 3개 레시피를 유지하고, Outage는 양파 2개를 pot에 넣으면
 바로 조리를 시작한다. 모든 scenario의 pot 조리시간은 기존과 동일한 20 step이다.
-모든 Outage variant는 outage phase에서 오른쪽 onion을 전부 제거한다. 예를 들어
-`_1`은 `scenario=split_1` 또는 `scenario=outage_1`처럼 바로 선택할 수
-있다. 기본 sweep에는 네 category의 총 8개 layout이 등록되어 있다.
+모든 Outage variant는 outage phase에서 오른쪽 onion을 전부 제거한다. Easy
+layout은 `scenario=split_0` 또는 `scenario=outage_0`처럼 바로 선택할 수 있다.
+기본 sweep에는 네 category의 총 4개 layout이 등록되어 있다.
 
 기본값은 `scenario=split_0`이다.
 
 Mixed Recipe Relay는 onion·serving이 있는 왼쪽 bay와 tomato·plate가 있는 오른쪽
 bay를 영구적으로 분리하고, 중앙 handoff counter 두 칸으로만 물건을 교환한다.
-기존 catalog의 `_7`, `_5`만 남겨 새 `_0`, `_1`로 재인덱싱했다. 둘 다 7×5이며
-tomato-major → onion-major → tomato-major 순서를 사용한다. 두 layout 모두
-150/150 step timing을 사용한다. 선택된 8개 role scenario는 step 150과
+기존 catalog의 `_7`을 새 `_0`으로 재인덱싱했다. 7×5이며
+tomato-major → onion-major → tomato-major 순서를 사용한다. 선택된 4개 Easy
+role scenario는 step 150과
 300에 전환하고 step 450에 종료하며, 모든 scenario config는
 `max_steps: 450`과 `RECORD_MAX_STEPS: 450`을 사용한다.
 
@@ -98,7 +97,6 @@ Pot, plate, counter, floor와 agent 위치는 전환 중 고정된다. 레시피
 | Layout | Size | Near-station axis |
 | --- | --- | --- |
 | `distance_switch_0` | 9×5 | canonical `asymm_advantages` (former `_0`) |
-| `distance_switch_1` | 11×5 | wider input/serving detour (former `_1`) |
 
 V3의 signal-free grid encoding은 29채널이며, phase 전환 countdown과 change
 mask를 추가한 기본 관측은 31채널이다. 마지막 두 채널은 전환 20 step 전까지

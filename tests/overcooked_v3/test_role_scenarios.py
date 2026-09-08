@@ -79,10 +79,10 @@ def _shortest_floor_distance(static_objects, starts, goals):
 
 def test_each_role_scenario_family_has_expected_unique_layouts():
     expected_counts = {
-        "split": 2,
-        "outage": 2,
-        "recipe_switch": 2,
-        "distance_switch": 2,
+        "split": 1,
+        "outage": 1,
+        "recipe_switch": 1,
+        "distance_switch": 1,
     }
     assert set(ROLE_SCENARIO_LAYOUTS) == set(expected_counts)
     for family, names in ROLE_SCENARIO_LAYOUTS.items():
@@ -223,7 +223,7 @@ def test_outage_pot_starts_cooking_after_second_onion():
     assert state.grid[0, 2, 2] == 19
 
 
-@pytest.mark.parametrize("variant", range(2))
+@pytest.mark.parametrize("variant", range(1))
 def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     layout = dynamic_layouts[f"outage_{variant}"]
     assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
@@ -328,7 +328,7 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     )
 
 
-@pytest.mark.parametrize("variant", range(2))
+@pytest.mark.parametrize("variant", range(1))
 def test_split_variants_keep_complementary_resources_in_separate_bays(variant):
     layout = dynamic_layouts[f"split_{variant}"]
     assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)

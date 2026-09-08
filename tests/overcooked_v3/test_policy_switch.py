@@ -96,7 +96,7 @@ def test_policy_switch_sweeps_target_all_role_scenarios_with_six_seeds():
     expected_layouts = [
         f"{family}_{variant}"
         for family in ("split", "outage", "recipe_switch", "distance_switch")
-        for variant in range(2)
+        for variant in range(1)
     ]
 
     assert training["parameters"]["scenario"]["values"] == expected_layouts

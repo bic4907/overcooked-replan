@@ -22,7 +22,7 @@ SCENARIO_FAMILIES = {
 SCENARIOS = {
     f"{family}_{variant}": metadata
     for family, metadata in SCENARIO_FAMILIES.items()
-    for variant in range(2)
+    for variant in range(1)
 }
 SWEEP_SCENARIOS = list(SCENARIOS)
 

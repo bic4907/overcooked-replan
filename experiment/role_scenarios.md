@@ -10,21 +10,20 @@
 
 | Category | Selected layouts | Status |
 | --- | --- | --- |
-| Split | `split_{0..1}` | selected Split designs |
-| Outage | `outage_{0..1}` | selected Outage designs |
-| Recipe Switch | `recipe_switch_{0..1}` | selected mixed-recipe designs |
-| Distance Switch | `distance_switch_{0..1}` | selected asymmetric-distance designs |
+| Split | `split_0` | selected Split design |
+| Outage | `outage_0` | selected Outage design |
+| Recipe Switch | `recipe_switch_0` | selected mixed-recipe design |
+| Distance Switch | `distance_switch_0` | selected asymmetric-distance design |
 
-각 category에는 2026-08-22 baseline report의 method 평균 `|XP-SP|`가 큰
-layout 두 개를 `_0`, `_1` 순서로 등록한다. Split의 새 태그는 기존 `_2`, `_0`,
-Outage는 기존 `_1`, `_0`, Recipe Switch는 기존 `_2`, `_1`, Distance Switch는
-기존 `_0`, `_1` 순서다. recipe indicator는 위쪽 중앙의 별도 타일에 고정하고,
+각 category에는 선별된 Easy layout 하나만 `_0`으로 등록한다. 현재
+`outage_0` geometry는 기존 observer W&B run에서 `outage_1`로 기록되었다.
+recipe indicator는 위쪽 중앙의 별도 타일에 고정하고,
 중앙열의 구분 타일은 일반 non-storage blocker로 유지한다.
 Split은 선별된 workload와 배치를 유지하면서 7×9 크기를 사용한다.
 Split은 표준 양파 3개 레시피를 유지한다. Outage는 조리시간을 바꾸지 않고
 양파 2개가 pot에 들어오면 조리를 시작하는 레시피를 사용한다.
 
-Distance Switch는 기존 `_0`, `_1` 두 layout을 같은 태그로 유지한다. 표준 양파
+Distance Switch는 기존 `_0` layout을 유지한다. 표준 양파
 3개 레시피는 고정하며 각 agent의 분리된
 작업 영역에서 onion·pot·plate·serving station에 모두 접근할 수 있다.
 Phase A의 가까운 역할 배치는 agent 0=onion/pot, agent 1=plate/serve이고,
@@ -42,8 +41,8 @@ outage 동안 지속적으로 생산할 수 있다.
 blocker는 중앙열 아래쪽에 두고 그 위에 인접한 handoff counter 2칸을
 확보해, left agent가 onion 두 개를 미리 적재할 수 있게 한다.
 
-현재 `experiment/self_play/train.yaml`은 8개 전체 catalog와 seed 6개를
-조합한다. 개별 실행할 때는 `scenario=<family>_<0-1>`을 사용한다.
+현재 `experiment/self_play/train.yaml`은 4개 Easy catalog와 seed 6개를
+조합한다. 개별 실행할 때는 `scenario=<family>_0`을 사용한다.
 
 ## 2. Training sweep 생성
 
@@ -71,7 +70,7 @@ GPUS="0 1 2 3" bash scripts/overcooked_v3/run_wandb_agents.sh \
 
 ## 4. Cross-play eval sweep 생성
 
-학습이 완료된 뒤 다음 명령으로 8개 role-scenario map의 cross-play
+학습이 완료된 뒤 다음 명령으로 4개 Easy role-scenario map의 cross-play
 평가 sweep을 생성한다.
 
 ```bash
@@ -97,7 +96,7 @@ bash scripts/overcooked_v3/run_wandb_agents.sh \
 
 각 W&B agent에는 `CUDA_VISIBLE_DEVICES`로 GPU 하나가 할당된다. 따라서 eval
 sweep YAML 안에는 `--gpus`를 추가하지 않는다. 각 sweep run이 맵 하나의 전체
-SP/XP matrix를 평가하며, 8개 맵이 끝나면 결과는
+SP/XP matrix를 평가하며, 4개 맵이 끝나면 결과는
 `cilab-overcooked/overcooked-v3-ippo_eval` project에 기록된다.
 
 현재 `eval_ippo_seedwise.yaml`의 `workers-per-gpu: 8` 설정으로 한 GPU에
@@ -112,7 +111,7 @@ eval worker 여덟 개가 실행된다. GPU 메모리와 utilization에 맞춰 �
 Dynamic-layout eval은 각 episode의 A→B 및 B→A transition을 따로 계산한 뒤,
 두 방향 평균에 동일한 가중치를 주어 전체 adaptation metric을 기록한다. 기본
 horizon은 layout의 가장 짧은 phase이며, window는
-`min(30, adaptation_horizon / 2)`다. 선택된 8개 role-scenario는 모두
+`min(30, adaptation_horizon / 2)`다. 선택된 4개 Easy role-scenario는 모두
 step 150과 300에 phase가 바뀌고 step 450에 episode가 끝나므로
 `window=30`, `horizon=150`을 사용한다. 필요하면
 `--adaptation-window`와 `--adaptation-horizon`으로 덮어쓸 수 있다.

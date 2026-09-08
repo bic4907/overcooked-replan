@@ -89,7 +89,7 @@ def test_fcp_eval_sweep_runs_seedwise_fcp_only():
     assert evaluation["parameters"]["layout"]["values"] == [
         f"{family}_{variant}"
         for family in ("split", "outage", "recipe_switch", "distance_switch")
-        for variant in range(2)
+        for variant in range(1)
     ]
     assert evaluation["parameters"]["max-steps"]["value"] == 450
     assert (
@@ -111,7 +111,7 @@ def test_fcp_switch_sweeps_use_three_population_and_six_training_seeds():
     expected_layouts = [
         f"{family}_{variant}"
         for family in ("split", "outage", "recipe_switch", "distance_switch")
-        for variant in range(2)
+        for variant in range(1)
     ]
 
     assert population["parameters"]["scenario"]["values"] == expected_layouts

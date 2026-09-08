@@ -22,12 +22,12 @@ def test_crossplay_sweep_contains_all_selected_training_maps():
     expected_maps = [
         f"{family}_{variant}"
         for family in ("split", "outage", "recipe_switch", "distance_switch")
-        for variant in range(2)
+        for variant in range(1)
     ]
 
     assert training_maps == expected_maps
     assert crossplay_maps == training_maps
-    assert len(set(crossplay_maps)) == 8
+    assert len(set(crossplay_maps)) == 4
 
 
 def test_crossplay_sweep_renders_argparse_compatible_flags():

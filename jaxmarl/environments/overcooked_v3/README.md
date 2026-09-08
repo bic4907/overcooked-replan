@@ -25,13 +25,13 @@ features for the 29-channel encoding.
 
 ## Role-coordination scenarios
 
-`split_0` and `split_1` use 7×9 maps. They open one central doorway
-for 150 steps, then turn it into a handoff counter for 150 steps. The
+`split_0` uses a 7×9 map. It opens one central doorway
+for 150 steps, then turns it into a handoff counter for 150 steps. The
 left bay contains onions and pots, while the right bay contains plates and
 serving. Agents must choose opposite sides before the wall closes, then
 coordinate cook–server work through the counter.
 
-`outage_0` and `outage_1` have compact 5×7 maps with
+`outage_0` has a compact 5×7 map with
 disconnected movement regions and shared center counters. Both bays are
 complete kitchens with pots, plates, serving, and onions. After a 150-step
 normal phase, every right onion pile becomes a wall for 150 steps, so the left cook must trade off local
@@ -47,35 +47,31 @@ The blocker occupies the bottom center tile, leaving two adjacent counters above
 it where the left cook can preload onions.
 Outage uses a two-onion recipe, so its pots begin cooking as soon as the second
 onion is added. Split retains the standard three-onion recipe, and both
-scenarios retain the standard 20-step cooking timer. The paper-facing Easy
-layouts are `split_0`, `outage_0`, and `distance_switch_0`. Split uses previous
-tags `_2`, `_0`. Outage was reordered so the geometry recorded as `outage_1`
-in the existing observer W&B runs is now `outage_0`; the former `outage_0` is
-now `outage_1`.
+scenarios retain the standard 20-step cooking timer. Each family currently
+exposes one selected Easy layout under `_0`. The existing observer W&B runs
+recorded the current `outage_0` geometry under the historical `outage_1` name.
 
-`recipe_switch_0` and `recipe_switch_1` are Mixed Recipe Relay layouts.
+`recipe_switch_0` is a Mixed Recipe Relay layout.
 The center divider permanently separates an onion/serving bay from a
 tomato/plate bay and leaves exactly two shared storage counters. Both bays have
-at least one pot. The retained former catalog variants `_7` and `_5` are
-reindexed as `_0` and `_1`. Both are 7×5 and start tomato-majority. The lower-cost cooking
+at least one pot. The retained former catalog variant `_7` is reindexed as
+`_0`. It is 7×5 and starts tomato-majority. The lower-cost cooking
 side changes with the active mixed recipe. Every 450-step episode follows a
 deterministic A → B → A schedule. Layout geometry never changes. A dish
 that had already started cooking before a switch remains deliverable, but a new
 pot can start only when its contents match the current recipe. Recipe Relay
 adds two next-recipe preview channels to the standard V3 observation.
 
-`distance_switch_0` and `distance_switch_1` are Distance-Driven Role
-Switch layouts based on `asymm_advantages`. All eight role scenarios use the
+`distance_switch_0` is a Distance-Driven Role Switch layout based on
+`asymm_advantages`. All four Easy role scenarios use the
 same 450-step A → B → A schedule, with changes at steps 150 and 300.
 The standard three-onion recipe is
 fixed, and each agent's separate work region contains access to an onion pile,
 central pot, plate pile, and serving station. Pots and plates remain fixed;
 only the onion and serving endpoints exchange at steps 150 and 300. This
 reverses which agent has the short onion-input loop and which has the short
-serving loop. The retained `_0` and `_1` tags are respectively the canonical
-9×5 map and its wider 11×5 version, without changing the comparative-cost
-objective.
-Because no recipe is scheduled, these layouts use the standard 31-channel V3
+serving loop. The retained `_0` tag is the canonical 9×5 map.
+Because no recipe is scheduled, this layout uses the standard 31-channel V3
 observation rather than next-recipe preview channels.
 
 ## Hard role scenarios

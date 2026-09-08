@@ -328,11 +328,9 @@ def _build_outage_catalog_variant(variant_index):
 
 
 def _register_role_catalog():
-    # Public split tags 0/1 come from previous tags 2/0 (sources 14/9).
-    # Outage is ordered so the observer-positive paper layout is public tag 0:
-    # the former public tags 1/0 are now 0/1 (sources 4/12).
-    split_sources = (14, 9)
-    outage_sources = (4, 12)
+    # Keep only the observer-positive paper layouts as public Easy tag 0.
+    split_sources = (14,)
+    outage_sources = (4,)
     for new_index, (split_source, outage_source) in enumerate(
         zip(split_sources, outage_sources)
     ):
@@ -398,9 +396,7 @@ def _recipe_switch_grid(spec):
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-# Ranked by mean absolute XP-SP gap in the 2026-08-22 baseline report and
-# reindexed as new 0 <- previous tag 2 (catalog 7), new 1 <- previous tag 1
-# (catalog 5).
+# Retain the selected previous tag 2 (catalog 7) as public Easy tag 0.
 _RECIPE_SWITCH_SPECS = (
     {
         "width": 7,
@@ -420,23 +416,14 @@ _RECIPE_SWITCH_SPECS = (
             ("B", (4, 4)),
         ),
     },
-    {
-        "width": 7,
-        "height": 5,
-        "handoff_rows": (1, 3),
-        "agent_positions": ((2, 2), (4, 2)),
-        "left_resources": (("0", (0, 2)), ("P", (2, 0)), ("X", (1, 4))),
-        "right_resources": (("1", (6, 2)), ("P", (4, 0)), ("B", (5, 4))),
-    },
 )
 
 _RECIPE_ONION_MAJOR = [0, 0, 1]
 _RECIPE_TOMATO_MAJOR = [0, 1, 1]
 _RECIPE_SWITCH_TIMINGS = (
     (150, 150),
-    (150, 150),
 )
-_RECIPE_SWITCH_ONION_MAJOR_FIRST = (False, False)
+_RECIPE_SWITCH_ONION_MAJOR_FIRST = (False,)
 
 
 def _register_recipe_switch_catalog():
@@ -692,13 +679,9 @@ def _vertical_distance_switch_spec(width, height, extra_counters=()):
     }
 
 
-# Selected tags stay new 0 <- previous tag 0 (catalog 0) and new 1 <- previous
-# tag 1 (catalog 1), ranked by the 2026-08-22 baseline report.
+# Retain the canonical Overcooked-AI asymmetric_advantages map as Easy tag 0.
 _DISTANCE_SWITCH_SPECS = (
-    # Canonical Overcooked-AI asymmetric_advantages.
     _vertical_distance_switch_spec(9, 5),
-    # Wider canonical corridor.
-    _vertical_distance_switch_spec(11, 5),
 )
 
 

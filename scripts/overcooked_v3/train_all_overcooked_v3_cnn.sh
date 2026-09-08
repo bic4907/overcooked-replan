@@ -20,13 +20,9 @@ fi
 
 layouts=(
     split_0
-    split_1
     outage_0
-    outage_1
     recipe_switch_0
-    recipe_switch_1
     distance_switch_0
-    distance_switch_1
 )
 
 for layout in "${layouts[@]}"; do

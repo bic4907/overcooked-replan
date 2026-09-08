@@ -1,6 +1,6 @@
 # Overcooked V3 role-scenario 개발 및 실험 가이드
 
-이 문서는 이 저장소에서 진행한 **Overcooked V3** 작업을 기준으로 한다. 현재 기본 실험은 두 에이전트, 고정 시작 위치, CNN 기반 IPPO이며 네 family의 role scenario 8개를 사용한다.
+이 문서는 이 저장소에서 진행한 **Overcooked V3** 작업을 기준으로 한다. 현재 기본 실험은 두 에이전트, 고정 시작 위치, CNN 기반 IPPO이며 네 family의 Easy role scenario 4개를 사용한다.
 
 ## 1. 현재 구성
 
@@ -28,7 +28,7 @@
 | `jaxmarl/environments/overcooked_v3/dynamic_overcooked.py` | 맵 전환과 캐릭터 재배치 규칙 |
 | `conf/ippo_overcooked_v3.yaml` | IPPO 기본 하이퍼파라미터 |
 | `baselines/IPPO/ippo_overcooked_v3.py` | CNN/RNN 통합 학습 코드 |
-| `scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh` | 8개 role scenario CNN 일괄 학습 |
+| `scripts/overcooked_v3/train_all_overcooked_v3_cnn.sh` | 4개 Easy role scenario CNN 일괄 학습 |
 | `baselines/IPPO/eval_ippo_overcooked_v3.py` | CNN/RNN 통합 평가 코드 |
 | `scripts/overcooked_v3/eval_all_overcooked_v3_cnn.sh` | same/cross-seed 일괄 평가 |
 | `jaxmarl/viz/overcooked_v3_visualizer.py` | GUI 및 GIF 렌더링 |
@@ -524,7 +524,7 @@ W&B 내부 cache를 제외한 실행 및 결과 파일은 `crossplay-evaluation`
 
 ### 7.5 평가 통계 PNG/CSV 생성
 
-8개 role scenario의 IPPO 평가 로그를 통계로 변환하려면 다음 명령을 사용한다.
+4개 Easy role scenario의 IPPO 평가 로그를 통계로 변환하려면 다음 명령을 사용한다.
 
 ```bash
 MPLCONFIGDIR=/tmp \
@@ -613,9 +613,9 @@ override로 전달하고, 평가에는 `--saves-dir /mnt/nas/overcooked-replan`�
 
 | Layout | Phase 순서 | 전환 step | Episode step |
 |---|---:|---|---:|
-| `split_0`, `split_1` | A → B → A | 150, 300 | 450 |
-| `outage_0`, `outage_1` | A → B → A | 150, 300 | 450 |
-| `recipe_switch_0`, `recipe_switch_1` | A → B → A | 150, 300 | 450 |
-| `distance_switch_0`, `distance_switch_1` | A → B → A | 150, 300 | 450 |
+| `split_0` | A → B → A | 150, 300 | 450 |
+| `outage_0` | A → B → A | 150, 300 | 450 |
+| `recipe_switch_0` | A → B → A | 150, 300 | 450 |
+| `distance_switch_0` | A → B → A | 150, 300 | 450 |
 
 이 표는 `dynamic_layout_data.py`를 변경하면 함께 갱신해야 한다.

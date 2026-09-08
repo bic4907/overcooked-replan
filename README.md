@@ -9,10 +9,10 @@ The following role-coordination experiments are currently available:
 
 | Hydra scenario | Environment | Research question |
 | --- | --- | --- |
-| `split_{0..1}` | Kitchen Split | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
-| `outage_{0..1}` | Resource Outage | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
-| `recipe_switch_{0..1}` | Mixed Recipe Relay | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
-| `distance_switch_{0..1}` | Distance-Driven Role Switch | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
+| `split_0` | Kitchen Split | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
+| `outage_0` | Resource Outage | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
+| `recipe_switch_0` | Mixed Recipe Relay | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
+| `distance_switch_0` | Distance-Driven Role Switch | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
 
 An additional hard catalog is available as `split_hard_{0..19}`,
 `outage_hard_{0..19}`, `recipe_switch_hard_{0..19}`, and
@@ -31,11 +31,10 @@ the left cook must trade off local production against supplying the right bay.
 Both conditions keep a recipe indicator at a separate fixed tile and use a
 generic non-storage blocker in the center column.
 
-Each category has two cross-play-selected layouts tagged `_0` and `_1`.
-The paper-facing Easy layouts are `split_0`, `outage_0`, and
-`distance_switch_0`. Split `_0`/`_1` come from the previous `_2`/`_0`.
-Outage was reordered so the layout recorded as `outage_1` in the existing
-observer W&B runs is now `outage_0`; the former `outage_0` is now `outage_1`.
+Each category currently exposes one selected Easy layout under the `_0` tag.
+The paper-facing layouts are `split_0`, `outage_0`, and `distance_switch_0`.
+The existing observer W&B runs recorded the current `outage_0` geometry under
+the historical `outage_1` name.
 Split uses a 7×9 map, while Outage uses a compact 5×7 map whose phases last
 150 steps each. Outage keeps each onion-to-handoff and handoff-to-pot leg
 within one movement step. The central wall always
@@ -49,10 +48,10 @@ Outage places two adjacent storage counters above the blocker tile, allowing the
 left cook to preload two onions for the right cook.
 Mixed Recipe Relay permanently separates an onion/serving bay from a
 tomato/plate bay and exposes exactly two shared handoff counters. Both bays have
-pots. The two retained layouts are the former catalog `_7` and `_5`, reindexed
-as `_0` and `_1`. Both are 7×5 tomato-major-first layouts. The map stays fixed while the
-recipe changes at steps 150 and 300 within a 450-step episode. All eight role
-scenarios use the same A → B → A phase schedule and episode length.
+pots. The retained layout is former catalog `_7`, reindexed as `_0`. It is a
+7×5 tomato-major-first layout. The map stays fixed while the recipe changes at
+steps 150 and 300 within a 450-step episode. All four Easy role scenarios use
+the same A → B → A phase schedule and episode length.
 Select any layout through its Hydra scenario name, such as
 `scenario=outage_0`.
 
@@ -63,10 +62,9 @@ pile, central pot, plate pile, and serving station. During each 450-step episode
 the assignment follows A → B → A: agent 0 first has the short serving loop and
 agent 1 the short onion-input loop, the onion and serving endpoints exchange at
 step 150, and they return at step 300. Pots, plates, counters, floor, and agent
-positions remain fixed. The retained layouts keep the previous `_0` and `_1`
-tags. New `_0` is the canonical 9×5 `asymm_advantages` map and `_1` is its
-wider 11×5 variant. Both retain at least a three-step comparative
-advantage for the efficient task loop.
+positions remain fixed. The retained `_0` layout is the canonical 9×5
+`asymm_advantages` map and keeps at least a three-step comparative advantage
+for the efficient task loop.
 
 Overcooked V3 exposes upcoming layout transitions to every agent. The final two
 channels of the default 31-channel observation contain a global transition
@@ -393,7 +391,7 @@ signal-enabled environment are not shape-compatible with the new encoding.
 
 ## Batch training and evaluation of role scenarios
 
-Train CNN policies on all eight selected role scenarios:
+Train CNN policies on all four selected Easy role scenarios:
 
 ```bash
 TRAIN_SEEDS="0 1" \

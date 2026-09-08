@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 ROLE_FAMILIES = ("split", "outage", "recipe_switch", "distance_switch")
 ROLE_LAYOUTS = tuple(
-    f"{family}_{variant}" for family in ROLE_FAMILIES for variant in range(2)
+    f"{family}_0" for family in ROLE_FAMILIES
 )
 ROLE_LOG_NAME_PATTERN = re.compile(
-    r"^((split|outage|recipe_switch|distance_switch)_([01]))_"
+    r"^((split|outage|recipe_switch|distance_switch)_(0))_"
     r"(same_seed0|same_seed1|cross_seed0_seed1|cross_seed1_seed0)\.log$"
 )
 EPISODE_PATTERN = re.compile(
