@@ -21,8 +21,8 @@ Both pods use `bic4907/overcooked:cu13-rp` and a 100 GB pod volume mounted at
 | IPPO-RNN train | `overcooked-v3-ippo-rnn-easy1_train` | `mglz038p` | 18 |
 | IPPO-RNN eval | `overcooked-v3-ippo-rnn-easy1_eval` | `7wgsgrh5` | 3 |
 | FCP population | `overcooked-v3-fcp-easy1_population` | `46qfe84z` | 9 |
-| FCP best response | `overcooked-v3-fcp-easy1_train` | `33zac3rf` | 18 |
-| FCP eval | `overcooked-v3-fcp-easy1_eval` | `2vep0tev` | 3 |
+| FCP best response | `overcooked-v3-fcp-easy1_train` | `74otspw7` | 18 |
+| FCP eval | `overcooked-v3-fcp-easy1_eval` | `040dx6ha` | 3 |
 
 Execution order is encoded in `scripts/runpod_easy1_baselines.sh`. Remove both
 pods after the evaluation artifacts and W&B summaries have been verified.
@@ -30,3 +30,7 @@ pods after the evaluation artifacts and W&B summaries have been verified.
 The initial sweeps `ranyyq1p` and `zoaxacrm` were cancelled after eight runs in
 each were detected logging offline because `WANDB_API_KEY` was not exported.
 Their outputs are excluded; the replacement IDs above are the authoritative runs.
+
+The first downstream FCP sweeps (`33zac3rf`, `2vep0tev`) were cancelled before
+they started. The launcher validates all 27 population snapshots before starting
+the replacement best-response and evaluation sweeps.

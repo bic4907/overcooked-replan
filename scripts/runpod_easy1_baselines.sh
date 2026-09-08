@@ -34,9 +34,12 @@ case "${ROLE}" in
         ;;
     fcp)
         bash experiment/run_agents_sequential.sh \
-            cilab-overcooked/overcooked-v3-fcp-easy1_population/46qfe84z \
-            cilab-overcooked/overcooked-v3-fcp-easy1_train/33zac3rf \
-            cilab-overcooked/overcooked-v3-fcp-easy1_eval/2vep0tev
+            cilab-overcooked/overcooked-v3-fcp-easy1_population/46qfe84z
+        python scripts/verify_easy1_fcp_population.py \
+            saves/fcp_easy1/fcp_population
+        bash experiment/run_agents_sequential.sh \
+            cilab-overcooked/overcooked-v3-fcp-easy1_train/74otspw7 \
+            cilab-overcooked/overcooked-v3-fcp-easy1_eval/040dx6ha
         ;;
     *)
         echo "Unknown role: ${ROLE}; expected ippo or fcp" >&2
