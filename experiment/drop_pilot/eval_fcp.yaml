@@ -1,0 +1,22 @@
+program: scripts/run_drop_pilot_job.py
+name: drop-pilot-fcp-reward-traces
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+# Only the selected `_0` layouts still have downloadable FCP best-response
+# checkpoints. The newer `_1` training projects were intentionally deleted and
+# must be retrained rather than silently substituted with an older map version.
+parameters:
+  job:
+    values:
+      - fcp:split_0
+      - fcp:outage_0
+      - fcp:distance_switch_0
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

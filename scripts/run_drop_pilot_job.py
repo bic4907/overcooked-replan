@@ -55,6 +55,13 @@ JOBS = {
         "distance_switch_1",
         "ippo-rnn",
     ),
+    "fcp:split_0": ("overcooked-v3-fcp_train", "split_0", "fcp"),
+    "fcp:outage_0": ("overcooked-v3-fcp_train", "outage_0", "fcp"),
+    "fcp:distance_switch_0": (
+        "overcooked-v3-fcp_train",
+        "distance_switch_0",
+        "fcp",
+    ),
 }
 
 
@@ -73,6 +80,7 @@ def main() -> None:
         raise SystemExit(f"Unknown Drop pilot job {job!r}; expected one of: {expected}")
 
     source_project, layout, run_label = JOBS[job]
+    algorithm = "FCP" if job.startswith("fcp:") else "IPPO"
     entrypoint = (
         Path(__file__).resolve().parents[1]
         / "baselines"
@@ -84,7 +92,7 @@ def main() -> None:
         str(entrypoint),
         f"cilab-overcooked/{source_project}",
         "--algorithms",
-        "IPPO",
+        algorithm,
         "--layout",
         layout,
         "--entity",
