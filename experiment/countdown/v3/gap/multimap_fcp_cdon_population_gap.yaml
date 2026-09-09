@@ -1,3 +1,7 @@
+# Gap filler: the cell is complete for split_0 and distance_switch_0, but its
+# outage runs were trained on outage_1, which main redefines. outage_0 is
+# identical on both branches, so the experiment moves to it and only the six
+# outage seeds are retrained here.
 # Training treatment: no-adaptation control. One of the scenario's two
 # kitchens is drawn at reset and held for the whole episode, so no boundary
 # is ever crossed and the countdown channel is a constant zero.
@@ -24,7 +28,7 @@
 # root would hand this cell the other arm's snapshots, whose observation
 # width differs by the countdown channel.
 program: baselines/IPPO/ippo_overcooked_v3.py
-name: v3-countdown-multimap-fcp-cdoff-population
+name: v3-countdown-multimap-fcp-cdon-population-gap-outage_0
 method: grid
 metric:
   goal: maximize
@@ -33,9 +37,7 @@ metric:
 parameters:
   ENV_KWARGS.layout:
     values:
-      - split_0
       - outage_0
-      - distance_switch_0
   ENV_KWARGS.layout_mode:
     value: episode_random
   ENV_KWARGS.max_steps:
@@ -45,7 +47,7 @@ parameters:
   ENV_KWARGS.reset_on_layout_change:
     value: false
   ENV_KWARGS.include_transition_countdown:
-    value: false
+    value: true
   ENV_KWARGS.include_layout_change_mask:
     value: false
   ENV_KWARGS.transition_warning_steps:
@@ -53,9 +55,9 @@ parameters:
   ARCHITECTURE:
     value: rnn
   ALGORITHM:
-    value: IPPO-SP-cdoff
+    value: IPPO-SP-cdon
   SAVES_DIR:
-    value: saves/fcp_population/overcooked-v3-multimap-fcp-cdoff
+    value: saves/fcp_population/overcooked-v3-multimap-fcp-cdon
   CHECKPOINT_INTERVAL:
     value: 100
   SEED:
@@ -63,11 +65,11 @@ parameters:
   NUM_SEEDS:
     value: 1
   EXPERIMENT_FOLDER:
-    value: overcooked-v3-multimap-fcp-cdoff
+    value: overcooked-v3-multimap-fcp-cdon
   WANDB_GROUP:
-    value: overcooked-v3-multimap-fcp-cdoff
+    value: overcooked-v3-multimap-fcp-cdon
   WANDB_TAGS:
-    value: [countdown, v3, multimap, fcp, cdoff]
+    value: [countdown, v3, multimap, fcp, cdon]
   recording:
     value: disabled
 

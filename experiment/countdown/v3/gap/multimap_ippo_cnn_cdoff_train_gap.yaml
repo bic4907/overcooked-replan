@@ -1,3 +1,7 @@
+# Gap filler: the cell is complete for split_0 and distance_switch_0, but its
+# outage runs were trained on outage_1, which main redefines. outage_0 is
+# identical on both branches, so the experiment moves to it and only the six
+# outage seeds are retrained here.
 # Training treatment: no-adaptation control. One of the scenario's two
 # kitchens is drawn at reset and held for the whole episode, so no boundary
 # is ever crossed and the countdown channel is a constant zero.
@@ -16,15 +20,8 @@
 #
 # Scoring is the common switchmap protocol: 450-step episodes, boundaries at
 # 150 and 300. See experiment/countdown/README.md.
-#
-# Stage 1 of FCP: independent IPPO self-play runs whose intermediate
-# snapshots become the frozen partner population. SAVES_DIR is scoped to
-# this cell - discover_population_checkpoints rglobs the population
-# directory and filters only on architecture and layout, so an unscoped
-# root would hand this cell the other arm's snapshots, whose observation
-# width differs by the countdown channel.
 program: baselines/IPPO/ippo_overcooked_v3.py
-name: v3-countdown-multimap-fcp-cdoff-population
+name: v3-countdown-multimap-ippo_cnn-cdoff-train-gap-outage_0
 method: grid
 metric:
   goal: maximize
@@ -33,9 +30,7 @@ metric:
 parameters:
   ENV_KWARGS.layout:
     values:
-      - split_0
       - outage_0
-      - distance_switch_0
   ENV_KWARGS.layout_mode:
     value: episode_random
   ENV_KWARGS.max_steps:
@@ -51,23 +46,19 @@ parameters:
   ENV_KWARGS.transition_warning_steps:
     value: 20
   ARCHITECTURE:
-    value: rnn
+    value: cnn
   ALGORITHM:
-    value: IPPO-SP-cdoff
-  SAVES_DIR:
-    value: saves/fcp_population/overcooked-v3-multimap-fcp-cdoff
-  CHECKPOINT_INTERVAL:
-    value: 100
+    value: IPPO-cdoff
   SEED:
     values: [0, 1, 2, 3, 4, 5]
   NUM_SEEDS:
     value: 1
   EXPERIMENT_FOLDER:
-    value: overcooked-v3-multimap-fcp-cdoff
+    value: overcooked-v3-multimap-ippo_cnn-cdoff
   WANDB_GROUP:
-    value: overcooked-v3-multimap-fcp-cdoff
+    value: overcooked-v3-multimap-ippo_cnn-cdoff
   WANDB_TAGS:
-    value: [countdown, v3, multimap, fcp, cdoff]
+    value: [countdown, v3, multimap, ippo_cnn, cdoff]
   recording:
     value: disabled
 

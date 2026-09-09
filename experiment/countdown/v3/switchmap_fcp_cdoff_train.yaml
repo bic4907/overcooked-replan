@@ -29,7 +29,7 @@ parameters:
   ENV_KWARGS.layout:
     values:
       - split_0
-      - outage_1
+      - outage_0
       - distance_switch_0
   ENV_KWARGS.layout_mode:
     value: cyclic

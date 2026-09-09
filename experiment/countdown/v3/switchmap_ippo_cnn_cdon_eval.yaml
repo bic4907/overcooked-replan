@@ -27,7 +27,7 @@ parameters:
   layout:
     values:
       - split_0
-      - outage_1
+      - outage_0
       - distance_switch_0
   episodes:
     value: 20
