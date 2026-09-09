@@ -139,8 +139,8 @@ reward rate를 $\bar r_{pre}$, 전환 뒤 $t$ step까지의 누적 reward를 $R_
 
 `mean_t(max(0, t * r_pre - R_t)) / mean_t(t * r_pre)`
 
-기본 pre-change baseline은 phase의 80%인 120 step, rapid-response horizon은
-60 step이다. 각각 `--drop-baseline-window`, `--drop-horizon`으로 바꿀 수 있다.
+기본 pre-change baseline과 rapid-response horizon은 대칭적으로 각각 60
+step이다. `--drop-baseline-window`, `--drop-horizon`으로 따로 바꿀 수 있다.
 전환 전 reward가 0이라 비교 가능한 headroom이 없으면 Drop은 0이 아니라
 undefined로 두며, `drop_valid_rate`로 유효 transition 비율을 함께 기록한다.
 과거 signed 30-step mean 차이는 재현성을 위해 `legacy_immediate_drop`으로만

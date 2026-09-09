@@ -44,7 +44,7 @@ class AdaptationMetricConfig:
             if self.drop_baseline_window < 1:
                 raise ValueError("drop baseline window must be at least 1")
             return self.drop_baseline_window
-        return max(self.window, int(round(0.8 * self.horizon)))
+        return self.resolved_drop_horizon
 
     @property
     def resolved_drop_horizon(self) -> int:
@@ -111,7 +111,7 @@ def add_adaptation_metric_args(parser):
         type=int,
         help=(
             "Stable pre-change steps used to estimate expected throughput. "
-            "Defaults to 80%% of the adaptation horizon."
+            "Defaults to the same value as --drop-horizon."
         ),
     )
     parser.add_argument(
