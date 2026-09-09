@@ -1,0 +1,45 @@
+program: baselines/IPPO/eval_crossplay_overcooked_v3.py
+name: fcp-transition-window-paper01-v2-seedwise-xp
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+# Run only after train_paper01_v2.yaml completes: 6 layouts x 4 arms = 24 runs.
+parameters:
+  algorithms:
+    value: FCP
+  layout:
+    values:
+      - split_0
+      - split_1
+      - outage_0
+      - outage_1
+      - distance_switch_0
+      - distance_switch_1
+  transition-observer:
+    values: [none, agent_0, agent_1, both]
+  episodes:
+    value: 20
+  max-steps:
+    value: 450
+  workers-per-gpu:
+    value: 8
+  entity:
+    value: cilab-overcooked
+  output-project:
+    value: cilab-overcooked/overcooked-v3-fcp-transition-window-paper01-v2_eval
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - cilab-overcooked/overcooked-v3-fcp-transition-window-paper01-v2_train
+  - --seeds
+  - "0"
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+  - "5"
+  - ${args_no_equals}

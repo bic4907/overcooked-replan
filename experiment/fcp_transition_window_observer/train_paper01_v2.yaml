@@ -1,0 +1,40 @@
+program: baselines/FCP/fcp_overcooked_v3.py
+name: fcp-transition-window-paper01-v2-best-response
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+# Run only after population_paper01_v2.yaml completes on the same filesystem.
+# 6 layouts x 4 observer arms x 6 seeds = 144 best-response runs.
+parameters:
+  scenario:
+    values:
+      - split_0
+      - split_1
+      - outage_0
+      - outage_1
+      - distance_switch_0
+      - distance_switch_1
+  TRANSITION_OBSERVER:
+    values: [none, agent_0, agent_1, both]
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-fcp-transition-window-paper01-v2_train
+  POPULATION_ROOT:
+    value: saves/fcp_transition_window_paper01_v2/population
+  SAVES_DIR:
+    value: saves/fcp_transition_window_paper01_v2/train
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - --config-name
+  - fcp_transition_window_overcooked_v3
+  - ${args_no_hyphens}
