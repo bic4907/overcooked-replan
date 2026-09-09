@@ -12,7 +12,6 @@ parameters:
     values:
       - ippo:split_0
       - ippo-rnn:split_0
-      - fcp:split_0
 
 command:
   - ${env}
