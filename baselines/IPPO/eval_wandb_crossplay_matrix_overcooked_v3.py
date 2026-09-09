@@ -85,6 +85,7 @@ class PolicyModel:
     checkpoint: Path
     config: dict
     artifact_name: str
+    source_layout: str | None = None
 
     @property
     def identity(self):
@@ -120,6 +121,13 @@ def parse_args(argv=None):
         help=(
             "Algorithms to compare. A run matches by ALGORITHM-like config key "
             "or W&B tag (for example: IPPO)."
+        ),
+    )
+    parser.add_argument(
+        "--source-layout",
+        help=(
+            "Training-run layout label when it differs from --layout after a "
+            "layout rename. The policy is evaluated on --layout."
         ),
     )
     parser.add_argument(
@@ -983,8 +991,9 @@ def main():
     records_path = output_dir / "pair_cache.json"
 
     api = wandb.Api()
+    source_layout = args.source_layout or args.layout
     filters = build_run_filters(
-        [args.layout],
+        [source_layout],
         args.seeds,
         args.run_state,
         args.transition_observer,
@@ -994,7 +1003,7 @@ def main():
     candidates = discover_run_candidates(
         runs,
         args.algorithms,
-        [args.layout],
+        [source_layout],
         artifact_alias=args.artifact_alias,
         seeds=args.seeds,
         latest_per_seed=args.latest_per_seed,
@@ -1030,6 +1039,7 @@ def main():
         job_type="cross-play-matrix-evaluation",
         config={
             "source_project": f"{source_entity}/{source_project}",
+            "source_layout": source_layout,
             "algorithms": args.algorithms,
             "layout": args.layout,
             "transition_observer": args.transition_observer,
@@ -1068,7 +1078,7 @@ def main():
                 models.append(
                     PolicyModel(
                         algorithm=candidate.algorithm,
-                        layout=candidate.layout,
+                        layout=args.layout,
                         seed=candidate.seed,
                         run_id=source_run.id,
                         run_path=_run_path(source_run),
@@ -1076,12 +1086,14 @@ def main():
                         checkpoint=checkpoint,
                         config=candidate.config,
                         artifact_name=artifact.name,
+                        source_layout=candidate.layout,
                     )
                 )
                 LOGGER.info(
-                    "Model %-12s layout=%s seed=%s run=%s vmap=%d",
+                    "Model %-12s source_layout=%s eval_layout=%s seed=%s run=%s vmap=%d",
                     candidate.algorithm,
                     candidate.layout,
+                    args.layout,
                     candidate.seed,
                     source_run.id,
                     vmap_index,
@@ -1109,6 +1121,7 @@ def main():
                 "label": model.label,
                 "algorithm": model.algorithm,
                 "layout": model.layout,
+                "source_layout": model.source_layout or model.layout,
                 "training_seed": model.seed,
                 "transition_observer": _transition_observer(model.config),
                 "run": model.run_path,

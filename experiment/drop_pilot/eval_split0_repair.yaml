@@ -1,0 +1,21 @@
+program: scripts/run_drop_pilot_job.py
+name: drop-pilot-split0-layout-remap
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+# Repair the original pilot's stale split_0 -> split_0 checkpoint lookup.
+# The current public split_0 was trained under the former split_2 label.
+parameters:
+  job:
+    values:
+      - ippo:split_0
+      - ippo-rnn:split_0
+      - fcp:split_0
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

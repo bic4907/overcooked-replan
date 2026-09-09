@@ -64,6 +64,15 @@ JOBS = {
     ),
 }
 
+# The public Split candidate was renamed from split_2 to split_0 after the
+# baseline checkpoints were trained. Keep checkpoint selection separate from
+# the layout used by the current evaluator.
+SOURCE_LAYOUTS = {
+    "ippo:split_0": "split_2",
+    "ippo-rnn:split_0": "split_2",
+    "fcp:split_0": "split_2",
+}
+
 
 def main() -> None:
     job = None
@@ -80,6 +89,7 @@ def main() -> None:
         raise SystemExit(f"Unknown Drop pilot job {job!r}; expected one of: {expected}")
 
     source_project, layout, run_label = JOBS[job]
+    source_layout = SOURCE_LAYOUTS.get(job, layout)
     algorithm = "FCP" if job.startswith("fcp:") else "IPPO"
     workers_per_gpu = os.getenv("DROP_PILOT_WORKERS_PER_GPU", "4")
     entrypoint = (
@@ -96,6 +106,8 @@ def main() -> None:
         algorithm,
         "--layout",
         layout,
+        "--source-layout",
+        source_layout,
         "--entity",
         "cilab-overcooked",
         "--episodes",
