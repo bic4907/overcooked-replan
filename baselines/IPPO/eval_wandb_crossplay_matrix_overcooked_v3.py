@@ -197,6 +197,18 @@ def parse_args(argv=None):
         help="Sample policy actions instead of using their modes.",
     )
     parser.add_argument(
+        "--run-label",
+        help="Optional concise algorithm label used in the W&B evaluation run name.",
+    )
+    parser.add_argument(
+        "--save-adaptation-traces",
+        action="store_true",
+        help=(
+            "Save per-episode timestep rewards and phase indices for offline "
+            "adaptation-metric analysis."
+        ),
+    )
+    parser.add_argument(
         "--gpus",
         nargs="+",
         help=(
@@ -518,6 +530,7 @@ def _record_key(layout, left_model_id, right_model_id, args):
         args.stochastic,
         getattr(args, "transition_observer", None),
         *adaptation_config_dict(adaptation_config).values(),
+        bool(getattr(args, "save_adaptation_traces", False)),
     )
 
 
@@ -536,6 +549,7 @@ def _cached_record_key(record):
         record.get("adaptation_horizon"),
         record.get("recovery_threshold"),
         record.get("recovery_persistence"),
+        bool(record.get("save_adaptation_traces", False)),
     )
 
 
@@ -561,7 +575,10 @@ def _algorithm_slug(algorithms):
 
 def evaluation_run_name(args):
     """Build a concise W&B run name from algorithm, map, and optional arm."""
-    name = f"xp-{_algorithm_slug(args.algorithms)}-{args.layout}"
+    algorithm_label = getattr(args, "run_label", None) or _algorithm_slug(
+        args.algorithms
+    )
+    name = f"xp-{algorithm_label}-{args.layout}"
     observer = getattr(args, "transition_observer", None)
     return f"{name}-observer-{observer}" if observer else name
 
@@ -753,6 +770,9 @@ def build_pair_task(layout, left, right, args, progress_index, total_pairs):
         "evaluation_seed": args.seed,
         "stochastic": args.stochastic,
         "transition_observer": args.transition_observer,
+        "save_adaptation_traces": bool(
+            getattr(args, "save_adaptation_traces", False)
+        ),
         **adaptation_config_dict(adaptation_config),
     }
 
@@ -818,19 +838,29 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
         "evaluation_seed",
         "stochastic",
         "transition_observer",
+        "save_adaptation_traces",
         "adaptation_metrics_version",
         "adaptation_window",
         "adaptation_horizon",
         "recovery_threshold",
         "recovery_persistence",
     )
-    return {
+    record = {
         **{key: task[key] for key in record_keys},
         "mean_return": float(np.mean(result["returns"])),
         "std_return": float(np.std(result["returns"])),
         "mean_episode_length": float(np.mean(result["lengths"])),
         **adaptation_result_metrics(result["adaptation_metrics"]),
     }
+    if task["save_adaptation_traces"]:
+        record["adaptation_traces"] = [
+            {
+                "rewards": trace.rewards.tolist(),
+                "phase_indices": trace.phase_indices.tolist(),
+            }
+            for trace in result["adaptation_traces"]
+        ]
+    return record
 
 
 def shard_tasks(tasks, worker_count):
@@ -1009,6 +1039,8 @@ def main():
             "max_steps": args.max_steps,
             "evaluation_seed": args.seed,
             "stochastic": args.stochastic,
+            "run_label": args.run_label,
+            "save_adaptation_traces": args.save_adaptation_traces,
             "gpus": args.gpus,
             "workers_per_gpu": args.workers_per_gpu,
             "artifact_alias": args.artifact_alias,
@@ -1196,7 +1228,17 @@ def main():
             )
         }
         active_records = list(active_records_by_key.values())
-        _atomic_write_json(output_dir / "pair_results.json", active_records)
+        table_records = [
+            {
+                key: value
+                for key, value in record.items()
+                if key != "adaptation_traces"
+            }
+            for record in active_records
+        ]
+        _atomic_write_json(output_dir / "pair_results.json", table_records)
+        if args.save_adaptation_traces:
+            _atomic_write_json(output_dir / "adaptation_traces.json", active_records)
         summary = summarize_records(active_records)
         scalar_metrics = {
             "SP": summary["SP"],
@@ -1241,11 +1283,11 @@ def main():
         else:
             algorithm_heatmap.unlink(missing_ok=True)
 
-        pair_columns = list(active_records[0])
+        pair_columns = list(table_records[0])
         wandb_payload["results/pairs"] = wandb.Table(
             columns=pair_columns,
             data=[
-                [record[column] for column in pair_columns] for record in active_records
+                [record[column] for column in pair_columns] for record in table_records
             ],
         )
         wandb.log({**scalar_metrics, **wandb_payload})
@@ -1265,7 +1307,7 @@ def main():
                 },
             },
         )
-        _write_records_csv(output_dir / "pair_results.csv", active_records)
+        _write_records_csv(output_dir / "pair_results.csv", table_records)
         result_artifact = wandb.Artifact(
             f"crossplay-matrix-{evaluation_run.id}",
             type="crossplay-evaluation",

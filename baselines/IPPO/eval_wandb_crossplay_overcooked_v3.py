@@ -395,6 +395,7 @@ def evaluate_crossplay(
         "states": first_states,
         "captions": first_captions,
         "env": runtime.env,
+        "adaptation_traces": adaptation_traces,
         "adaptation_metrics": adaptation_metrics,
     }
 

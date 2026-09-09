@@ -1,0 +1,29 @@
+program: scripts/run_drop_pilot_job.py
+name: drop-pilot-reward-traces
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+# 2 algorithms x 5 checkpoint-available layouts = 10 trace-collection runs.
+# The deleted outage_1-v2 training projects have no downloadable checkpoints;
+# outage_0 still covers the outage mechanism in this first metric-design pass.
+parameters:
+  job:
+    values:
+      - ippo:split_0
+      - ippo:split_1
+      - ippo:outage_0
+      - ippo:distance_switch_0
+      - ippo:distance_switch_1
+      - ippo-rnn:split_0
+      - ippo-rnn:split_1
+      - ippo-rnn:outage_0
+      - ippo-rnn:distance_switch_0
+      - ippo-rnn:distance_switch_1
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}
