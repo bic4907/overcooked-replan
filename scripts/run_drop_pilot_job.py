@@ -81,6 +81,7 @@ def main() -> None:
 
     source_project, layout, run_label = JOBS[job]
     algorithm = "FCP" if job.startswith("fcp:") else "IPPO"
+    workers_per_gpu = os.getenv("DROP_PILOT_WORKERS_PER_GPU", "4")
     entrypoint = (
         Path(__file__).resolve().parents[1]
         / "baselines"
@@ -109,7 +110,7 @@ def main() -> None:
         "4",
         "5",
         "--workers-per-gpu",
-        "4",
+        workers_per_gpu,
         "--run-label",
         run_label,
         "--save-adaptation-traces",
