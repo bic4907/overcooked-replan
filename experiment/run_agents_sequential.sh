@@ -12,6 +12,8 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GPUS="${GPUS:-0}"
+JAX_PREALLOCATE="${XLA_PYTHON_CLIENT_PREALLOCATE:-false}"
+JAX_MEM_FRACTION="${XLA_PYTHON_CLIENT_MEM_FRACTION:-0.75}"
 read -r -a GPU_LIST <<< "$GPUS"
 
 ACTIVE_PIDS=()
@@ -53,7 +55,8 @@ run_sweep_agents() {
             -u LD_LIBRARY_PATH \
             PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}" \
             CUDA_VISIBLE_DEVICES="$gpu_id" \
-            XLA_PYTHON_CLIENT_PREALLOCATE=false \
+            XLA_PYTHON_CLIENT_PREALLOCATE="$JAX_PREALLOCATE" \
+            XLA_PYTHON_CLIENT_MEM_FRACTION="$JAX_MEM_FRACTION" \
             PYTHONFAULTHANDLER=1 \
             WANDB_AGENT_DISABLE_FLAPPING=true \
             wandb agent "$sweep_ref" &
