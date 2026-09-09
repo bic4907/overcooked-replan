@@ -30,6 +30,12 @@ nvidia-smi --query-gpu=index --format=csv,noheader   # 먼저 확인
 
 ## 학습 재개 — sweep 11개
 
+**GPU는 컨테이너당 2장이다.** 먼저 확인할 것:
+
+```bash
+nvidia-smi --query-gpu=index --format=csv,noheader
+```
+
 ```bash
 GPUS="0 1" bash experiment/run_agents_sequential.sh \
   cilab-overcooked/overcooked-v3-multimap-fcp-cd/ffy9epdj \
@@ -45,16 +51,17 @@ GPUS="0 1" bash experiment/run_agents_sequential.sh \
   cilab-overcooked/overcooked-v3-switchmap-fcp-cd/q98vh8bm
 ```
 
-순서가 곧 의존성이다. FCP는 population(`a79b145o`, `1slsmdfo`, `my474fus`)이 자기
-best-response(`waf7ztfs`, `gicg89ly`, `q98vh8bm`)보다 앞에 있다. `ffy9epdj`는 이미
-population(`56hm9eqo`)이 완료됐으므로 바로 이어서 돌아도 된다.
+순서가 곧 의존성이다. FCP population(`a79b145o`, `1slsmdfo`, `my474fus`)이 자기
+best-response(`waf7ztfs`, `gicg89ly`, `q98vh8bm`)보다 앞에 있다. `ffy9epdj`는
+population(`56hm9eqo`)이 이미 완료됐으므로 맨 앞에서 바로 이어 돈다.
 
-`load_fcp_population`은 `wandb.init`보다 먼저 실행된다. population이 없는 상태로
-best-response를 띄우면 W&B에 아무 에러도 남기지 않고 껍데기 런만 만든다. 순서를 지킬 것.
+`load_fcp_population`은 `wandb.init`보다 먼저 실행된다. population 없이 best-response를
+띄우면 W&B에 에러를 남기지 않고 껍데기 런만 만든다. 순서를 지킬 것.
 
-## 채점 재개 — sweep 12개
+**이미 돌고 있는 체인이 있으면 먼저 죽일 것.** 두 체인이 같은 sweep에 붙으면 GPU를
+경합하고, 앞선 체인이 지나간 sweep은 남은 조합을 아무도 잡지 않는다.
 
-학습 11개가 **전부 끝난 뒤에** 돌린다.
+## 채점 — 학습이 전부 끝난 뒤에 따로
 
 ```bash
 cd /home/cilab/Projects/Py/overcooked-replan && GPUS="0 1" bash experiment/run_agents_sequential.sh \
@@ -72,12 +79,15 @@ cd /home/cilab/Projects/Py/overcooked-replan && GPUS="0 1" bash experiment/run_a
   cilab-overcooked/overcooked-v3-switchmap-fcp-cd-eval/jub3wdnc
 ```
 
-`multimap-ippo_cnn`과 `multimap-ippo_rnn`은 학습이 이미 끝났으니 이 둘의 채점 4개는
-지금 바로 돌려도 된다.
+채점 sweep은 서로 독립이라 순서가 없다. 학습과 분리해 두면 평가 쪽 코드를 고칠 일이
+생겨도 한 번의 수정으로 전 조건을 같은 코드로 채점할 수 있다.
 
-평가는 `workers-per-gpu: 8`로 한 GPU에 워커 8개를 띄운다. 11GB 카드에서 OOM이 나면
-sweep yaml의 값을 낮춰 다시 만들어야 한다(학습 sweep은 영향 없음).
+`multimap-ippo_cnn`과 `multimap-ippo_rnn`은 학습이 이미 끝났으므로 앞의 4개
+(`ps28apue`, `ss4ms0ii`, `52s3vdp2`, `i3i7wgpm`)는 지금 바로 돌려도 된다.
+
+평가는 GPU당 워커 8개(`workers-per-gpu: 8`)를 띄운다. 11GB 카드에서 OOM이 나면 해당
+sweep yaml의 값을 낮춰 다시 만들어야 한다. 학습 sweep에는 영향이 없다.
 
 ## 남은 분량
 
-학습 188런(완료 100 제외) + 채점 36런. 실측 중앙값 기준 GPU 2장에서 대략 55~80시간.
+학습 186런(완료 102 제외) + 채점 36런. GPU 2장에서 대략 55~80시간.
