@@ -681,6 +681,7 @@ def _validate_args(args):
         raise ValueError("--gpus must not contain duplicates")
     if args.gpus and any("," in gpu for gpu in args.gpus):
         raise ValueError("Pass GPU IDs separated by spaces, for example --gpus 0 1")
+    _validate_visible_gpus(args.gpus)
     if args.workers_per_gpu < 1:
         raise ValueError("--workers-per-gpu must be at least 1")
     adaptation_config_from_args(args, args.layout)
@@ -725,6 +726,44 @@ def build_pair_task(layout, left, right, args, progress_index, total_pairs):
         "stochastic": args.stochastic,
         **adaptation_config_dict(adaptation_config),
     }
+
+
+def _visible_gpu_indices():
+    """GPU indices this machine exposes, or None when they cannot be listed."""
+    try:
+        output = subprocess.run(
+            ["nvidia-smi", "--query-gpu=index", "--format=csv,noheader"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    indices = [line.strip() for line in output.splitlines() if line.strip()]
+    return indices or None
+
+
+def _validate_visible_gpus(gpu_ids):
+    """Fail before spawning workers that would die at CUDA initialisation.
+
+    Workers are started with CUDA_VISIBLE_DEVICES set to the requested id. When
+    that device does not exist here - the usual cause is a GPUS list wider than
+    the container actually exposes - every worker exits with an opaque
+    "No visible GPU devices" and the whole evaluation is lost.
+    """
+    if not gpu_ids:
+        return
+    visible = _visible_gpu_indices()
+    if visible is None:
+        return
+    missing = [gpu_id for gpu_id in gpu_ids if gpu_id not in visible]
+    if missing:
+        raise ValueError(
+            f"--gpus names device(s) {missing} that are not visible here "
+            f"(available: {visible}). Cross-play workers would fail at CUDA "
+            "initialisation."
+        )
 
 
 def evaluate_pair_task(task, runtime_cache=None, params_cache=None):

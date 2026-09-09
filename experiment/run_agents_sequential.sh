@@ -85,6 +85,27 @@ if [ "${#GPU_LIST[@]}" -eq 0 ]; then
     exit 1
 fi
 
+# Refuse GPU IDs this machine does not expose. An agent pinned to a missing
+# device still claims sweep parameter combinations from W&B before its process
+# dies at CUDA init, and a grid sweep never re-issues a combination it has
+# already handed out - so the runs are lost until the crashed runs are deleted.
+if command -v nvidia-smi >/dev/null 2>&1; then
+    visible_gpus="$(nvidia-smi --query-gpu=index --format=csv,noheader 2>/dev/null | tr -d ' ' | paste -sd' ')"
+    if [ -n "$visible_gpus" ]; then
+        for gpu_id in "${GPU_LIST[@]}"; do
+            found=0
+            for visible in $visible_gpus; do
+                [ "$visible" = "$gpu_id" ] && found=1 && break
+            done
+            if [ "$found" -ne 1 ]; then
+                echo "GPU $gpu_id is not visible here (available: $visible_gpus)." >&2
+                echo "Fix GPUS before starting agents; a missing device silently burns sweep runs." >&2
+                exit 1
+            fi
+        done
+    fi
+fi
+
 command -v wandb >/dev/null 2>&1 || {
     echo "wandb is not available in the active environment"
     exit 1

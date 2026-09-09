@@ -1,0 +1,67 @@
+# Training treatment: no-adaptation control. One of the scenario's two
+# kitchens is drawn at reset and held for the whole episode, so no boundary
+# is ever crossed and the countdown channel is a constant zero.
+#
+# Countdown axis. Only ENV_KWARGS.include_transition_countdown separates the
+# cdon and cdoff arms; layouts, episode length, switching cadence, layout-change
+# mask, warning window and seeds are identical. The mask stays off in both arms
+# so the contrast isolates the countdown scalar.
+#
+# Both arms live in ONE project, overcooked-v3-<condition>-<algo>. That is only
+# safe because ALGORITHM carries the arm: the evaluator identifies runs by
+# ALGORITHM, de-duplicates on (algorithm, layout, seed), and refuses to pair
+# runs whose observation configs disagree. With a shared ALGORITHM the two arms
+# would collide on that key and --latest-per-seed would silently drop half the
+# runs. ALGORITHM only feeds W&B naming and artifact metadata, never training.
+#
+# Scoring is the common switchmap protocol: 450-step episodes, boundaries at
+# 150 and 300. See experiment/countdown/README.md.
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: v3-countdown-multimap-ippo_rnn-cdoff-train
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+parameters:
+  ENV_KWARGS.layout:
+    values:
+      - split_0
+      - outage_1
+      - distance_switch_0
+  ENV_KWARGS.layout_mode:
+    value: episode_random
+  ENV_KWARGS.max_steps:
+    value: 450
+  ENV_KWARGS.phase_steps:
+    value: 150
+  ENV_KWARGS.reset_on_layout_change:
+    value: false
+  ENV_KWARGS.include_transition_countdown:
+    value: false
+  ENV_KWARGS.include_layout_change_mask:
+    value: false
+  ENV_KWARGS.transition_warning_steps:
+    value: 20
+  ARCHITECTURE:
+    value: rnn
+  ALGORITHM:
+    value: IPPO-cdoff
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  NUM_SEEDS:
+    value: 1
+  EXPERIMENT_FOLDER:
+    value: overcooked-v3-multimap-ippo_rnn-cdoff
+  WANDB_GROUP:
+    value: overcooked-v3-multimap-ippo_rnn-cdoff
+  WANDB_TAGS:
+    value: [countdown, v3, multimap, ippo_rnn, cdoff]
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

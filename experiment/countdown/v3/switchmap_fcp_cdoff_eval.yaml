@@ -1,0 +1,48 @@
+# Common scoring protocol. Both conditions and both countdown arms are replayed
+# in the same switching environment: 450-step episodes with boundaries at 150
+# and 300. Those come from the evaluator's defaults - a cyclic env, no reset,
+# and the authored [150, 150, 1000] phase durations - which is exactly the
+# intended protocol for these three scenarios. --layout-mode / --phase-steps /
+# --reset-on-layout-change are deliberately absent: the V3 evaluator has no
+# such flags, and its defaults already match.
+#
+# The observation config is NOT overridden. prepare_crossplay_runtime reads
+# include_transition_countdown out of each checkpoint's own config, so a cdon
+# policy is scored with its countdown channel and a cdoff policy without it.
+#
+# The source project holds BOTH arms, so `algorithms` is what selects this one.
+# It must name exactly one arm: the evaluator raises on a pair whose observation
+# configs disagree, which is precisely a cdon/cdoff pair. Run names stay distinct
+# in the shared output project because evaluation_run_name embeds this slug.
+program: baselines/IPPO/eval_crossplay_overcooked_v3.py
+name: v3-countdown-switchmap-fcp-cdoff-common-eval
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+parameters:
+  algorithms:
+    value: FCP-cdoff
+  layout:
+    values:
+      - split_0
+      - outage_1
+      - distance_switch_0
+  episodes:
+    value: 20
+  max-steps:
+    value: 450
+  entity:
+    value: cilab-overcooked
+  output-project:
+    value: cilab-overcooked/overcooked-v3-switchmap-fcp-cd-eval
+  workers-per-gpu:
+    value: 8
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - cilab-overcooked/overcooked-v3-switchmap-fcp-cd
+  - ${args_no_equals}
