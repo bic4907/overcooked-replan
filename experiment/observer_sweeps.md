@@ -53,20 +53,48 @@ wandb sweep --entity cilab-overcooked \
   experiment/fcp_transition_window_observer/population_all.yaml
 ```
 
-Create each downstream sweep only after its required checkpoints are complete.
+Run each downstream sweep only after its required checkpoints are complete.
 
-## Created first-stage sweeps
+## Created sweeps
 
 Created on 2026-09-09. No agents were attached at creation time.
 
 | Stage | Sweep ID | Expected runs |
 | --- | --- | ---: |
 | IPPO-RNN train | `ckt0sirk` | 144 |
+| IPPO-RNN eval | `5z9gtfh2` | 24 |
 | FCP population | `8t665wf5` | 72 |
+| FCP best response | `bbwihz80` | 144 |
+| FCP eval | `ausz3nxr` | 24 |
 
 Agent paths:
 
 ```text
 cilab-overcooked/overcooked-v3-ippo-rnn-observer_train/ckt0sirk
+cilab-overcooked/overcooked-v3-ippo-rnn-observer_eval/5z9gtfh2
 cilab-overcooked/overcooked-v3-fcp-observer_population/8t665wf5
+cilab-overcooked/overcooked-v3-fcp-observer_train/bbwihz80
+cilab-overcooked/overcooked-v3-fcp-observer_eval/ausz3nxr
 ```
+
+For one sequential agent per chain, run the following commands from a shared
+persistent checkout. Each command blocks until its sweep is exhausted, so the
+next line starts only afterward.
+
+IPPO-RNN chain:
+
+```bash
+wandb agent --count 144 cilab-overcooked/overcooked-v3-ippo-rnn-observer_train/ckt0sirk
+wandb agent --count 24 cilab-overcooked/overcooked-v3-ippo-rnn-observer_eval/5z9gtfh2
+```
+
+FCP chain:
+
+```bash
+wandb agent --count 72 cilab-overcooked/overcooked-v3-fcp-observer_population/8t665wf5
+wandb agent --count 144 cilab-overcooked/overcooked-v3-fcp-observer_train/bbwihz80
+wandb agent --count 24 cilab-overcooked/overcooked-v3-fcp-observer_eval/ausz3nxr
+```
+
+Before advancing a chain, confirm that every upstream run succeeded and that
+its checkpoints are present. Sweep exhaustion alone also counts failed runs.
