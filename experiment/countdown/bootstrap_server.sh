@@ -20,9 +20,19 @@ if [ -d "$REPO_DIR/.git" ]; then
     git -C "$REPO_DIR" fetch origin "$BRANCH"
     git -C "$REPO_DIR" checkout "$BRANCH"
     git -C "$REPO_DIR" pull --ff-only origin "$BRANCH"
-else
-    mkdir -p "$(dirname "$REPO_DIR")"
+elif [ -z "$(ls -A "$REPO_DIR" 2>/dev/null)" ]; then
+    mkdir -p "$REPO_DIR"
     git clone --branch "$BRANCH" "$REPO_URL" "$REPO_DIR"
+else
+    # A mounted volume that already holds files - /workspace on RunPod is the
+    # usual case. git clone refuses a non-empty target, so seed the repository
+    # in place instead. Tracked files are overwritten; anything else is kept.
+    echo "   $REPO_DIR is not empty and has no .git - seeding the repo in place"
+    git -C "$REPO_DIR" init -q
+    git -C "$REPO_DIR" remote add origin "$REPO_URL" 2>/dev/null \
+        || git -C "$REPO_DIR" remote set-url origin "$REPO_URL"
+    git -C "$REPO_DIR" fetch --depth 1 origin "$BRANCH"
+    git -C "$REPO_DIR" checkout -f -B "$BRANCH" FETCH_HEAD
 fi
 cd "$REPO_DIR"
 echo "   $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse --short HEAD)"
