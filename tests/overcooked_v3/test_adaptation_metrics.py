@@ -56,6 +56,10 @@ def test_metrics_macro_average_a_to_b_and_b_to_a():
 
     assert summary["adaptation_transition_count"] == 2
     assert summary["adaptation_direction_count"] == 2
+    assert np.isclose(summary["adaptation_a_to_b_drop"], 0.55)
+    assert np.isclose(summary["adaptation_b_to_a_drop"], 0.075)
+    assert np.isclose(summary["adaptation_drop"], 0.3125)
+    assert summary["adaptation_drop_valid_rate"] == 1.0
     assert summary["adaptation_a_to_b_immediate_drop"] == 2.0
     assert summary["adaptation_b_to_a_immediate_drop"] == 1.0
     assert summary["adaptation_immediate_drop"] == 1.5
@@ -102,6 +106,7 @@ def test_zero_pre_change_rate_keeps_recovery_and_normalized_auc_undefined():
     transition = compute_transition_metrics(trace, config)[0]
 
     assert transition.recovered is None
+    assert np.isnan(transition.drop)
     assert np.isnan(transition.recovery_time)
     assert np.isnan(transition.adaptation_auc_normalized)
 
@@ -109,6 +114,8 @@ def test_zero_pre_change_rate_keeps_recovery_and_normalized_auc_undefined():
 def test_wandb_names_only_include_direction_averaged_metrics():
     metrics = adaptation_wandb_metrics(
         {
+            "adaptation_drop": 0.3125,
+            "adaptation_drop_valid_rate": 1.0,
             "adaptation_immediate_drop": 1.5,
             "adaptation_recovery_time": 3.5,
             "adaptation_auc": 2.375,
@@ -118,7 +125,9 @@ def test_wandb_names_only_include_direction_averaged_metrics():
     )
 
     assert metrics == {
-        "adaptation/immediate_drop": 1.5,
+        "adaptation/drop": 0.3125,
+        "adaptation/drop_valid_rate": 1.0,
+        "adaptation/legacy_immediate_drop": 1.5,
         "adaptation/recovery_time_steps": 3.5,
         "adaptation/auc": 2.375,
     }
@@ -127,6 +136,8 @@ def test_wandb_names_only_include_direction_averaged_metrics():
 def test_result_table_fields_exclude_direction_details():
     fields = adaptation_result_metrics(
         {
+            "adaptation_drop": 0.3125,
+            "adaptation_drop_valid_rate": 1.0,
             "adaptation_immediate_drop": 1.5,
             "adaptation_recovery_time": 3.5,
             "adaptation_recovery_success_rate": 1.0,
@@ -140,6 +151,8 @@ def test_result_table_fields_exclude_direction_details():
     )
 
     assert fields == {
+        "adaptation_drop": 0.3125,
+        "adaptation_drop_valid_rate": 1.0,
         "adaptation_immediate_drop": 1.5,
         "adaptation_recovery_time": 3.5,
         "adaptation_recovery_success_rate": 1.0,

@@ -132,9 +132,25 @@ step 150과 300에 phase가 바뀌고 step 450에 episode가 끝나므로
 기본 recovery 설정은 `--recovery-threshold 0.9`,
 `--recovery-persistence 5`다.
 
+Drop은 sparse reward가 짧은 window 경계에 걸리는 문제를 피하기 위해
+normalized cumulative reward deficit으로 정의한다. 전환 전 안정 구간의 평균
+reward rate를 $\bar r_{pre}$, 전환 뒤 $t$ step까지의 누적 reward를 $R_t$라 하면
+다음 값을 post-change horizon에서 평균한다.
+
+`mean_t(max(0, t * r_pre - R_t)) / mean_t(t * r_pre)`
+
+기본 pre-change baseline은 phase의 80%인 120 step, rapid-response horizon은
+60 step이다. 각각 `--drop-baseline-window`, `--drop-horizon`으로 바꿀 수 있다.
+전환 전 reward가 0이라 비교 가능한 headroom이 없으면 Drop은 0이 아니라
+undefined로 두며, `drop_valid_rate`로 유효 transition 비율을 함께 기록한다.
+과거 signed 30-step mean 차이는 재현성을 위해 `legacy_immediate_drop`으로만
+남긴다.
+
 W&B summary에는 SP와 XP 각각 다음 이름이 기록된다.
 
-- `{SP,XP}/adaptation/immediate_drop`
+- `{SP,XP}/adaptation/drop`
+- `{SP,XP}/adaptation/drop_valid_rate`
+- `{SP,XP}/adaptation/legacy_immediate_drop`
 - `{SP,XP}/adaptation/recovery_time_steps`
 - `{SP,XP}/adaptation/recovery_success_rate`
 - `{SP,XP}/adaptation/auc`

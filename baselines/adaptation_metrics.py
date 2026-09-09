@@ -6,7 +6,7 @@ from typing import Sequence
 import numpy as np
 
 
-ADAPTATION_METRICS_VERSION = 1
+ADAPTATION_METRICS_VERSION = 2
 
 
 @dataclass(frozen=True)
@@ -18,12 +18,18 @@ class AdaptationMetricConfig:
     recovery_threshold: float = 0.9
     recovery_persistence: int = 5
     epsilon: float = 1e-8
+    drop_baseline_window: int | None = None
+    drop_horizon: int | None = None
 
     def __post_init__(self):
         if self.window < 1:
             raise ValueError("adaptation window must be at least 1")
         if self.horizon < self.window:
             raise ValueError("adaptation horizon must be at least the window")
+        if self.resolved_drop_baseline_window > self.horizon:
+            raise ValueError("drop baseline window must not exceed the horizon")
+        if self.resolved_drop_horizon > self.horizon:
+            raise ValueError("drop horizon must not exceed the adaptation horizon")
         if not 0 < self.recovery_threshold <= 1:
             raise ValueError("recovery threshold must be in (0, 1]")
         available_recovery_checks = self.horizon - self.window + 1
@@ -31,6 +37,22 @@ class AdaptationMetricConfig:
             raise ValueError(
                 "recovery persistence must fit within the adaptation horizon"
             )
+
+    @property
+    def resolved_drop_baseline_window(self) -> int:
+        if self.drop_baseline_window is not None:
+            if self.drop_baseline_window < 1:
+                raise ValueError("drop baseline window must be at least 1")
+            return self.drop_baseline_window
+        return max(self.window, int(round(0.8 * self.horizon)))
+
+    @property
+    def resolved_drop_horizon(self) -> int:
+        if self.drop_horizon is not None:
+            if self.drop_horizon < 1:
+                raise ValueError("drop horizon must be at least 1")
+            return self.drop_horizon
+        return min(60, self.horizon)
 
 
 @dataclass(frozen=True)
@@ -58,6 +80,7 @@ class TransitionAdaptationMetrics:
     boundary: int
     from_phase: int
     to_phase: int
+    drop: float
     immediate_drop: float
     recovery_time: float
     recovered: bool | None
@@ -81,6 +104,22 @@ def add_adaptation_metric_args(parser):
         help=(
             "Complete post-change horizon required for adaptation metrics. "
             "Defaults to the layout's shortest phase."
+        ),
+    )
+    parser.add_argument(
+        "--drop-baseline-window",
+        type=int,
+        help=(
+            "Stable pre-change steps used to estimate expected throughput. "
+            "Defaults to 80%% of the adaptation horizon."
+        ),
+    )
+    parser.add_argument(
+        "--drop-horizon",
+        type=int,
+        help=(
+            "Post-change steps integrated by normalized cumulative Drop. "
+            "Defaults to min(60, adaptation horizon)."
         ),
     )
     parser.add_argument(
@@ -120,6 +159,8 @@ def adaptation_config_from_args(
         horizon=int(horizon),
         recovery_threshold=float(getattr(args, "recovery_threshold", 0.9)),
         recovery_persistence=int(getattr(args, "recovery_persistence", 5)),
+        drop_baseline_window=getattr(args, "drop_baseline_window", None),
+        drop_horizon=getattr(args, "drop_horizon", None),
     )
 
 
@@ -129,6 +170,8 @@ def adaptation_config_dict(config: AdaptationMetricConfig) -> dict:
         "adaptation_metrics_version": ADAPTATION_METRICS_VERSION,
         "adaptation_window": config.window,
         "adaptation_horizon": config.horizon,
+        "drop_baseline_window": config.resolved_drop_baseline_window,
+        "drop_horizon": config.resolved_drop_horizon,
         "recovery_threshold": config.recovery_threshold,
         "recovery_persistence": config.recovery_persistence,
     }
@@ -178,7 +221,7 @@ def compute_transition_metrics(
             else len(rewards)
         )
         boundary = int(boundary)
-        if boundary < config.window:
+        if boundary < max(config.window, config.resolved_drop_baseline_window):
             continue
         if boundary + config.horizon > next_boundary:
             continue
@@ -188,6 +231,31 @@ def compute_transition_metrics(
         pre_rate = float(np.mean(pre_rewards))
         immediate_rate = float(np.mean(post_rewards[: config.window]))
         immediate_drop = pre_rate - immediate_rate
+
+        # Sparse cooking rewards make a signed mean difference highly sensitive
+        # to whether one delivery lands just inside or outside a short window.
+        # Estimate stable pre-change throughput over a longer window, then
+        # integrate only cumulative reward shortfall during the rapid-response
+        # horizon. Normalization makes the result comparable across layouts and
+        # algorithms: 0 means no deficit and 1 means no post-change reward.
+        drop_baseline = rewards[
+            boundary - config.resolved_drop_baseline_window : boundary
+        ]
+        drop_pre_rate = float(np.mean(drop_baseline))
+        drop_steps = config.resolved_drop_horizon
+        expected_cumulative = drop_pre_rate * np.arange(1, drop_steps + 1)
+        observed_cumulative = np.cumsum(post_rewards[:drop_steps])
+        expected_auc = float(np.mean(expected_cumulative))
+        drop = (
+            float(
+                np.mean(
+                    np.maximum(expected_cumulative - observed_cumulative, 0.0)
+                )
+                / expected_auc
+            )
+            if expected_auc > config.epsilon
+            else float("nan")
+        )
 
         cumulative_rewards = np.cumsum(post_rewards)
         adaptation_auc = float(np.mean(cumulative_rewards))
@@ -221,6 +289,7 @@ def compute_transition_metrics(
                 boundary=boundary,
                 from_phase=int(phases[boundary - 1]),
                 to_phase=int(phases[boundary]),
+                drop=drop,
                 immediate_drop=immediate_drop,
                 recovery_time=recovery_time,
                 recovered=recovered,
@@ -261,6 +330,8 @@ def summarize_transition_metrics(
         "adaptation_direction_count": int(len(grouped)),
     }
     direction_values = {
+        "drop": [],
+        "drop_valid_rate": [],
         "immediate_drop": [],
         "recovery_time": [],
         "recovery_success_rate": [],
@@ -275,6 +346,17 @@ def summarize_transition_metrics(
             if transition.recovered is not None
         ]
         values = {
+            "drop": _finite_mean(
+                transition.drop for transition in direction_transitions
+            ),
+            "drop_valid_rate": float(
+                np.mean(
+                    [
+                        np.isfinite(transition.drop)
+                        for transition in direction_transitions
+                    ]
+                )
+            ),
             "immediate_drop": _finite_mean(
                 transition.immediate_drop for transition in direction_transitions
             ),
@@ -318,7 +400,9 @@ def summarize_adaptation_traces(
 
 
 _WANDB_METRIC_NAMES = {
-    "immediate_drop": "immediate_drop",
+    "drop": "drop",
+    "drop_valid_rate": "drop_valid_rate",
+    "immediate_drop": "legacy_immediate_drop",
     "recovery_time": "recovery_time_steps",
     "recovery_success_rate": "recovery_success_rate",
     "auc": "auc",
@@ -341,6 +425,8 @@ def adaptation_wandb_metrics(summary: dict, prefix: str = "adaptation") -> dict:
 ADAPTATION_PAIR_METRIC_KEYS = tuple(
     f"adaptation_{suffix}"
     for suffix in (
+        "drop",
+        "drop_valid_rate",
         "immediate_drop",
         "recovery_time",
         "recovery_success_rate",

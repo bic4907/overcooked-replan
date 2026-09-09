@@ -371,6 +371,8 @@ def test_adaptation_summary_uses_stable_sp_xp_wandb_names():
     records = [
         {
             "pair_type": "SP",
+            "adaptation_drop": 0.2,
+            "adaptation_drop_valid_rate": 1.0,
             "adaptation_immediate_drop": 2.0,
             "adaptation_recovery_time": 30.0,
             "adaptation_recovery_success_rate": 1.0,
@@ -380,6 +382,8 @@ def test_adaptation_summary_uses_stable_sp_xp_wandb_names():
         },
         {
             "pair_type": "XP",
+            "adaptation_drop": 0.4,
+            "adaptation_drop_valid_rate": 0.5,
             "adaptation_immediate_drop": 4.0,
             "adaptation_recovery_time": 40.0,
             "adaptation_recovery_success_rate": 0.5,
@@ -391,12 +395,16 @@ def test_adaptation_summary_uses_stable_sp_xp_wandb_names():
 
     summary = summarize_adaptation_records(records)
 
-    assert summary["SP/adaptation/immediate_drop"] == 2.0
+    assert summary["SP/adaptation/drop"] == 0.2
+    assert summary["SP/adaptation/drop_valid_rate"] == 1.0
+    assert summary["SP/adaptation/legacy_immediate_drop"] == 2.0
     assert summary["SP/adaptation/recovery_time_steps"] == 30.0
     assert summary["SP/adaptation/recovery_success_rate"] == 1.0
     assert summary["SP/adaptation/auc"] == 40.0
     assert summary["SP/adaptation/auc_normalized"] == 0.8
-    assert summary["XP/adaptation/immediate_drop"] == 4.0
+    assert summary["XP/adaptation/drop"] == 0.4
+    assert summary["XP/adaptation/drop_valid_rate"] == 0.5
+    assert summary["XP/adaptation/legacy_immediate_drop"] == 4.0
     assert summary["counts/SP_adaptation_pairs"] == 1
     assert summary["counts/XP_adaptation_pairs"] == 1
 

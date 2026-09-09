@@ -555,6 +555,8 @@ def _cached_record_key(record):
         record.get("adaptation_metrics_version"),
         record.get("adaptation_window"),
         record.get("adaptation_horizon"),
+        record.get("drop_baseline_window"),
+        record.get("drop_horizon"),
         record.get("recovery_threshold"),
         record.get("recovery_persistence"),
         bool(record.get("save_adaptation_traces", False)),
@@ -798,6 +800,8 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
         transition_observer=task["transition_observer"],
         adaptation_window=task["adaptation_window"],
         adaptation_horizon=task["adaptation_horizon"],
+        drop_baseline_window=task["drop_baseline_window"],
+        drop_horizon=task["drop_horizon"],
         recovery_threshold=task["recovery_threshold"],
         recovery_persistence=task["recovery_persistence"],
     )
@@ -850,6 +854,8 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
         "adaptation_metrics_version",
         "adaptation_window",
         "adaptation_horizon",
+        "drop_baseline_window",
+        "drop_horizon",
         "recovery_threshold",
         "recovery_persistence",
     )
