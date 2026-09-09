@@ -54,3 +54,19 @@ wandb sweep --entity cilab-overcooked \
 ```
 
 Create each downstream sweep only after its required checkpoints are complete.
+
+## Created first-stage sweeps
+
+Created on 2026-09-09. No agents were attached at creation time.
+
+| Stage | Sweep ID | Expected runs |
+| --- | --- | ---: |
+| IPPO-RNN train | `qcv8lxyv` | 144 |
+| FCP population | `0wq6c3za` | 72 |
+
+Agent paths:
+
+```text
+cilab-overcooked/overcooked-v3-ippo-rnn-transition-window-paper01-v2_train/qcv8lxyv
+cilab-overcooked/overcooked-v3-fcp-transition-window-paper01-v2_population/0wq6c3za
+```
