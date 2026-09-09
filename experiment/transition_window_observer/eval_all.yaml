@@ -1,11 +1,11 @@
 program: baselines/IPPO/eval_crossplay_overcooked_v3.py
-name: ippo-rnn-transition-window-paper01-v2-seedwise-xp
+name: ippo-rnn-observer-all-seedwise-xp
 method: grid
 metric:
   goal: maximize
   name: XP
 
-# Run only after train_paper01_v2.yaml completes: 6 layouts x 4 arms = 24 runs.
+# Run only after train_all.yaml completes: 6 layouts x 4 arms = 24 runs.
 parameters:
   algorithms:
     value: IPPO
@@ -28,13 +28,13 @@ parameters:
   entity:
     value: cilab-overcooked
   output-project:
-    value: cilab-overcooked/overcooked-v3-ippo-rnn-transition-window-paper01-v2_eval
+    value: cilab-overcooked/overcooked-v3-ippo-rnn-observer_eval
 
 command:
   - ${env}
   - ${interpreter}
   - ${program}
-  - cilab-overcooked/overcooked-v3-ippo-rnn-transition-window-paper01-v2_train
+  - cilab-overcooked/overcooked-v3-ippo-rnn-observer_train
   - --seeds
   - "0"
   - "1"

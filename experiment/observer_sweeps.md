@@ -1,6 +1,6 @@
-# Observer paper-map rerun (`paper01-v2`)
+# Observer experiment sweeps
 
-This suite reruns the observer ablation from scratch on the six paper layouts:
+This suite reruns the observer ablation from scratch on the six selected layouts:
 
 - `split_0`, `split_1`
 - `outage_0`, `outage_1`
@@ -24,15 +24,15 @@ revisions.
 
 FCP population and best-response agents must share the same persistent
 filesystem. The population stage writes nine frozen partners per
-layout/observer arm under `saves/fcp_transition_window_paper01_v2/population`.
+layout/observer arm under `saves/fcp_observer/population`.
 
 ## W&B projects
 
-- `overcooked-v3-ippo-rnn-transition-window-paper01-v2_train`
-- `overcooked-v3-ippo-rnn-transition-window-paper01-v2_eval`
-- `overcooked-v3-fcp-transition-window-paper01-v2_population`
-- `overcooked-v3-fcp-transition-window-paper01-v2_train`
-- `overcooked-v3-fcp-transition-window-paper01-v2_eval`
+- `overcooked-v3-ippo-rnn-observer_train`
+- `overcooked-v3-ippo-rnn-observer_eval`
+- `overcooked-v3-fcp-observer_population`
+- `overcooked-v3-fcp-observer_train`
+- `overcooked-v3-fcp-observer_eval`
 
 ## Dependency order
 
@@ -45,12 +45,12 @@ Create the first-stage sweeps with:
 
 ```bash
 wandb sweep --entity cilab-overcooked \
-  --project overcooked-v3-ippo-rnn-transition-window-paper01-v2_train \
-  experiment/transition_window_observer/train_paper01_v2.yaml
+  --project overcooked-v3-ippo-rnn-observer_train \
+  experiment/transition_window_observer/train_all.yaml
 
 wandb sweep --entity cilab-overcooked \
-  --project overcooked-v3-fcp-transition-window-paper01-v2_population \
-  experiment/fcp_transition_window_observer/population_paper01_v2.yaml
+  --project overcooked-v3-fcp-observer_population \
+  experiment/fcp_transition_window_observer/population_all.yaml
 ```
 
 Create each downstream sweep only after its required checkpoints are complete.
@@ -61,12 +61,12 @@ Created on 2026-09-09. No agents were attached at creation time.
 
 | Stage | Sweep ID | Expected runs |
 | --- | --- | ---: |
-| IPPO-RNN train | `qcv8lxyv` | 144 |
-| FCP population | `0wq6c3za` | 72 |
+| IPPO-RNN train | `ckt0sirk` | 144 |
+| FCP population | `8t665wf5` | 72 |
 
 Agent paths:
 
 ```text
-cilab-overcooked/overcooked-v3-ippo-rnn-transition-window-paper01-v2_train/qcv8lxyv
-cilab-overcooked/overcooked-v3-fcp-transition-window-paper01-v2_population/0wq6c3za
+cilab-overcooked/overcooked-v3-ippo-rnn-observer_train/ckt0sirk
+cilab-overcooked/overcooked-v3-fcp-observer_population/8t665wf5
 ```

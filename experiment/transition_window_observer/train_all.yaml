@@ -1,12 +1,11 @@
-program: baselines/FCP/fcp_overcooked_v3.py
-name: fcp-transition-window-paper01-v2-best-response
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: ippo-rnn-observer-all
 method: grid
 metric:
   goal: maximize
   name: train/episode_return
 
-# Run only after population_paper01_v2.yaml completes on the same filesystem.
-# 6 layouts x 4 observer arms x 6 seeds = 144 best-response runs.
+# 6 layouts x 4 observer arms x 6 seeds = 144 runs.
 parameters:
   scenario:
     values:
@@ -23,11 +22,9 @@ parameters:
   ENTITY:
     value: cilab-overcooked
   PROJECT:
-    value: overcooked-v3-fcp-transition-window-paper01-v2_train
-  POPULATION_ROOT:
-    value: saves/fcp_transition_window_paper01_v2/population
+    value: overcooked-v3-ippo-rnn-observer_train
   SAVES_DIR:
-    value: saves/fcp_transition_window_paper01_v2/train
+    value: saves/ippo_rnn_observer
   recording:
     value: disabled
 
@@ -36,5 +33,5 @@ command:
   - ${interpreter}
   - ${program}
   - --config-name
-  - fcp_transition_window_overcooked_v3
+  - ippo_rnn_transition_window_overcooked_v3
   - ${args_no_hyphens}

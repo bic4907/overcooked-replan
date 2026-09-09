@@ -1,5 +1,5 @@
 program: baselines/IPPO/ippo_overcooked_v3.py
-name: fcp-transition-window-paper01-v2-population
+name: fcp-observer-population-all
 method: grid
 metric:
   goal: maximize
@@ -23,9 +23,9 @@ parameters:
   ENTITY:
     value: cilab-overcooked
   PROJECT:
-    value: overcooked-v3-fcp-transition-window-paper01-v2_population
+    value: overcooked-v3-fcp-observer_population
   POPULATION_ROOT:
-    value: saves/fcp_transition_window_paper01_v2/population
+    value: saves/fcp_observer/population
   recording:
     value: disabled
 
