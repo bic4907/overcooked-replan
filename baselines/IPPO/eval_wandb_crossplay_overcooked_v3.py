@@ -258,11 +258,18 @@ def prepare_crossplay_runtime(run_configs, args):
         )
 
     layout = _target_layout(run_configs, args.layout)
+    # phase_steps mirrors the training override; without it the authored schedule
+    # applies and the countdown channel stays silent over the final steps that
+    # training treated as the run-up to a boundary.
+    schedule = {} if getattr(args, "phase_steps", None) is None else {
+        "phase_steps": args.phase_steps
+    }
     env = jaxmarl.make(
         "overcooked_v3",
         layout=layout,
         max_steps=args.max_steps,
         random_agent_positions=False,
+        **schedule,
         **observation_configs[0],
     )
     networks = tuple(

@@ -152,6 +152,17 @@ def parse_args(argv=None):
     )
     parser.add_argument("--episodes", type=int, default=20)
     parser.add_argument("--max-steps", type=int, default=450)
+    parser.add_argument(
+        "--phase-steps",
+        type=int,
+        help=(
+            "Override every phase duration, matching ENV_KWARGS.phase_steps used in "
+            "training. Without it the authored schedule applies, which for the "
+            "countdown cells leaves a long final phase and so no transition warning "
+            "in the last steps of the episode - a signal the policy did see while "
+            "training."
+        ),
+    )
     parser.add_argument("--seed", type=int, default=0, help="Evaluation RNG seed.")
     parser.add_argument(
         "--seeds",
@@ -722,6 +733,7 @@ def build_pair_task(layout, left, right, args, progress_index, total_pairs):
         "total_pairs": total_pairs,
         "episodes": args.episodes,
         "max_steps": args.max_steps,
+        "phase_steps": args.phase_steps,
         "evaluation_seed": args.seed,
         "stochastic": args.stochastic,
         **adaptation_config_dict(adaptation_config),
@@ -774,6 +786,7 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
         layout=task["layout"],
         episodes=task["episodes"],
         max_steps=task["max_steps"],
+        phase_steps=task.get("phase_steps"),
         seed=task["evaluation_seed"],
         stochastic=task["stochastic"],
         adaptation_window=task["adaptation_window"],
@@ -993,6 +1006,7 @@ def main():
             "vmap_indices": args.vmap_indices,
             "episodes": args.episodes,
             "max_steps": args.max_steps,
+            "phase_steps": args.phase_steps,
             "evaluation_seed": args.seed,
             "stochastic": args.stochastic,
             "gpus": args.gpus,
