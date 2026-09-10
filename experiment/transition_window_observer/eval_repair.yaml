@@ -1,0 +1,47 @@
+program: baselines/IPPO/eval_crossplay_overcooked_v3.py
+name: ippo-rnn-observer-all-seedwise-xp-repair
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+# Replacement for the first distributed eval attempt. JAX preallocation must
+# be disabled by the agent launcher because each run creates eight workers on
+# its assigned GPU.
+parameters:
+  algorithms:
+    value: IPPO
+  layout:
+    values:
+      - split_0
+      - split_1
+      - outage_0
+      - outage_1
+      - distance_switch_0
+      - distance_switch_1
+  transition-observer:
+    values: [none, agent_0, agent_1, both]
+  episodes:
+    value: 20
+  max-steps:
+    value: 450
+  workers-per-gpu:
+    value: 8
+  entity:
+    value: cilab-overcooked
+  output-project:
+    value: cilab-overcooked/overcooked-v3-ippo-rnn-observer_eval
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - cilab-overcooked/overcooked-v3-ippo-rnn-observer_train
+  - --seeds
+  - "0"
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+  - "5"
+  - ${args_no_equals}

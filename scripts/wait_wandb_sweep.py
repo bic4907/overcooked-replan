@@ -41,11 +41,14 @@ def main() -> int:
         parser.error("--timeout-hours must be positive")
 
     deadline = time.monotonic() + args.timeout_hours * 3600
-    api = wandb.Api(timeout=args.api_timeout)
     last_status = None
 
     while True:
         try:
+            # W&B's public API caches sweep and run objects. Recreate the API
+            # client so a long-lived barrier observes state changes made by
+            # agents on other hosts.
+            api = wandb.Api(timeout=args.api_timeout)
             sweep = api.sweep(args.sweep_ref)
             runs = list(sweep.runs)
             counts = _state_counts(runs)

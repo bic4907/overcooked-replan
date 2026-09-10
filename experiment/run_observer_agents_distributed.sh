@@ -14,6 +14,9 @@ FCP_POPULATION_ROOT="${FCP_POPULATION_ROOT:-${FCP_SHARED_ROOT}/population}"
 SHARE_MARKER="${FCP_SHARED_ROOT}/.distributed-observer-share"
 POLL_SECONDS="${SWEEP_BARRIER_POLL_SECONDS:-30}"
 TIMEOUT_HOURS="${SWEEP_BARRIER_TIMEOUT_HOURS:-96}"
+IPPO_EVAL_SWEEP_REF="${IPPO_EVAL_SWEEP_REF:-cilab-overcooked/overcooked-v3-ippo-rnn-observer_eval/5z9gtfh2}"
+TRAIN_JAX_PREALLOCATE="${TRAIN_JAX_PREALLOCATE:-true}"
+EVAL_JAX_PREALLOCATE="${EVAL_JAX_PREALLOCATE:-false}"
 
 STAGE_KEYS=(
     ippo-train
@@ -24,7 +27,7 @@ STAGE_KEYS=(
 )
 SWEEP_REFS=(
     cilab-overcooked/overcooked-v3-ippo-rnn-observer_train/ckt0sirk
-    cilab-overcooked/overcooked-v3-ippo-rnn-observer_eval/5z9gtfh2
+    "$IPPO_EVAL_SWEEP_REF"
     cilab-overcooked/overcooked-v3-fcp-observer_population/8t665wf5
     cilab-overcooked/overcooked-v3-fcp-observer_train/bbwihz80
     cilab-overcooked/overcooked-v3-fcp-observer_eval/ausz3nxr
@@ -79,6 +82,11 @@ for ((index = start_index; index < ${#STAGE_KEYS[@]}; index++)); do
     stage="${STAGE_KEYS[$index]}"
     sweep_ref="${SWEEP_REFS[$index]}"
     expected="${EXPECTED_RUNS[$index]}"
+    stage_preallocate="$TRAIN_JAX_PREALLOCATE"
+
+    if [[ "$stage" == *-eval ]]; then
+        stage_preallocate="$EVAL_JAX_PREALLOCATE"
+    fi
 
     if [[ "$stage" == fcp-* ]]; then
         require_shared_root
@@ -86,6 +94,7 @@ for ((index = start_index; index < ${#STAGE_KEYS[@]}; index++)); do
 
     log "Starting stage $stage on GPUs: ${GPUS:-0}"
     GPUS="${GPUS:-0}" \
+        XLA_PYTHON_CLIENT_PREALLOCATE="$stage_preallocate" \
         bash "$REPO_ROOT/experiment/run_agents_sequential.sh" "$sweep_ref"
 
     log "Local agents exited for $stage; waiting on the global barrier"
