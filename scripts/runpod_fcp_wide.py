@@ -128,7 +128,8 @@ def main():
     os.environ.update(
         GPUS=" ".join(args.gpus),
         WANDB_MODE="online",
-        JAX_PLATFORMS="cuda",
+        # GPU training still needs a local CPU device for jax.debug.callback.
+        JAX_PLATFORMS="cuda,cpu",
         XLA_PYTHON_CLIENT_PREALLOCATE="false",
         PYTHONPATH=str(ROOT),
         WANDB_DISABLE_CODE="true",
