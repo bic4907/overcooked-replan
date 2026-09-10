@@ -1,0 +1,131 @@
+{
+  "entity": "cilab-overcooked",
+  "pod_id": "apik5541lhov7y",
+  "source_commit": "b00490869f1f5769da29986f42ff89fc1f237d73",
+  "branch": "codex/random-order-hard-mode",
+  "gpu_type": "NVIDIA A40",
+  "gpu_count": 6,
+  "gpu_price_usd_per_hour": 2.94,
+  "max_hours": 8,
+  "layouts": [
+    "split_wide",
+    "outage_wide",
+    "distance_switch_wide"
+  ],
+  "source_directory": "/workspace/fcp-wide",
+  "sweeps": {
+    "population": "cilab-overcooked/overcooked-v3-fcp-population/vctouw3e",
+    "train": "cilab-overcooked/overcooked-v3-fcp_train/wdeiwyhn"
+  },
+  "pipeline_pid": 16293,
+  "pipeline_started_at": "2026-09-10T09:09:41.848287+00:00",
+  "runtime_archive_sha256": "596e53ed5927e4dc44ee8bbb3ce2c0176703d597772348a4c2f58ff34c1e7fbc",
+  "image_digest": "sha256:be256ae97023c2ad29e5cf8f21b0f113e2a363788ce1a75dc4aa25829962358f",
+  "last_verified_stage": "population_training",
+  "layout_revisions": {
+    "split_wide": "split-wide-v3",
+    "outage_wide": "outage-wide-v3",
+    "distance_switch_wide": "distance-switch-wide-v2"
+  },
+  "superseded_sweeps": {
+    "population": "cilab-overcooked/overcooked-v3-fcp-population/cfj0xq7p",
+    "train": "cilab-overcooked/overcooked-v3-fcp_train/nl27big5"
+  },
+  "pipeline_started_unix": 1789031381.8482866,
+  "initial_launch_issue": "Metadata override contained an unquoted equals sign; replaced before any training update.",
+  "superseded_sweeps_cpu_callback": {
+    "population": "cilab-overcooked/overcooked-v3-fcp-population/uy5c4mpr",
+    "train": "cilab-overcooked/overcooked-v3-fcp_train/bfq5tc4y"
+  },
+  "jax_platforms": "cuda,cpu",
+  "population_runs": [
+    {
+      "id": "7e9mldnt",
+      "state": "running",
+      "layout": "split_wide",
+      "seed": 0,
+      "revision": "split-wide-v3",
+      "progress": {
+        "_step": 4,
+        "debug/steps_until_layout_change": 920,
+        "train/env_step": 327680,
+        "train/update": 5
+      }
+    },
+    {
+      "id": "1bzhr49z",
+      "state": "running",
+      "layout": "split_wide",
+      "seed": 1,
+      "revision": "split-wide-v3",
+      "progress": {
+        "_step": 4,
+        "debug/steps_until_layout_change": 920,
+        "train/env_step": 327680,
+        "train/update": 5
+      }
+    },
+    {
+      "id": "dv3h3j9o",
+      "state": "running",
+      "layout": "outage_wide",
+      "seed": 0,
+      "revision": "outage-wide-v3",
+      "progress": {
+        "_step": 5,
+        "debug/steps_until_layout_change": 114,
+        "train/env_step": 393216,
+        "train/update": 6
+      }
+    },
+    {
+      "id": "jwsmx2sw",
+      "state": "running",
+      "layout": "distance_switch_wide",
+      "seed": 1,
+      "revision": "distance-switch-wide-v2",
+      "progress": {
+        "_step": 5,
+        "debug/steps_until_layout_change": 114,
+        "train/env_step": 393216,
+        "train/update": 6
+      }
+    },
+    {
+      "id": "zby6f0rm",
+      "state": "running",
+      "layout": "outage_wide",
+      "seed": 1,
+      "revision": "outage-wide-v3",
+      "progress": {
+        "_step": 5,
+        "debug/steps_until_layout_change": 114,
+        "train/env_step": 393216,
+        "train/update": 6
+      }
+    },
+    {
+      "id": "zy07ptg6",
+      "state": "running",
+      "layout": "distance_switch_wide",
+      "seed": 0,
+      "revision": "distance-switch-wide-v2",
+      "progress": {
+        "_step": 5,
+        "debug/steps_until_layout_change": 114,
+        "train/env_step": 393216,
+        "train/update": 6
+      }
+    }
+  ],
+  "last_verified_at": "2026-09-10T09:11:51.294010+00:00",
+  "verified_gpu_utilization_percent": [
+    100,
+    100,
+    100,
+    100,
+    100,
+    100
+  ],
+  "verified_minimum_env_steps": 65536
+}
