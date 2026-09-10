@@ -1,0 +1,39 @@
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: fcp-wide-final-population
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+# Three seeds x three snapshots yield nine frozen partners per wide layout.
+# Keep the full population on the shared FCP pod volume until best-response
+# training finishes; each run also uploads its final snapshot to W&B.
+parameters:
+  scenario:
+    values: [split_wide, outage_wide, distance_switch_wide]
+  SEED:
+    values: [0, 1, 2]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-fcp-population
+  ARCHITECTURE:
+    value: rnn
+  SAVES_DIR:
+    value: saves/fcp_wide/fcp_population
+  CHECKPOINT_INTERVAL:
+    value: 0
+  CHECKPOINT_FRACTIONS:
+    value: [0.1, 0.5, 1.0]
+  upload_final_checkpoint:
+    value: true
+  WANDB_TAGS:
+    value: [FCP, wide-final-20260910]
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

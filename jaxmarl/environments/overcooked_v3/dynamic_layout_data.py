@@ -64,7 +64,7 @@ def _role_grid(
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-def _build_split_workload(spec, width=11, recipe_row=0, counters=()):
+def _build_split_workload(spec, width=11, recipe_row=0, counters=(), height=7):
     door_row, blocker_row, agents, left_resources, right_resources = spec
     resources = [*left_resources, *right_resources]
     open_grid = _role_grid(
@@ -75,6 +75,7 @@ def _build_split_workload(spec, width=11, recipe_row=0, counters=()):
         recipe_row=recipe_row,
         counters=counters,
         width=width,
+        height=height,
     )
     closed_grid = _role_grid(
         resources,
@@ -84,6 +85,7 @@ def _build_split_workload(spec, width=11, recipe_row=0, counters=()):
         recipe_row=recipe_row,
         counters=counters,
         width=width,
+        height=height,
     )
     return [
         [open_grid, _ROLE_PHASE_STEPS],
@@ -810,6 +812,79 @@ def _register_distance_switch_catalog():
 
 
 _register_distance_switch_catalog()
+
+
+# Wide variants expand the selected tag-0 footprints to 13 columns. Outage
+# and Distance Switch add one row; Split keeps its original height.
+# Workloads, recipes and A -> B -> A timing stay fixed.
+# Keep these separately named so
+# existing numbered variants and hard-mode source maps retain their identities.
+split_wide = _build_split_workload(
+    (
+        1,  # Same upper doorway as split_0; becomes a shared counter.
+        3,
+        ((1, 2), (11, 2)),
+        (("0", (0, 4)), ("P", (0, 5)), ("P", (1, 6))),
+        (("B", (9, 6)), ("B", (11, 0)), ("X", (10, 0)), ("X", (9, 0))),
+    ),
+    width=13,
+    height=7,
+)
+
+
+def _build_wide_outage():
+    # Put onion/pot stations near the center, even as the serving route grows.
+    # (5, 1) accesses both the left onion and handoff (6, 1) without moving;
+    # the right receiver at (7, 1) moves once to reach pot (8, 0).
+    left_resources = (
+        ("0", (5, 0)),
+        ("P", (4, 0)),
+        ("B", (4, 5)),
+        ("X", (0, 1)),
+    )
+    right_resources = tuple(
+        (symbol, (12 - x, y)) for symbol, (x, y) in left_resources
+    )
+
+    def phase(outage):
+        return _role_grid(
+            (
+                *left_resources,
+                # Extend the non-storage divider, preserving two handoffs.
+                ("N", (6, 4)),
+                *(
+                    ("W" if outage and symbol == "0" else symbol, position)
+                    for symbol, position in right_resources
+                ),
+            ),
+            agent_positions=((3, 2), (9, 2)),
+            blocker_row=3,
+            recipe_row=0,
+            width=13,
+            height=6,
+        )
+
+    normal_grid, outage_grid = phase(False), phase(True)
+    return [
+        [normal_grid, _ROLE_PHASE_STEPS],
+        [outage_grid, _ROLE_PHASE_STEPS],
+        [normal_grid, _FINAL_PHASE_STEPS],
+    ]
+
+
+outage_wide = _build_wide_outage()
+
+_DISTANCE_SWITCH_WIDE_SPEC = _vertical_distance_switch_spec(13, 6)
+_validate_distance_switch_spec(_DISTANCE_SWITCH_WIDE_SPEC)
+_distance_wide_a = _distance_switch_grid(_DISTANCE_SWITCH_WIDE_SPEC)
+_distance_wide_b = _distance_switch_grid(
+    _DISTANCE_SWITCH_WIDE_SPEC, roles_swapped=True
+)
+distance_switch_wide = [
+    [_distance_wide_a, _ROLE_PHASE_STEPS],
+    [_distance_wide_b, _ROLE_PHASE_STEPS],
+    [_distance_wide_a, _FINAL_PHASE_STEPS],
+]
 
 
 # Short aliases for the first selected layouts.

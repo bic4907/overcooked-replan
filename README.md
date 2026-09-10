@@ -16,6 +16,15 @@ The following role-coordination experiments are currently available:
 | `recipe_switch_0` | Mixed Recipe Relay | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
 | `distance_switch_0` | Distance-Driven Role Switch | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
 | `distance_switch_1` | Distance-Driven Role Switch candidate | Does relocating stations onto inactive counters induce rapid route reassignment? |
+| `split_wide` | Wide Kitchen Split | Can agents form complementary roles across larger bays? |
+| `outage_wide` | Wide Resource Outage | Can agents rebalance local cooking and supply with wider bays and a short relay? |
+| `distance_switch_wide` | Wide Distance Switch | Can agents reassign roles when near/far distance differences increase? |
+
+[Wide maps](docs/overcooked_v3/wide_maps.md) expand the `_0` layouts to 13 columns,
+adding one row for Outage and Distance Switch: Split 13×7, Outage 13×6, and Distance
+Switch 13×6 (width×height). They preserve each scenario's motivation, resource
+counts, recipes, and A → B → A timing. Select them with `scenario=split_wide`,
+`scenario=outage_wide`, or `scenario=distance_switch_wide`.
 
 Kitchen Split starts with one central doorway open for 150 steps. It then becomes
 a handoff counter for 150 steps, preventing agents from changing bays. The left

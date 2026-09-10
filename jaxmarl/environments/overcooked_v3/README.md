@@ -25,6 +25,11 @@ features for the 29-channel encoding.
 
 ## Role-coordination scenarios
 
+The three `*_wide` variants expand the selected `_0` maps to 13 columns,
+adding one row for Outage and Distance Switch: `split_wide` is 13×7, `outage_wide` is 13×6,
+and `distance_switch_wide` is 13×6 (width×height). They retain resource counts,
+recipes, and transition timing. See the [design notes and phase images](../../../docs/overcooked_v3/wide_maps.md).
+
 `split_0` uses a 7×9 map. It opens one central doorway
 for 150 steps, then turns it into a handoff counter for 150 steps. The
 left bay contains onions and pots, while the right bay contains plates and

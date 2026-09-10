@@ -79,15 +79,20 @@ def _shortest_floor_distance(static_objects, starts, goals):
 
 def test_each_role_scenario_family_has_expected_unique_layouts():
     expected_counts = {
-        "split": 2,
-        "outage": 2,
+        "split": 3,
+        "outage": 3,
         "recipe_switch": 1,
-        "distance_switch": 2,
+        "distance_switch": 3,
     }
     assert set(ROLE_SCENARIO_LAYOUTS) == set(expected_counts)
     for family, names in ROLE_SCENARIO_LAYOUTS.items():
         count = expected_counts[family]
-        assert names == tuple(f"{family}_{variant}" for variant in range(count))
+        expected_names = (
+            ("recipe_switch_0",)
+            if family == "recipe_switch"
+            else (f"{family}_0", f"{family}_1", f"{family}_wide")
+        )
+        assert names == expected_names
         signatures = {
             tuple(
                 phase.layout.static_objects.tobytes()
@@ -138,7 +143,7 @@ def test_distance_switch_keeps_local_access_and_reverses_role_costs(
     reachable_1 = _reachable_floor(phase_a, agent_1_start)
     assert agent_1_start not in reachable_0
     assert agent_0_start not in reachable_1
-    expected_changed_cells = 4 if layout_name == "distance_switch_0" else 8
+    expected_changed_cells = 8 if layout_name == "distance_switch_1" else 4
     assert np.sum(phase_a != phase_b) == expected_changed_cells
 
     onion = StaticObject.ingredient_pile(0)
@@ -175,7 +180,7 @@ def test_distance_switch_keeps_local_access_and_reverses_role_costs(
         for object_type in (onion, StaticObject.GOAL)
         for position in np.argwhere(phase_b == object_type)
     }
-    if layout_name == "distance_switch_0":
+    if layout_name != "distance_switch_1":
         assert phase_a_role_positions == phase_b_role_positions
         assert {tuple(position) for position in np.argwhere(phase_a == onion)} == {
             tuple(position)

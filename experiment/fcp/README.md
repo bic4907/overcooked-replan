@@ -1,5 +1,25 @@
 # Fictitious Co-Play
 
+## Wide maps
+
+`population_wide.yaml`, `train_wide.yaml`, and `eval_wide.yaml` target
+`split_wide` (13×7), `outage_wide` (13×6), and `distance_switch_wide` (13×6).
+Population uses 3 seeds per map and 10%/50%/100% snapshots; FCP uses 6 seeds
+per map. Both stages retain 30M steps per run. Evaluation uses all 36 ordered
+pairs per map, 20 episodes per pair, and 450 steps per episode.
+
+`scripts/runpod_fcp_wide.py` runs population, validates and uploads its 27
+checkpoints, trains FCP, uploads all checkpoints, then evaluates all three maps
+and uploads their results. Sweeps use the default FCP W&B projects and the tag
+`wide-final-20260910`; scenario configs record the final layout revision.
+Checkpoints stay in `saves/fcp_wide` and evaluation output in
+`evaluation/fcp_wide`. On success the dedicated Pod terminates; on failure or
+the eight-hour pipeline deadline it stops and preserves its volume.
+
+The launcher requires explicit population/train sweep references, Pod ID,
+source commit, and a Runpod control-key file outside the repository. It writes
+`pipeline_status.json`; run it detached with stdout/stderr in `pipeline.log`.
+
 ## Population
 
 선별된 Split, Outage, Recipe Switch, Distance Switch의 4개 Easy layout에 대해

@@ -17,6 +17,15 @@
 | Recipe Switch | `recipe_switch_0` | selected mixed-recipe design |
 | Distance Switch | `distance_switch_0` | selected asymmetric-distance design |
 | Distance Switch | `distance_switch_1` | relocating-station candidate; direct runs only |
+| Split | `split_wide` | 13×7 wide variant; direct runs only |
+| Outage | `outage_wide` | 13×6 wide variant; direct runs only |
+| Distance Switch | `distance_switch_wide` | 13×6 wide variant; direct runs only |
+
+Wide는 `_0`의 가로를 13칸으로 늘린 맵이다. Split은 원래 높이를 유지하고
+Outage/Distance Switch는 세로를 한 칸 추가했다.
+Split/Outage/Distance Switch의 면적은 각각 약 1.44배/2.23배/1.73배다.
+크기는 가로×세로 표기이며, 기존 시나리오 동기·자원 개수·레시피·전환 시점은
+유지한다. [설계 설명과 A/B 미리보기](../docs/overcooked_v3/wide_maps.md)를 참고한다.
 
 각 category의 선별된 Easy layout은 `_0`으로 유지한다. Split, Outage,
 Distance Switch에는 경로 구조를 바꾼 `_1` 후보도 등록하지만, 시각 검토가

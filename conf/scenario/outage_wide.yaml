@@ -1,0 +1,12 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: outage_wide
+  max_steps: 450
+  random_agent_positions: false
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: resource_outage
+CONDITION: outage_wide
+WANDB_GROUP: resource_outage
+LAYOUT_REVISION: outage-wide-v3
