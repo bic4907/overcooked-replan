@@ -98,3 +98,24 @@ wandb agent --count 24 cilab-overcooked/overcooked-v3-fcp-observer_eval/ausz3nxr
 
 Before advancing a chain, confirm that every upstream run succeeded and that
 its checkpoints are present. Sweep exhaustion alone also counts failed runs.
+
+## Distributed HPC and AICA execution
+
+When agents run on more than one host, use
+`run_observer_agents_distributed.sh` instead of starting the five sweep refs
+directly. The wrapper waits for the expected global W&B run count after every
+stage, rejects failed terminal runs, and validates all 216 FCP population
+snapshots before starting the best-response sweep.
+
+Both hosts must expose the same FCP checkpoint tree at
+`saves/fcp_observer`. The deployed HPC/AICA setup keeps the authoritative copy
+under the HPC checkout and mounts that directory on AICA with SSHFS. Set
+`START_AT=ippo-train` on a host joining from the beginning or select a later
+stage such as `START_AT=ippo-eval` when an earlier stage is already managed by
+the previous launcher.
+
+```bash
+GPUS="0 1 2 3" \
+START_AT=ippo-train \
+bash experiment/run_observer_agents_distributed.sh
+```
