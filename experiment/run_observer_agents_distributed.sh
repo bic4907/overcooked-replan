@@ -61,7 +61,8 @@ verify_fcp_population() {
         "$PYTHON_BIN" "$REPO_ROOT/scripts/verify_easy1_fcp_population.py" \
             "$FCP_POPULATION_ROOT/$observer" \
             --layouts "${LAYOUTS[@]}" \
-            --seeds 0 1 2
+            --seeds 0 1 2 \
+            --folder-template "{layout}_rnn_fcp-population-transition-window-${observer}_seed{seed}"
     done
 }
 

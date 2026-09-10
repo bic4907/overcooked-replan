@@ -16,11 +16,11 @@ SNAPSHOT_SUFFIXES = (
 )
 
 
-def expected_paths(root: Path, layouts, seeds) -> set[Path]:
+def expected_paths(root: Path, layouts, seeds, folder_template: str) -> set[Path]:
     paths = set()
     for layout in layouts:
         for seed in seeds:
-            folder = root / f"{layout}_rnn_seed{seed}"
+            folder = root / folder_template.format(layout=layout, seed=seed)
             stem = f"ippo_rnn_overcooked_v3_{layout}_seed{seed}_vmap0"
             paths.update(folder / f"{stem}{suffix}" for suffix in SNAPSHOT_SUFFIXES)
     return paths
@@ -31,10 +31,15 @@ def main() -> int:
     parser.add_argument("population_dir", type=Path)
     parser.add_argument("--layouts", nargs="+", default=list(LAYOUTS))
     parser.add_argument("--seeds", nargs="+", type=int, default=list(SEEDS))
+    parser.add_argument(
+        "--folder-template",
+        default="{layout}_rnn_seed{seed}",
+        help="Checkpoint folder name template with {layout} and {seed} fields",
+    )
     args = parser.parse_args()
 
     root = args.population_dir.expanduser().resolve()
-    expected = expected_paths(root, args.layouts, args.seeds)
+    expected = expected_paths(root, args.layouts, args.seeds, args.folder_template)
     actual = set(root.rglob("*.safetensors")) if root.is_dir() else set()
     missing = sorted(expected - actual)
     unexpected = sorted(actual - expected)
