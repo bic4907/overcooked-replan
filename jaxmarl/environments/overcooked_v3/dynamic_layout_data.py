@@ -812,6 +812,19 @@ def _register_distance_switch_catalog():
 _register_distance_switch_catalog()
 
 
+# Selected 11x7 pillars map, published as split_wide. Stations occupy
+# opposite outer walls; N obstacles block movement and cannot store objects.
+split_wide = _build_split_workload(
+    (
+        3, 1, ((3, 3), (7, 3)),
+        (("0", (0, 2)), ("P", (0, 3)), ("P", (0, 4)), ("N", (2, 2))),
+        (("B", (10, 2)), ("B", (10, 4)), ("X", (10, 1)), ("X", (10, 5)),
+         ("N", (8, 4))),
+    ),
+    width=11,
+)
+
+
 def _build_shared_room_outage(source, missing_resource="0"):
     """Open the divider and suspend every dispenser of one resource in B.
 
