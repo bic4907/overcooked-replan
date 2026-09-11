@@ -825,6 +825,56 @@ split_wide = _build_split_workload(
 )
 
 
+def _build_wide_outage():
+    # Keep the short onion relay while widening both disconnected kitchens.
+    left_resources = (
+        ("0", (5, 0)),
+        ("P", (4, 0)),
+        ("B", (4, 5)),
+        ("X", (0, 1)),
+    )
+    right_resources = tuple(
+        (symbol, (12 - x, y)) for symbol, (x, y) in left_resources
+    )
+
+    def phase(outage):
+        return _role_grid(
+            (
+                *left_resources,
+                ("N", (6, 4)),
+                *(("W" if outage and symbol == "0" else symbol, position)
+                  for symbol, position in right_resources),
+            ),
+            agent_positions=((3, 2), (9, 2)),
+            blocker_row=3,
+            recipe_row=0,
+            width=13,
+            height=6,
+        )
+
+    normal_grid, outage_grid = phase(False), phase(True)
+    return [
+        [normal_grid, _ROLE_PHASE_STEPS],
+        [outage_grid, _ROLE_PHASE_STEPS],
+        [normal_grid, _FINAL_PHASE_STEPS],
+    ]
+
+
+outage_wide = _build_wide_outage()
+
+_DISTANCE_SWITCH_WIDE_SPEC = _vertical_distance_switch_spec(13, 6)
+_validate_distance_switch_spec(_DISTANCE_SWITCH_WIDE_SPEC)
+_distance_wide_a = _distance_switch_grid(_DISTANCE_SWITCH_WIDE_SPEC)
+_distance_wide_b = _distance_switch_grid(
+    _DISTANCE_SWITCH_WIDE_SPEC, roles_swapped=True
+)
+distance_switch_wide = [
+    [_distance_wide_a, _ROLE_PHASE_STEPS],
+    [_distance_wide_b, _ROLE_PHASE_STEPS],
+    [_distance_wide_a, _FINAL_PHASE_STEPS],
+]
+
+
 def _build_shared_room_outage(source, missing_resource="0"):
     """Open the divider and suspend every dispenser of one resource in B.
 
