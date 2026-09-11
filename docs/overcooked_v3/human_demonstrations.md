@@ -1,4 +1,4 @@
-# 사람 플레이 → BC 데이터 수집
+# 플레이 도구 실행 매뉴얼 — 사람 플레이부터 BC 데이터까지
 
 기존 Overcooked V3 환경과 렌더러를 사용하는 데스크톱 수집 도구입니다.
 게임 규칙, 관측값, 행동 번호, 150/300 스텝 맵 전환을 그대로 사용합니다.
@@ -6,24 +6,71 @@
 Wide/Hard 확장이 설치된 환경에서는 해당 시나리오도 선택할 수 있습니다.
 AI 파트너는 없으며 두 캐릭터를 사람이 조작합니다.
 
-## 실행
+## 빠른 시작: 실시간 플레이
 
-저장소 루트에서 실행합니다. 기존 프로젝트 가상환경을 사용하세요.
+설치를 마친 `main` 작업 폴더의 저장소 루트에서 실행합니다.
+처음 사용하는 컴퓨터라면 아래의 **처음 설치하기**부터 진행하세요.
 
 ```bash
 source .venv/bin/activate
-python -m pip install -e ".[human]"
-python scripts/overcooked_v3/collect_human.py --layout split_0
+python scripts/overcooked_v3/collect_human.py \
+  --layout split_0 --mode realtime --hz 5 \
+  --players player01 player02
 ```
 
+1. `Overcooked V3 | Human demonstrations` 창이 열리고 주방이 표시될 때까지 기다립니다.
+2. 게임 창을 클릭하고 `Space`를 눌러 시작합니다. 시작 전에는 시간이 흐르지 않습니다.
+3. 빨강은 `WASD`와 `Q`, 파랑은 방향키와 **오른쪽 Shift**로 조작합니다.
+4. 일시정지는 `Space`입니다. 기본 450스텝을 마치면 자동으로 멈춥니다.
+5. 좋은 판이면 `K`로 채택하고 `N`으로 다음 판을 시작합니다.
+6. 수집을 끝내려면 `Esc`를 누릅니다. 채택한 완주 에피소드가 2개 이상이면
+   아래 **BC 데이터 내보내기** 명령으로 학습·검증 데이터를 만듭니다.
+
+화면·입력 처리는 **목표 60FPS**, 게임 진행은 **초당 5스텝**입니다.
+60FPS는 기본 적용되어 별도 옵션이 필요하지 않습니다. `--hz 5`를 `--hz 60`으로
+바꾸면 안 됩니다. 행동 실행 속도의 지원 범위는 초당 1~15스텝입니다.
+
+## 처음 설치하기
+
+Python **3.11 이상**과 창을 표시할 수 있는 로컬 데스크톱 환경이 필요합니다.
+아래 명령은 macOS/Linux 터미널 기준입니다. GPU와 W&B 계정은 필요하지 않습니다.
+
+기존 연구 작업 폴더를 유지하면서 새 `main` 복사본을 준비하려면:
+
+```bash
+git clone --branch main https://github.com/bic4907/overcooked-replan.git overcooked-replan-human
+cd overcooked-replan-human
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[human]"
+```
+
+이미 깨끗한 `main` 체크아웃이나 `main` 전용 worktree가 있으면 해당 폴더에서
+`git pull --ff-only origin main`으로 갱신하고, 가상환경 생성·설치 단계만 진행하면
+됩니다. 다른 worktree에서 `main`을 사용 중이면 그 작업 폴더로 이동하세요.
+가상환경은 실행할 체크아웃에 맞게 구성합니다.
+
 `human` 의존성은 pygame-ce와 imageio를 설치합니다. 첫 렌더링과 첫 행동에서는
-JAX 컴파일 때문에 잠시 기다릴 수 있습니다.
+JAX 컴파일 때문에 잠시 기다릴 수 있습니다. 터미널에
+`Ready: split_0 / realtime. SPACE to start.`로 시작하는 메시지가 나오면
+첫 화면 준비가 완료된 상태입니다. 최초 행동의 컴파일은 그 뒤에 일어날 수 있습니다.
+
+기존 가상환경에 플레이 도구만 추가할 때도 해당 저장소 루트에서
+`python -m pip install -e ".[human]"`를 실행하면 됩니다.
+
+## 혼자 플레이: 턴 방식
+
+```bash
+python scripts/overcooked_v3/collect_human.py --layout split_0 --mode step
+```
 
 혼자 플레이할 때는 기본 `step` 모드를 사용합니다. 빨강·파랑의 행동을
 각각 선택하고 `Space`로 한 스텝을 실행합니다. 다음 스텝은 다시 선택해야
 합니다. 키를 잘못 선택했으면 같은 캐릭터의 다른 키로 덮어쓰면 됩니다.
 한쪽만 지정하면 다른 캐릭터는 자동으로 대기합니다. 아무 행동도 지정하지
 않고 `Space`를 누르면 둘 다 대기하고 요리 시간과 맵 전환 시간이 흐릅니다.
+
+## 조작키와 요리 순서
 
 | 기능 | 빨강 (agent_0) | 파랑 (agent_1) |
 | --- | --- | --- |
@@ -36,13 +83,7 @@ JAX 컴파일 때문에 잠시 기다릴 수 있습니다.
 상호작용하여 음식을 담고 배식대로 가져갑니다. 레시피와 전환 예고는 기존
 렌더러에서 표시하며 하단에도 표시합니다.
 
-두 사람이 같은 키보드로 플레이하려면:
-
-```bash
-python scripts/overcooked_v3/collect_human.py \
-  --layout outage_0 --mode realtime --hz 5 \
-  --players player01 player02
-```
+## 실시간 입력과 속도
 
 `Space`로 시작/일시정지합니다. 이동 키는 누르고 있는 동안 반복됩니다.
 상호작용은 누를 때 한 번 실행합니다. 프레임 사이의 짧은 키 입력도 캐릭터별
@@ -71,9 +112,37 @@ python scripts/overcooked_v3/collect_human.py --layout distance_switch_0
 python scripts/overcooked_v3/collect_human.py --help
 ```
 
-Hard 모드를 지원하는 환경에서는 `--layout split_hard --phase-order-split eval`로
+현재 `main`의 맵은 `split_0`, `split_1`, `outage_0`, `outage_1`,
+`recipe_switch_0`, `distance_switch_0`, `distance_switch_1`입니다.
+사용 중인 버전의 실제 지원 목록은 `--help` 출력으로 확인하세요.
+Hard 모드를 지원하는 확장 환경에서는 `--layout split_hard --phase-order-split eval`로
 평가 순서를 선택할 수 있습니다. 해당 확장이 없는 환경에서는 지원하지 않는
 옵션을 명시적으로 거부합니다.
+
+## 실행 옵션
+
+| 옵션 | 기본값 | 용도 |
+| --- | --- | --- |
+| `--layout` | `split_0` | 플레이할 맵; 지원 목록은 `--help` |
+| `--mode` | `step` | `step` 또는 `realtime`; 실시간은 반드시 명시 |
+| `--hz` | `5` | 실시간 행동 속도, 1~15; 화면 FPS와 별개 |
+| `--players RED BLUE` | `anonymous-red anonymous-blue` | 두 캐릭터의 참가자 식별자 |
+| `--seed` | `0` | 첫 판 시드; 다음 판마다 1 증가 |
+| `--max-steps` | `450` | 한 판의 최대 스텝 수 |
+| `--output` | `data/human` | 원본 저장 폴더; 그 아래 맵별 폴더 생성 |
+| `--phase-order-split` | `train` | Hard 확장 환경 전용, `train` 또는 `eval` |
+
+맵 전환을 포함한 데이터를 수집하려면 기본 450스텝을 유지하세요.
+두 참가자의 세션을 분리해 저장하는 예시입니다.
+
+```bash
+python scripts/overcooked_v3/collect_human.py \
+  --layout split_0 --mode realtime --hz 5 --max-steps 450 \
+  --seed 100 --players player01 player02 \
+  --output data/human/session01
+```
+
+이 경우 조회·변환 명령의 입력 폴더도 `data/human/session01`로 지정합니다.
 
 ## 저장과 선별
 
@@ -115,7 +184,19 @@ python scripts/overcooked_v3/prepare_bc_data.py export data/human \
 ```
 
 새 출력 폴더에 `train.npz`, `val.npz`, `manifest.json`을 생성합니다.
-기존 결과를 덮어쓰지 않습니다. 파일은 다음과 같이 불러옵니다.
+기존 결과를 덮어쓰지 않습니다. 예제의 기본 저장 구조는 다음과 같습니다.
+
+```text
+data/
+├── human/split_0/<episode_id>.npz
+└── bc/split_0_v1/
+    ├── train.npz
+    ├── val.npz
+    └── manifest.json
+```
+
+`data/human/`과 `data/bc/`는 Git에서 제외됩니다. 다른 컴퓨터로 데이터를
+옮기려면 해당 폴더를 별도로 복사해야 합니다. 파일은 다음과 같이 불러옵니다.
 
 ```python
 import numpy as np
@@ -154,6 +235,33 @@ with np.load("data/bc/split_0_v1/train.npz", allow_pickle=False) as data:
 
 이 도구의 범위는 플레이·수집·선별·BC 데이터 변환입니다. BC 모델 학습이나
 학습한 파트너의 게임 참여 기능은 포함하지 않습니다.
+
+## 자주 겪는 문제
+
+| 증상 | 확인 / 해결 |
+| --- | --- |
+| `No module named jaxmarl` / `pygame` 등 | 실행할 저장소의 `.venv`를 활성화하고 `python -m pip install -e ".[human]"` 실행 |
+| `.venv/bin/activate`가 없음 | 저장소 루트인지 확인하고 `python3 -m venv .venv`부터 설치 |
+| 처음 켰을 때 잠시 응답이 없음 | 최초 렌더링·행동의 JAX 컴파일을 기다리고 터미널 오류 여부 확인 |
+| 주방이 떴는데 게임이 멈춰 있음 | 실시간은 시작 시 일시정지 상태. 게임 창을 클릭한 뒤 `Space` |
+| 다른 창을 클릭한 뒤 조작이 멈춤 | 포커스 상실 시 자동 일시정지됨. 게임 창으로 돌아와 `Space` |
+| 재료를 놓으려는데 반응이 없음 | 카운터 쪽을 먼저 바라보고 Q/오른쪽 Shift를 한 번 누름. 일반 카운터와 물건을 놓을 수 없는 blocker는 구분됨 |
+| 입력이 뒤늦게 실행됨 | `Queued`의 남은 입력 수 확인. 5Hz에서는 캐릭터당 한 스텝에 입력 하나를 처리하며 `Space`로 일시정지하면 대기열을 비움 |
+| F5 대신 시스템 기능이 실행됨 | 키보드 설정에 따라 `Fn+F5` 사용. 정상 종료 시에도 자동 저장됨 |
+| BC 변환에 포함할 에피소드가 없다는 오류 | `list`로 `accepted`와 `complete=True` 여부 확인. 진행 중 K를 누른 판은 부분 에피소드 |
+| 채택한 판이 한 개뿐이라는 오류 | 한 판을 더 완주·채택하거나 `--val-fraction 0`으로 학습 데이터만 생성 |
+| 출력 폴더가 이미 존재한다는 오류 | 기존 결과를 유지하고 `--output data/bc/split_0_v2` 등 새로운 폴더 지정 |
+| 환경 버전/설정이 다르다는 오류 | 같은 맵·코드·설정끼리 입력 폴더를 분리하여 변환. 맵 필터는 `--layout` 사용 |
+| `--layout split_hard` 등 옵션 오류 | 해당 확장이 없는 `main`에서는 사용할 수 없음. `--help`의 지원 맵 선택 |
+
+부분 에피소드를 의도적으로 포함해 변환하는 예시입니다. `accepted`로 채택한
+데이터에만 적용됩니다.
+
+```bash
+python scripts/overcooked_v3/prepare_bc_data.py export data/human \
+  --layout split_0 --output data/bc/split_0_partial_v1 \
+  --include-partial --val-fraction 0
+```
 
 ## 원본 에피소드 형식
 

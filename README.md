@@ -114,20 +114,31 @@ The resulting GIF is saved to `evaluation/previews/split_0.gif`.
 
 ## Human play and BC demonstrations
 
-Play the actual V3 environment with keyboard controls and collect demonstrations:
+Follow the [Korean play-tool manual](docs/overcooked_v3/human_demonstrations.md)
+for first-time installation, controls, troubleshooting, and BC dataset export.
+From the repository root with its virtual environment activated:
 
 ```bash
 python -m pip install -e ".[human]"
-python scripts/overcooked_v3/collect_human.py --layout split_0
+python scripts/overcooked_v3/collect_human.py \
+  --layout split_0 --mode realtime --hz 5 --players player01 player02
 ```
 
-The default turn-based mode lets one person queue both agents' actions. Use
-`--mode realtime` for two players on one keyboard. Episodes store observations,
-human action masks, rewards, and full environment states as pickle-free NPZ files.
-Keep episodes with `K`, then export accepted demonstrations for BC with
-`scripts/overcooked_v3/prepare_bc_data.py`. See the
-[human data collection guide](docs/overcooked_v3/human_demonstrations.md) for
-controls, curation, and episode-level train/validation splits.
+Press **Space** to start or pause. Red uses **WASD + Q**; blue uses **arrow keys +
+right Shift**. The display/input loop targets **60 FPS** while the environment
+runs at **5 steps per second**. Use `--mode step` for one person controlling both
+agents, selecting their actions before pressing Space for each step.
+
+Finish a full episode, press **K** to accept it, then **N** for the next episode.
+After accepting at least two complete episodes, export the BC dataset:
+
+```bash
+python scripts/overcooked_v3/prepare_bc_data.py export data/human \
+  --layout split_0 --output data/bc/split_0_v1 --val-fraction 0.2 --seed 0
+```
+
+Raw episodes are saved under `data/human/<layout>/`. The export writes `train.npz`,
+`val.npz`, and `manifest.json` with an episode-level train/validation split.
 
 ## W&B and environment variables
 

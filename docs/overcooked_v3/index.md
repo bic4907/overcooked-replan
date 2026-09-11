@@ -2,6 +2,7 @@
 
 Overcooked V2에서 분리한 V3 동적 환경과 역할 형성 실험 문서다.
 
+- [플레이 도구 실행 매뉴얼 — 설치·실시간 조작·BC 데이터 수집](human_demonstrations.md)
 - [환경 개발 및 실험 workflow](workflow.md)
 - [Hydra 및 W&B 학습 설정](training.md)
 - [W&B artifact 기반 cross-play 평가](workflow.md#73-wb-run-artifact-기반-cross-play)
