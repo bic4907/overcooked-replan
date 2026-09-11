@@ -57,6 +57,18 @@ candidates. The existing observer W&B runs recorded the current `outage_0`
 geometry under the historical `outage_1` name, so new candidate runs must also
 be filtered by their `LAYOUT_REVISION`.
 
+`outage_2` (7×5) and `outage_wide_2` (11×6, width×height) open the
+central divider into one shared room and remove **all onion dispensers** in
+phase B. `outage_2_plate` and `outage_wide_2_plate` use the same geometry but
+remove **all plate dispensers** instead. The wide variants have two staggered
+two-cell non-storage obstacles, with a connected floor and an open central
+aisle. The two-onion recipe and 150/150/recovery timing remain unchanged.
+Agents can stockpile on unchanged boundary counters before the outage; those
+objects, held inventory, and pot contents persist. Once stored resources run
+out, production using the missing resource must wait for recovery at step 300.
+Each name has a matching `conf/scenario/<name>.yaml` configuration.
+See [shared-room maps and design notes](../../../docs/overcooked_v3/shared_room_outage.md).
+
 `recipe_switch_0` is a Mixed Recipe Relay layout.
 The center divider permanently separates an onion/serving bay from a
 tomato/plate bay and leaves exactly two shared storage counters. Both bays have

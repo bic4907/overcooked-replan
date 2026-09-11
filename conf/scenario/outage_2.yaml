@@ -1,0 +1,12 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: outage_2
+  max_steps: 450
+  random_agent_positions: false
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: resource_outage
+CONDITION: outage_2
+WANDB_GROUP: resource_outage
+LAYOUT_REVISION: outage-2-shared-room-v1

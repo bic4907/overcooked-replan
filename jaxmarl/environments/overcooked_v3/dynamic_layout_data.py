@@ -812,6 +812,48 @@ def _register_distance_switch_catalog():
 _register_distance_switch_catalog()
 
 
+def _build_shared_room_outage(source, missing_resource="0"):
+    """Open the divider and suspend every dispenser of one resource in B.
+
+    Existing boundary counters provide shared stockpiling space. Inventory,
+    stored objects on unchanged counters, and pot contents survive the outage.
+    """
+    if missing_resource not in {"0", "B"}:
+        raise ValueError("Shared-room outage must remove onions or plates")
+    rows = [list(row) for row in source[0][0].strip("\n").splitlines()]
+    center_x = len(rows[0]) // 2
+    for row in rows[1:-1]:
+        row[center_x] = " "
+    normal = "\n" + "\n".join("".join(row) for row in rows) + "\n"
+    removed_symbols = {"0", "O"} if missing_resource == "0" else {"B"}
+    suspended = "".join("W" if cell in removed_symbols else cell for cell in normal)
+    return [
+        [normal, _ROLE_PHASE_STEPS],
+        [suspended, _ROLE_PHASE_STEPS],
+        [normal, _FINAL_PHASE_STEPS],
+    ]
+
+
+# Shared-room tag 2 retains the compact footprint. Wide uses an 11x6 room
+# with staggered two-cell non-storage obstacles and an open central aisle.
+# The default removes all onion piles; plate variants use identical geometry.
+_SHARED_WIDE_OUTAGE_SOURCE = [["""
+WWWP0R0PWWW
+X         X
+W ANN   A W
+W     NN  W
+W         W
+WWWBWWWBWWW
+""", _ROLE_PHASE_STEPS]]
+
+outage_2 = _build_shared_room_outage(outage_0)
+outage_wide_2 = _build_shared_room_outage(_SHARED_WIDE_OUTAGE_SOURCE)
+outage_2_plate = _build_shared_room_outage(outage_0, missing_resource="B")
+outage_wide_2_plate = _build_shared_room_outage(
+    _SHARED_WIDE_OUTAGE_SOURCE, missing_resource="B"
+)
+
+
 # Short aliases for the first selected layouts.
 split = split_0
 outage = outage_0

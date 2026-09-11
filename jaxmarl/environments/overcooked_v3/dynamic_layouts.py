@@ -194,7 +194,8 @@ class DynamicLayout:
 
 ROLE_SCENARIO_LAYOUTS = {
     "split": ("split_0", "split_1"),
-    "outage": ("outage_0", "outage_1"),
+    "outage": ("outage_0", "outage_1", "outage_2", "outage_wide_2",
+               "outage_2_plate", "outage_wide_2_plate"),
     "recipe_switch": ("recipe_switch_0",),
     "distance_switch": ("distance_switch_0", "distance_switch_1"),
 }
