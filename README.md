@@ -112,6 +112,23 @@ python scripts/overcooked_v3/run_role_scenario.py \
 
 The resulting GIF is saved to `evaluation/previews/split_0.gif`.
 
+## Human play and BC demonstrations
+
+Play the actual V3 environment with keyboard controls and collect demonstrations:
+
+```bash
+python -m pip install -e ".[human]"
+python scripts/overcooked_v3/collect_human.py --layout split_0
+```
+
+The default turn-based mode lets one person queue both agents' actions. Use
+`--mode realtime` for two players on one keyboard. Episodes store observations,
+human action masks, rewards, and full environment states as pickle-free NPZ files.
+Keep episodes with `K`, then export accepted demonstrations for BC with
+`scripts/overcooked_v3/prepare_bc_data.py`. See the
+[human data collection guide](docs/overcooked_v3/human_demonstrations.md) for
+controls, curation, and episode-level train/validation splits.
+
 ## W&B and environment variables
 
 Copy the example environment file:

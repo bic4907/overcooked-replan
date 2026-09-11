@@ -55,6 +55,10 @@ dependencies = [
 
 
 [project.optional-dependencies]
+human = [
+  "pygame-ce>=2.5,<3",
+  "imageio",
+]
 algs = [
   "optax>=0.2.4,<0.2.5",
   "distrax==0.1.5",
