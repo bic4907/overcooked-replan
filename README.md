@@ -488,3 +488,9 @@ Additional documentation:
 This repository is based on [JaxMARL](https://github.com/FLAIROx/JaxMARL). See
 [LICENSE](LICENSE) and the upstream JaxMARL repository for licensing and citation
 information.
+
+### Human behavior cloning
+
+`split_0` 인간 시연으로 학습한 BC 모델과 재학습/추론 방법은
+[BC 사용 문서](baselines/BC/README.md)를 참고하세요.
+[저장된 모델과 결과](artifacts/bc/split_0_v1/README.md)도 포함되어 있습니다.

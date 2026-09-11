@@ -1,0 +1,43 @@
+{
+  "architecture": "flatten_mlp_relu_2_layers",
+  "hidden_size": 256,
+  "observation_shape": [
+    7,
+    9,
+    31
+  ],
+  "action_names": [
+    "right",
+    "down",
+    "left",
+    "up",
+    "stay",
+    "interact"
+  ],
+  "env_kwargs": {
+    "include_layout_change_mask": true,
+    "include_transition_countdown": true,
+    "layout": "split_0",
+    "max_steps": 450,
+    "observation_type": "default",
+    "random_agent_positions": false,
+    "transition_observer": "both"
+  },
+  "env_fingerprint": "29fe07f78d36742940d097698dffeb70564e745ac442c5b350eca5bd0b746805",
+  "seed": 0,
+  "batch_size": 256,
+  "learning_rate": 0.0003,
+  "weight_decay": 0.0001,
+  "max_epochs": 100,
+  "patience": 15,
+  "selection": "minimum validation cross entropy",
+  "normalization": "train-only channel mean/std; std floor 1",
+  "versions": {
+    "python": "3.12.2",
+    "jax": "0.5.3",
+    "flax": "0.10.5",
+    "optax": "0.2.4",
+    "numpy": "2.2.6"
+  },
+  "data_commit": "2358ab46f83fd16b5b6bf1b88efd0696d2f46248"
+}
