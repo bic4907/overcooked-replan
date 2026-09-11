@@ -19,6 +19,8 @@ outputs/
 /evaluation/
 saves/
 models/
+/data/human/
+/data/bc/
 build/
 .idea
 .env

@@ -846,6 +846,10 @@ dev = [
     { name = "pytest" },
     { name = "ruff" },
 ]
+human = [
+    { name = "imageio" },
+    { name = "pygame-ce" },
+]
 mabrax = [
     { name = "brax" },
 ]
@@ -860,6 +864,7 @@ requires-dist = [
     { name = "gymnax" },
     { name = "hydra-core", marker = "extra == 'algs'", specifier = ">=1.3.2" },
     { name = "imageio", marker = "extra == 'algs'" },
+    { name = "imageio", marker = "extra == 'human'" },
     { name = "imageio-ffmpeg", marker = "extra == 'algs'", specifier = ">=0.5.1" },
     { name = "jax", specifier = "==0.5.3" },
     { name = "jax", extras = ["cuda12"], marker = "extra == 'cuda'", specifier = "==0.5.3" },
@@ -873,6 +878,7 @@ requires-dist = [
     { name = "optax", marker = "extra == 'algs'", specifier = ">=0.2.4,<0.2.5" },
     { name = "orbax-checkpoint", specifier = ">=0.11.0,<0.12" },
     { name = "pillow" },
+    { name = "pygame-ce", marker = "extra == 'human'", specifier = ">=2.5,<3" },
     { name = "pyright", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "python-dotenv", marker = "extra == 'algs'", specifier = ">=1.0.1" },
@@ -883,7 +889,7 @@ requires-dist = [
     { name = "tqdm", marker = "extra == 'algs'", specifier = ">=4.66.0" },
     { name = "wandb", marker = "extra == 'algs'" },
 ]
-provides-extras = ["algs", "dev", "mabrax", "cuda"]
+provides-extras = ["human", "algs", "dev", "mabrax", "cuda"]
 
 [[package]]
 name = "jaxopt"
