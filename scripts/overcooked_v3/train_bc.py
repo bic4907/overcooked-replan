@@ -1,4 +1,4 @@
-"""Train a shared MLP BC policy with an episode-disjoint validation split."""
+"""Train a shared MLP BC policy with held-out selection or fixed-epoch full-data fitting."""
 
 import argparse
 import hashlib
@@ -22,6 +22,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--fit-all",
+        action="store_true",
+        help="Merge train/val and fit for a fixed epoch budget; no held-out metrics",
+    )
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--patience", type=int, default=15)
     parser.add_argument("--batch-size", type=int, default=256)
@@ -48,6 +53,12 @@ def main():
             parser.error("Both train and validation samples are required")
     if set(arrays["train"]["episode_id"]) & set(arrays["val"]["episode_id"]):
         parser.error("Episode leakage between training and validation")
+    if args.fit_all:
+        arrays["train"] = {
+            key: np.concatenate([arrays["train"][key], arrays["val"][key]])
+            for key in arrays["train"]
+        }
+        del arrays["val"]
     shape = arrays["train"]["observations"].shape[1:]
     num_actions = len(manifest["action_names"])
     for split, data in arrays.items():
@@ -134,7 +145,10 @@ def main():
         "weight_decay": 1e-4,
         "max_epochs": args.epochs,
         "patience": args.patience,
-        "selection": "minimum validation cross entropy",
+        "selection": "fixed final epoch; all selected episodes"
+        if args.fit_all
+        else "minimum validation cross entropy",
+        "fit_all": args.fit_all,
         "normalization": "train-only channel mean/std; std floor 1",
         "versions": {
             "python": platform.python_version(),
@@ -163,28 +177,50 @@ def main():
                 }
             )
         provenance["splits"][split] = {**info, "episodes": episodes}
+    if args.fit_all:
+        provenance["source_validation_fraction"] = provenance["validation_fraction"]
+        provenance["validation_fraction"] = 0.0
+        provenance["splits"] = {
+            "train": {
+                "episodes": [
+                    e
+                    for group in provenance["splits"].values()
+                    for e in group["episodes"]
+                ],
+                "samples": len(arrays["train"]["actions"]),
+                "action_counts": dict(
+                    zip(
+                        manifest["action_names"],
+                        np.bincount(
+                            arrays["train"]["actions"], minlength=num_actions
+                        ).tolist(),
+                    )
+                ),
+            }
+        }
     (args.output / "dataset.json").write_text(json.dumps(provenance, indent=2) + "\n")
     rng = np.random.default_rng(args.seed)
     history, best_loss, best_epoch = [], float("inf"), 0
+    monitored_split = "train" if args.fit_all else "val"
     for epoch in range(1, args.epochs + 1):
         order = rng.permutation(len(y["train"]))
         for start in range(0, len(order), args.batch_size):
             idx = order[start : start + args.batch_size]
             state, _ = train_batch(state, x["train"][idx], y["train"][idx])
-        val = metrics(state.params, "val")
+        val = metrics(state.params, monitored_split)
         if not np.isfinite(val["loss"]):
-            raise RuntimeError("Non-finite validation loss")
+            raise RuntimeError("Non-finite loss")
         history.append({"epoch": epoch, **val})
-        if val["loss"] < best_loss:
+        if args.fit_all or val["loss"] < best_loss:
             best_loss, best_epoch = val["loss"], epoch
             (args.output / "policy.msgpack").write_bytes(
                 serialization.to_bytes(state.params)
             )
         print(
-            f"epoch={epoch} val_loss={val['loss']:.4f} val_accuracy={val['accuracy']:.3%} best={best_epoch}",
+            f"epoch={epoch} {monitored_split}_loss={val['loss']:.4f} {monitored_split}_accuracy={val['accuracy']:.3%} best={best_epoch}",
             flush=True,
         )
-        if epoch - best_epoch >= args.patience:
+        if not args.fit_all and epoch - best_epoch >= args.patience:
             break
     best = serialization.from_bytes(
         state.params, (args.output / "policy.msgpack").read_bytes()
@@ -195,13 +231,15 @@ def main():
         "best_epoch": best_epoch,
         "epochs_run": len(history),
         "train": metrics(best, "train"),
-        "validation": metrics(best, "val"),
-        "validation_majority_baseline_accuracy": float(
-            (arrays["val"]["actions"] == majority).mean()
-        ),
+        "validation": None if args.fit_all else metrics(best, "val"),
+        "validation_majority_baseline_accuracy": None
+        if args.fit_all
+        else float((arrays["val"]["actions"] == majority).mean()),
         "majority_action": manifest["action_names"][majority],
         "history": history,
-        "limitation": "Offline held-out action prediction only; gameplay return and cross-play not evaluated.",
+        "limitation": "All selected episodes used for fitting; no held-out validation. Gameplay not evaluated by this trainer."
+        if args.fit_all
+        else "Offline held-out action prediction only; gameplay return and cross-play not evaluated.",
     }
     (args.output / "metrics.json").write_text(json.dumps(report, indent=2) + "\n")
     print(

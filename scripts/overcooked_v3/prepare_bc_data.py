@@ -106,7 +106,7 @@ def export(args):
         arrays, meta = load_episode(path)
         if args.layout and meta["env_kwargs"]["layout"] != args.layout:
             continue
-        if meta["status"] != "accepted" or (
+        if (not args.all_statuses and meta["status"] != "accepted") or (
             not meta["complete"] and not args.include_partial
         ):
             continue
@@ -125,7 +125,7 @@ def export(args):
         selected.append((path, meta))
     if not selected:
         raise ValueError(
-            "No accepted, complete, human-labelled episodes. Review recordings first; use --include-partial only if intended."
+            "No human-labelled episodes match the status/completion filters. Review recordings or explicitly choose --all-statuses / --include-partial if intended."
         )
     if args.val_fraction > 0 and len(selected) < 2:
         raise ValueError(
@@ -147,6 +147,7 @@ def export(args):
         "validation_fraction": args.val_fraction,
         "split_unit": "episode",
         "include_partial": args.include_partial,
+        "all_statuses": args.all_statuses,
         "observation_axes": "sample, height, width, channel",
         "splits": {},
     }
@@ -212,6 +213,11 @@ def main():
     prepare.add_argument("--val-fraction", type=float, default=0.2)
     prepare.add_argument("--seed", type=int, default=0)
     prepare.add_argument("--include-partial", action="store_true")
+    prepare.add_argument(
+        "--all-statuses",
+        action="store_true",
+        help="Explicitly include draft, pending and rejected episodes without changing their review status",
+    )
     prepare.set_defaults(run=export)
     args = parser.parse_args()
     try:

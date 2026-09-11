@@ -54,4 +54,32 @@ for _ in range(config["env_kwargs"]["max_steps"]):
         break
 ```
 
-결정적 행동은 `jnp.argmax(logits, axis=-1)`로 선택할 수 있습니다. 이 모델은 프레임별 메모리가 없는 정책이며 실제 협동 점수, 정체 가능성, 다른 정책과의 cross-play 성능은 아직 평가하지 않았습니다. 오프라인 행동 일치율은 게임 성공률과 다릅니다.
+결정적 행동은 `jnp.argmax(logits, axis=-1)`로 선택할 수 있습니다. 이 모델은 프레임별 메모리가 없는 정책이며 BC끼리의 50판 점수는 각 모델 폴더의 selfplay_50.json에 기록했습니다. 다른 정책과의 cross-play 성능은 아직 평가하지 않았습니다. 오프라인 행동 일치율은 게임 성공률과 다릅니다.
+
+## 전체 40개로 최종 학습
+
+사용자 지정으로 미승인·거절·중도 종료 기록까지 포함합니다. 원본 승인 상태는 변경하지 않습니다. 총 17,992 환경 스텝 / 35,984 에이전트 행동입니다. exporter의 중간 분할은 `--fit-all`에서 합쳐지므로 최종 학습에는 40개 전부 사용되며, 미사용 검증셋은 없습니다. epoch 수는 기존 29판 학습 모델의 검증에서 선택한 15를 고정합니다.
+
+```bash
+PYTHONPATH=. uv run python scripts/overcooked_v3/prepare_bc_data.py export \
+  data/human/split_0 --layout split_0 --output data/bc/split_0_all40 \
+  --val-fraction 0.2 --seed 0 --all-statuses --include-partial
+PYTHONPATH=. uv run python scripts/overcooked_v3/train_bc.py \
+  --data data/bc/split_0_all40 --output artifacts/bc/split_0_all40_new \
+  --fit-all --epochs 15 --seed 0
+```
+
+## BC끼리 플레이 평가와 영상
+
+샘플링 시드 0~49, 각 450스텝, 고정 시작 위치로 평가합니다. 동일한 체크포인트가 두 에이전트를 조종하며, 행동은 각각 categorical sampling합니다. 팀 보상은 두 에이전트에게 공유되므로 한 에이전트의 보상만 합산합니다.
+
+```bash
+PYTHONPATH=. uv run python scripts/overcooked_v3/eval_bc.py \
+  --model artifacts/bc/split_0_all40_v1 --episodes 50 --seed 0 \
+  --output outputs/bc_eval/all40_50.json
+PYTHONPATH=. uv run python scripts/overcooked_v3/record_bc.py \
+  --model artifacts/bc/split_0_all40_v1 --seed 42 \
+  --output outputs/bc_videos/all40_seed42.mp4
+```
+
+영상은 5스텝/초의 원래 속도로 재생하고 같은 프레임을 반복해 60FPS MP4로 저장합니다. 모든 출력 경로는 새 경로여야 합니다.
