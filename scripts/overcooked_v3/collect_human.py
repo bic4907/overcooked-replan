@@ -46,6 +46,11 @@ def parse_args():
         help="Real-time environment steps per second (1-15)",
     )
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--random-start",
+        action="store_true",
+        help="Randomize initial positions and facing within each agent's connected room",
+    )
     parser.add_argument("--max-steps", type=int, default=450)
     parser.add_argument(
         "--phase-order-split", choices=("train", "eval"), default="train"
@@ -80,7 +85,7 @@ class CollectorApp:
         self.env_kwargs = {
             "layout": args.layout,
             "max_steps": args.max_steps,
-            "random_agent_positions": False,
+            "random_agent_positions": args.random_start,
             "observation_type": "default",
             "include_transition_countdown": True,
             "include_layout_change_mask": True,
@@ -179,6 +184,12 @@ class CollectorApp:
         print(
             f"Ready: {self.args.layout} / {self.args.mode}. {self.message}", flush=True
         )
+        print(
+            f"Start: {'random' if self.args.random_start else 'fixed'} / "
+            f"seed={seed} / positions="
+            f"{np.column_stack((self.episode.state.agents.pos.x, self.episode.state.agents.pos.y)).tolist()}",
+            flush=True,
+        )
 
     def refresh_frame(self):
         frame = np.ascontiguousarray(
@@ -264,7 +275,9 @@ class CollectorApp:
         self.screen.fill((20, 25, 34))
         self.text("OVERCOOKED / HUMAN LAB", 28, 25, font=self.title)
         self.text(
-            f"{self.args.layout}  /  {self.args.mode.upper()}  /  episode {self.episode_number}",
+            f"{self.args.layout}  /  {self.args.mode.upper()}  /  episode {self.episode_number}"
+            f"  /  {'RANDOM' if self.args.random_start else 'FIXED'} START"
+            f"  /  seed {self.episode.metadata['seed']}",
             30,
             69,
             color=(139, 157, 182),

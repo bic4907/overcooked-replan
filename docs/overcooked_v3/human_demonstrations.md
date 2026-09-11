@@ -128,6 +128,7 @@ Hard 모드를 지원하는 확장 환경에서는 `--layout split_hard --phase-
 | `--hz` | `5` | 실시간 행동 속도, 1~15; 화면 FPS와 별개 |
 | `--players RED BLUE` | `anonymous-red anonymous-blue` | 두 캐릭터의 참가자 식별자 |
 | `--seed` | `0` | 첫 판 시드; 다음 판마다 1 증가 |
+| `--random-start` | 꺼짐 | 시작 위치와 방향을 랜덤 배치; 생략하면 기존 고정 위치 |
 | `--max-steps` | `450` | 한 판의 최대 스텝 수 |
 | `--output` | `data/human` | 원본 저장 폴더; 그 아래 맵별 폴더 생성 |
 | `--phase-order-split` | `train` | Hard 확장 환경 전용, `train` 또는 `eval` |
@@ -143,6 +144,37 @@ python scripts/overcooked_v3/collect_human.py \
 ```
 
 이 경우 조회·변환 명령의 입력 폴더도 `data/human/session01`로 지정합니다.
+
+## 시작 위치 랜덤화
+
+매 판 새로운 위치에서 시작하려면 `--random-start`를 추가합니다.
+
+```bash
+python scripts/overcooked_v3/collect_human.py \
+  --layout split_0 --mode realtime --hz 5 --random-start \
+  --seed 0 --players player01 player02 --output data/human/random_start
+```
+
+환경의 `random_agent_positions` 기능으로 두 캐릭터의 시작 위치와 바라보는
+방향을 뽑습니다. 캐릭터끼리 겹치지 않으며 각 기본 시작점과 연결된 바닥에서
+선택합니다. Outage처럼 두 구역이 벽으로 분리되어 있으면 각자의 구역 안에서
+배치됩니다. Split처럼 시작 시 연결된 맵에서는 둘이 같은 쪽에 배치될 수도
+있습니다. 재료·소지품·냄비 상태를 무작위로 채우는 기능은 아닙니다.
+
+`N`으로 다음 판을 시작하면 증가한 시드로 다시 추첨합니다. 우연히 이전과
+같은 위치가 나올 수 있으며, 같은 `--seed`로 프로그램을 다시 실행하면 같은
+시작 순서를 재현합니다. 다른 세션에서는 `--seed 100` 등으로 바꿀 수 있습니다.
+화면 상단에는 `RANDOM START`와 시드가 표시됩니다.
+
+설정은 원본 `metadata.env_kwargs.random_agent_positions`에, 실제 시작 위치·방향은
+`state/agents/pos/x`, `state/agents/pos/y`, `state/agents/dir`의 첫 행에 기록됩니다.
+고정 시작과 랜덤 시작은 서로 다른 환경 설정으로 취급하므로 기본 내보내기에서
+함께 합칠 수 없습니다. 위 예시처럼 폴더를 분리하고 랜덤 시작 데이터만 변환하세요.
+
+```bash
+python scripts/overcooked_v3/prepare_bc_data.py export data/human/random_start \
+  --layout split_0 --output data/bc/split_0_random_v1 --val-fraction 0.2 --seed 0
+```
 
 ## 저장과 선별
 

@@ -129,6 +129,11 @@ right Shift**. The display/input loop targets **60 FPS** while the environment
 runs at **5 steps per second**. Use `--mode step` for one person controlling both
 agents, selecting their actions before pressing Space for each step.
 
+Add `--random-start --output data/human/random_start` to sample initial positions
+and facing within each agent's connected room. Each new episode advances the
+seed; the same initial seed reproduces the sequence. Export that folder separately
+from fixed-start demonstrations.
+
 Finish a full episode, press **K** to accept it, then **N** for the next episode.
 After accepting at least two complete episodes, export the BC dataset:
 
