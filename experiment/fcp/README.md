@@ -2,10 +2,16 @@
 
 ## Population
 
+All population sweeps use six independent seeds (`0..5`) and three snapshots
+per seed, yielding 18 partners per layout/observer arm. Existing registered
+W&B sweeps retain their original settings; create a new sweep to use six seeds.
+For the standalone checkpoint verifier, pass `--seeds 0 1 2 3 4 5`; its
+three-seed default remains available for historical populations.
+
 선별된 Split, Outage, Recipe Switch, Distance Switch의 4개 Easy layout에 대해
-seed `0..2`를 학습한다. Population sweep은 총 12 runs다.
+seed `0..5`를 학습한다. Population sweep은 총 24 runs다.
 각 run은 진행률 10%, 50%, 100% checkpoint를 남기므로 layout당 frozen
-population은 `3 seeds × 3 snapshots = 9 policies`다. 기본 학습량에서는 중간
+population은 `6 seeds × 3 snapshots = 18 policies`다. 기본 학습량에서는 중간
 checkpoint가 update 46과 229에 저장되고, update 457 종료 후 final checkpoint가
 저장된다.
 

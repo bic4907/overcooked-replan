@@ -9,13 +9,13 @@ The existing `_0` sweep files are unchanged.
 | --- | ---: | ---: | ---: |
 | IPPO baseline | 18 | 3 | 21 |
 | IPPO-RNN baseline | 18 | 3 | 21 |
-| FCP baseline | 27 | 3 | 30 |
+| FCP baseline | 36 | 3 | 39 |
 | IPPO-RNN observer | 72 | 12 | 84 |
-| FCP observer | 108 | 12 | 120 |
-| **Grand total** | **243** | **33** | **276** |
+| FCP observer | 144 | 12 | 156 |
+| **Grand total** | **288** | **33** | **321** |
 
-FCP uses three population seeds (`0..2`) and six best-response seeds (`0..5`).
-Each population run saves checkpoints at 10%, 50%, and 100%, giving nine
+FCP uses six population seeds (`0..5`) and six best-response seeds (`0..5`).
+Each population run saves checkpoints at 10%, 50%, and 100%, giving eighteen
 frozen partners per layout (and per observer arm in the observer experiment).
 
 ## Sweep creation order

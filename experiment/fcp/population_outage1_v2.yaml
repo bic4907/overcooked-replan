@@ -5,12 +5,12 @@ metric:
   goal: maximize
   name: train/episode_return
 
-# Three seeds x three snapshots produce a nine-policy outage_1 population.
+# Six seeds x three snapshots produce a 18-policy outage_1 population.
 parameters:
   scenario:
     value: outage_1
   SEED:
-    values: [0, 1, 2]
+    values: [0, 1, 2, 3, 4, 5]
   ENTITY:
     value: cilab-overcooked
   PROJECT:

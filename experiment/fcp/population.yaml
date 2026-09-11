@@ -5,8 +5,8 @@ metric:
   goal: maximize
   name: train/episode_return
 
-# Three independent RNN policies per layout. Each run saves the 10%, 50%, and
-# final (100%) checkpoints, yielding nine frozen partner policies per layout.
+# Six independent RNN policies per layout. Each run saves the 10%, 50%, and
+# final (100%) checkpoints, yielding eighteen frozen partner policies per layout.
 parameters:
   scenario:
     values:
@@ -15,7 +15,7 @@ parameters:
       - recipe_switch_0
       - distance_switch_0
   SEED:
-    values: [0, 1, 2]
+    values: [0, 1, 2, 3, 4, 5]
   ENTITY:
     value: cilab-overcooked
   PROJECT:

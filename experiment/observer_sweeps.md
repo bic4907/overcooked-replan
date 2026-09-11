@@ -17,13 +17,13 @@ revisions.
 | --- | --- | ---: |
 | IPPO-RNN | train | 144 |
 | IPPO-RNN | eval | 24 |
-| FCP | population | 72 |
+| FCP | population | 144 |
 | FCP | best response | 144 |
 | FCP | eval | 24 |
-| **Total** |  | **408** |
+| **Total** |  | **480** |
 
 FCP population and best-response agents must share the same persistent
-filesystem. The population stage writes nine frozen partners per
+filesystem. The population stage writes eighteen frozen partners per
 layout/observer arm under `saves/fcp_observer/population`.
 
 ## W&B projects

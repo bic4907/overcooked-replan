@@ -5,13 +5,13 @@ metric:
   goal: maximize
   name: train/episode_return
 
-# 3 layouts x 3 seeds = 9 runs. Each run saves 10%, 50%, and 100%, yielding
-# nine frozen partner policies per layout.
+# 3 layouts x 6 seeds = 18 runs. Each run saves 10%, 50%, and 100%, yielding
+# eighteen frozen partner policies per layout.
 parameters:
   scenario:
     values: [split_1, outage_1, distance_switch_1]
   SEED:
-    values: [0, 1, 2]
+    values: [0, 1, 2, 3, 4, 5]
   ENTITY:
     value: cilab-overcooked
   PROJECT:

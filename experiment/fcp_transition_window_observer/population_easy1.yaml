@@ -5,15 +5,15 @@ metric:
   goal: maximize
   name: train/episode_return
 
-# 3 layouts x 4 observer arms x 3 seeds = 36 runs. Each run keeps 10%, 50%,
-# and 100% snapshots, yielding nine frozen partners per layout/observer arm.
+# 3 layouts x 4 observer arms x 6 seeds = 72 runs. Each run keeps 10%, 50%,
+# and 100% snapshots, yielding eighteen frozen partners per layout/observer arm.
 parameters:
   scenario:
     values: [split_1, outage_1, distance_switch_1]
   TRANSITION_OBSERVER:
     values: [none, agent_0, agent_1, both]
   SEED:
-    values: [0, 1, 2]
+    values: [0, 1, 2, 3, 4, 5]
   ENTITY:
     value: cilab-overcooked
   PROJECT:
