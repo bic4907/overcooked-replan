@@ -832,6 +832,19 @@ split_wide = _build_split_workload(
 )
 
 
+# A compact 7x6 Split variant. Each bay is one floor column narrower and the
+# room one row shorter than the canonical 9x7 map, while preserving its workload
+# and A -> B -> A doorway cycle.
+split_narrow = _build_split_workload(
+    (
+        3, 1, ((2, 3), (4, 3)),
+        (("0", (0, 2)), ("P", (0, 4)), ("P", (1, 5))),
+        (("B", (6, 2)), ("B", (6, 4)), ("X", (6, 1)), ("X", (5, 5))),
+    ),
+    width=7, height=6,
+)
+
+
 def _build_wide_outage():
     # Put onion/pot stations near the center, even as the serving route grows.
     # (5, 1) accesses both the left onion and handoff (6, 1) without moving;

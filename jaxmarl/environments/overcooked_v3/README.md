@@ -30,7 +30,8 @@ adding one row for Outage and Distance Switch: `split_wide` is 13×7, `outage_wi
 and `distance_switch_wide` is 13×6 (width×height). They retain resource counts,
 recipes, and transition timing. See the [design notes and phase images](../../../docs/overcooked_v3/wide_maps.md).
 
-`split_0` uses a 7×9 map. It opens one central doorway
+`split_0` uses a 7×9 map. `split_narrow` compresses the same workload and
+doorway cycle into a 6×7 map. It opens one central doorway
 for 150 steps, then turns it into a handoff counter for 150 steps. The
 left bay contains onions and pots, while the right bay contains plates and
 serving. Agents must choose opposite sides before the wall closes, then
