@@ -198,7 +198,10 @@ ROLE_SCENARIO_LAYOUTS = {
         "split_narrow_lower", "split_narrow_diagonal", "split_narrow_crossing",
         "split_wide",
     ),
-    "outage": ("outage_0", "outage_1", "outage_wide"),
+    "outage": (
+        "outage_0", "outage_1", "outage_wide", "outage_narrow_upper",
+        "outage_narrow_lower", "outage_narrow_diagonal",
+    ),
     "recipe_switch": ("recipe_switch_0",),
     "distance_switch": (
         "distance_switch_0", "distance_switch_1", "distance_switch_wide"

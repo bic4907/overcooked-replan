@@ -924,6 +924,47 @@ def _build_wide_outage():
 
 outage_wide = _build_wide_outage()
 
+
+def _build_shared_room_outage(source, missing_resource="0"):
+    """Open the center aisle and suspend one resource type in phase B."""
+    if missing_resource not in {"0", "B"}:
+        raise ValueError("Shared-room outage must remove onions or plates")
+    rows = [list(row) for row in source[0][0].strip("\n").splitlines()]
+    center_x = len(rows[0]) // 2
+    for row in rows[1:-1]:
+        row[center_x] = " "
+    normal = "\n" + "\n".join("".join(row) for row in rows) + "\n"
+    removed_symbols = {"0", "O"} if missing_resource == "0" else {"B"}
+    suspended = "".join("W" if cell in removed_symbols else cell for cell in normal)
+    return [
+        [normal, _ROLE_PHASE_STEPS],
+        [suspended, _ROLE_PHASE_STEPS],
+        [normal, _FINAL_PHASE_STEPS],
+    ]
+
+
+outage_narrow_upper = _build_shared_room_outage([["""
+W0PRP0W
+B A A B
+X     X
+W N   W
+WWBWBWW
+""", _ROLE_PHASE_STEPS]])
+outage_narrow_lower = _build_shared_room_outage([["""
+WWBRBWW
+X   N X
+W     W
+B A A B
+W0PWP0W
+""", _ROLE_PHASE_STEPS]])
+outage_narrow_diagonal = _build_shared_room_outage([["""
+W0BRPWW
+B A   X
+W N N W
+X   A B
+WWPWB0W
+""", _ROLE_PHASE_STEPS]])
+
 _DISTANCE_SWITCH_WIDE_SPEC = _vertical_distance_switch_spec(13, 6)
 _validate_distance_switch_spec(_DISTANCE_SWITCH_WIDE_SPEC)
 _distance_wide_a = _distance_switch_grid(_DISTANCE_SWITCH_WIDE_SPEC)
