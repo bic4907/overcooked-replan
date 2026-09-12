@@ -67,6 +67,28 @@ OBP_LAYOUT_NAMES = (
 )
 
 
+#: Named layout sets, so a trainer can select a distribution the same way it
+#: selects a single kitchen. Everything downstream -- run names, checkpoint
+#: filenames, W&B metadata -- treats the layout as a string, and a set name
+#: keeps working wherever a layout name used to go.
+OBP_LAYOUT_SETS: dict[str, tuple[str, ...]] = {
+    "obp10": OBP_LAYOUT_NAMES,
+}
+
+
+def resolve_layouts(layout: str | Sequence[str]) -> tuple[str, ...]:
+    """Take a set name or an explicit list and return the layout names."""
+    if isinstance(layout, str):
+        if layout not in OBP_LAYOUT_SETS:
+            raise ValueError(
+                f"Unknown layout set: {layout!r}. Known sets are "
+                f"{sorted(OBP_LAYOUT_SETS)}; pass a list of layout names to use "
+                "one that is not registered."
+            )
+        return OBP_LAYOUT_SETS[layout]
+    return tuple(layout)
+
+
 def pad_grid(grid: str, width: int, height: int) -> str:
     """Centre a layout grid on a larger canvas, filling the rest with wall.
 
@@ -126,16 +148,17 @@ class MultiLayoutOvercookedV3(OvercookedV3):
 
     def __init__(
         self,
-        layouts: Sequence[str] = OBP_LAYOUT_NAMES,
+        layout: str | Sequence[str] = "obp10",
         canvas_width: int = OBP_CANVAS_WIDTH,
         canvas_height: int = OBP_CANVAS_HEIGHT,
         **kwargs,
     ):
-        names = tuple(layouts)
+        names = resolve_layouts(layout)
         if len(names) < 1:
-            raise ValueError("layouts must name at least one layout")
+            raise ValueError("layout must name at least one layout")
         if len(set(names)) != len(names):
-            raise ValueError(f"layouts contains duplicates: {names}")
+            raise ValueError(f"layout contains duplicates: {names}")
+        self.layout_set = layout if isinstance(layout, str) else None
 
         padded = [padded_dynamic_layout(n, canvas_width, canvas_height) for n in names]
 

@@ -1,0 +1,25 @@
+# @package _global_
+
+# The layout distribution the optimal behavior prior is trained on: ten
+# kitchens centred on one 13x7 canvas, one drawn per episode. Selecting the set
+# by name keeps every downstream consumer -- run names, checkpoint filenames,
+# W&B metadata -- working exactly as it does for a single kitchen.
+#
+# Transition signals stay on, matching how the human demonstrations were
+# collected, so a prior trained here can initialise a behavior-cloning model on
+# them without an observation-width mismatch.
+
+ENV_NAME: overcooked_v3_multilayout
+
+ENV_KWARGS:
+  layout: obp10
+  max_steps: 450
+  random_agent_positions: false
+  include_transition_countdown: true
+  include_layout_change_mask: true
+  transition_observer: both
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: optimal_behavior_prior
+CONDITION: obp10
+WANDB_GROUP: optimal_behavior_prior

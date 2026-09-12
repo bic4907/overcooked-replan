@@ -19,7 +19,11 @@ from .mpe import (
 from .multi_agent_env import MultiAgentEnv, State
 from .overcooked import Overcooked, overcooked_layouts
 from .overcooked_v2 import OvercookedV2, overcooked_v2_layouts
-from .overcooked_v3 import OvercookedV3, overcooked_v3_layouts
+from .overcooked_v3 import (
+    MultiLayoutOvercookedV3,
+    OvercookedV3,
+    overcooked_v3_layouts,
+)
 from .smax import SMAX, HeuristicEnemySMAX, LearnedPolicyEnemySMAX
 from .storm import InTheGrid, InTheGrid_2p, InTheMatrix
 from .switch_riddle import SwitchRiddle
@@ -83,6 +87,7 @@ __all__ = [
     "OvercookedV2",
     "overcooked_v2_layouts",
     "OvercookedV3",
+    "MultiLayoutOvercookedV3",
     "overcooked_v3_layouts",
     "SMAX",
     "HeuristicEnemySMAX",

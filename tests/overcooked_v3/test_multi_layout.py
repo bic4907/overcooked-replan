@@ -10,6 +10,7 @@ from jaxmarl.environments.overcooked_v3.multi_layout import (
     OBP_CANVAS_WIDTH,
     OBP_LAYOUT_NAMES,
     MultiLayoutOvercookedV3,
+    OBP_LAYOUT_SETS,
     pad_grid,
     padded_dynamic_layout,
 )
@@ -151,12 +152,12 @@ def test_recipe_follows_the_drawn_layout():
 
 def test_rejects_duplicate_layouts():
     with pytest.raises(ValueError, match="duplicates"):
-        MultiLayoutOvercookedV3(layouts=("split_0", "split_0"), **ENV_KWARGS)
+        MultiLayoutOvercookedV3(layout=("split_0", "split_0"), **ENV_KWARGS)
 
 
 def test_rejects_unknown_layout():
     with pytest.raises(ValueError, match="Unknown dynamic layout"):
-        MultiLayoutOvercookedV3(layouts=("no_such_layout",), **ENV_KWARGS)
+        MultiLayoutOvercookedV3(layout=("no_such_layout",), **ENV_KWARGS)
 
 
 def test_single_layout_environment_is_unaffected_by_the_base_offset():
@@ -169,3 +170,25 @@ def test_single_layout_environment_is_unaffected_by_the_base_offset():
         assert int(env._phase_index(step_array, 0)) == int(
             env.get_layout_index(step_array)
         )
+
+
+def test_layout_set_name_resolves_to_its_layouts():
+    """A set name has to work wherever a single layout name used to go."""
+    env = MultiLayoutOvercookedV3(layout="obp10", **ENV_KWARGS)
+    assert env.layout_names == OBP_LAYOUT_SETS["obp10"]
+    assert env.layout_names == OBP_LAYOUT_NAMES
+
+
+def test_rejects_unknown_layout_set():
+    with pytest.raises(ValueError, match="Unknown layout set"):
+        MultiLayoutOvercookedV3(layout="no_such_set", **ENV_KWARGS)
+
+
+def test_registry_builds_the_layout_distribution():
+    env = make("overcooked_v3_multilayout", layout="obp10", **ENV_KWARGS)
+    assert isinstance(env, MultiLayoutOvercookedV3)
+    assert env.observation_space("agent_0").shape == (
+        OBP_CANVAS_HEIGHT,
+        OBP_CANVAS_WIDTH,
+        31,
+    )

@@ -11,6 +11,7 @@ from .environments import (
     JaxNav,
     LearnedPolicyEnemySMAX,
     MultiAgentEnv,
+    MultiLayoutOvercookedV3,
     Overcooked,
     OvercookedV2,
     OvercookedV3,
@@ -135,6 +136,8 @@ def make(env_id: str, **env_kwargs) -> MultiAgentEnv:
         env = Overcooked(**env_kwargs)
     elif env_id == "overcooked_v2":
         env = OvercookedV2(**env_kwargs)
+    elif env_id == "overcooked_v3_multilayout":
+        env = MultiLayoutOvercookedV3(**env_kwargs)
     elif env_id == "overcooked_v3":
         env = OvercookedV3(**env_kwargs)
 
@@ -202,6 +205,7 @@ registered_envs = [
     "overcooked",
     "overcooked_v2",
     "overcooked_v3",
+    "overcooked_v3_multilayout",
     "coin_game",
     "jaxnav",
     "JaxRobotarium_navigation",

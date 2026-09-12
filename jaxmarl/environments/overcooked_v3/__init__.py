@@ -9,6 +9,7 @@ from .dynamic_layouts import (
     phase_policy_sequence,
 )
 from .dynamic_overcooked import OvercookedV3
+from .multi_layout import MultiLayoutOvercookedV3
 
 overcooked_v3_layouts = dynamic_layouts
 
@@ -16,6 +17,7 @@ __all__ = [
     "DynamicLayout",
     "DynamicLayoutPhase",
     "OvercookedV3",
+    "MultiLayoutOvercookedV3",
     "POLICY_SWITCH_BASE_LAYOUTS",
     "ROLE_SCENARIO_LAYOUTS",
     "ROLE_SCENARIO_LAYOUT_NAMES",
