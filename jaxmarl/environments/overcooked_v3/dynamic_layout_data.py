@@ -845,6 +845,43 @@ split_narrow = _build_split_workload(
 )
 
 
+split_narrow_upper = _build_split_workload(
+    (
+        2, 4, ((2, 2), (4, 2)),
+        (("0", (0, 1)), ("P", (0, 3)), ("P", (1, 5))),
+        (("B", (6, 1)), ("B", (6, 3)), ("X", (5, 0)), ("X", (5, 5))),
+    ),
+    width=7, height=6,
+)
+
+split_narrow_lower = _build_split_workload(
+    (
+        4, 2, ((2, 4), (4, 4)),
+        (("0", (1, 0)), ("P", (0, 1)), ("P", (0, 3))),
+        (("B", (5, 0)), ("B", (6, 1)), ("X", (6, 3)), ("X", (5, 5))),
+    ),
+    width=7, height=6,
+)
+
+split_narrow_diagonal = _build_split_workload(
+    (
+        3, 1, ((1, 2), (5, 4)),
+        (("0", (2, 0)), ("P", (0, 1)), ("P", (0, 4))),
+        (("B", (4, 0)), ("B", (6, 4)), ("X", (6, 1)), ("X", (5, 5))),
+    ),
+    width=7, height=6,
+)
+
+split_narrow_crossing = _build_split_workload(
+    (
+        3, 1, ((1, 2), (2, 4)),
+        (("0", (0, 2)), ("P", (0, 4)), ("P", (1, 5))),
+        (("B", (6, 2)), ("B", (6, 4)), ("X", (6, 1)), ("X", (5, 5))),
+    ),
+    width=7, height=6,
+)
+
+
 def _build_wide_outage():
     # Put onion/pot stations near the center, even as the serving route grows.
     # (5, 1) accesses both the left onion and handoff (6, 1) without moving;

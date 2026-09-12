@@ -1,0 +1,12 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: split_narrow_crossing
+  max_steps: 450
+  random_agent_positions: false
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: kitchen_split
+CONDITION: split_narrow_crossing
+WANDB_GROUP: kitchen_split
+LAYOUT_REVISION: split-narrow-crossing-v1

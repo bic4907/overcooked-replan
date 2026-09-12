@@ -36,6 +36,9 @@ for 150 steps, then turns it into a handoff counter for 150 steps. The
 left bay contains onions and pots, while the right bay contains plates and
 serving. Agents must choose opposite sides before the wall closes, then
 coordinate cook–server work through the counter.
+`split_narrow_upper`, `split_narrow_lower`, `split_narrow_diagonal`, and
+`split_narrow_crossing` keep the same compact footprint and workload while
+varying the doorway, resources, and initial agent positions.
 
 `outage_0` has a compact 5×7 map with
 disconnected movement regions and shared center counters. Both bays are
