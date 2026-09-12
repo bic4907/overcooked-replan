@@ -106,6 +106,19 @@ def freeze_mask(params: dict, prefixes: Sequence[str]) -> dict:
     return unflatten_dict(mask, sep="/")
 
 
+def complement_prefixes(params: dict, keep: Sequence[str]) -> tuple[str, ...]:
+    """Every parameter except the named ones, as prefixes to freeze.
+
+    The paper's freezing condition is "all layers except the last", which is
+    safer to say by naming what stays free: a layer added to the network later
+    is then frozen by default rather than silently left training.
+    """
+    flat = flatten_dict(params, sep="/")
+    return tuple(
+        key for key in sorted(flat) if not any(key.startswith(p) for p in keep)
+    )
+
+
 def frozen_names(params: dict, prefixes: Sequence[str]) -> tuple[str, ...]:
     if not prefixes:
         return ()
@@ -130,6 +143,7 @@ def train(
     validation_actions: jax.Array | None = None,
     prior_checkpoint: str | Path | None = None,
     freeze_prefixes: Sequence[str] = (),
+    freeze_except: Sequence[str] = (),
     epochs: int = 20,
     batch_size: int = 256,
     learning_rate: float = 3e-4,
@@ -150,6 +164,10 @@ def train(
     key, init_key = jax.random.split(key)
     network, logits_fn = build_policy(NUM_ACTIONS, policy_config)
     params = initial_params(network, observations.shape[1:], init_key, prior_checkpoint)
+    if freeze_except:
+        if freeze_prefixes:
+            raise ValueError("give either freeze_prefixes or freeze_except, not both")
+        freeze_prefixes = complement_prefixes(params, freeze_except)
     frozen = frozen_names(params, freeze_prefixes)
     mask = freeze_mask(params, freeze_prefixes)
 

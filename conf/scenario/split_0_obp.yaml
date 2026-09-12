@@ -1,0 +1,21 @@
+# @package _global_
+
+# split_0 with exactly the observation the human demonstrations were collected
+# under, so a self-play policy trained here and a model cloned from the
+# demonstrations read the same thing. Every key the collector recorded is
+# pinned, including the ones that merely match the environment default, because
+# a default that moves would silently break the pairing.
+
+ENV_KWARGS:
+  layout: split_0
+  max_steps: 450
+  random_agent_positions: false
+  include_transition_countdown: true
+  include_layout_change_mask: true
+  transition_observer: both
+  transition_warning_steps: 20
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: optimal_behavior_prior
+CONDITION: split_0
+WANDB_GROUP: obp_prior_split0

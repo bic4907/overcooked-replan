@@ -1,0 +1,61 @@
+# The paper's single-layout condition, and the fix for a prior that cannot play.
+#
+# Stage 1's prior averages a healthy return over ten kitchens but scores zero on
+# split_0, the only kitchen the demonstrations come from -- so the arms built on
+# it start from a policy that cannot play the game they are being cloned for.
+# A self-play run on split_0 alone scores 271, and those checkpoints already
+# exist, so this arm swaps the prior and drops the canvas with it: a single
+# kitchen needs no padding, and a prior trained on one cannot read a padded
+# observation anyway.
+#
+#   bc              cloning from random weights, at the native size
+#   obp             started from the split_0 self-play prior
+#   obp-frozen      the same, convolutional trunk held fixed
+#   obp-lastlayer   the same, everything but the action head held fixed
+#                   -- the paper's own freezing condition
+#
+# Seed 0 is absent because that self-play run never learned; fetch_prior.py
+# skips it, and an arm without a prior would not be the same experiment.
+
+program: baselines/OBP/train_bc.py
+name: obp-bc-single-train
+method: grid
+metric:
+  goal: maximize
+  name: final/validation_accuracy
+
+parameters:
+  arm:
+    values: [bc, obp, obp-frozen, obp-lastlayer]
+  seed:
+    values: [1, 2, 3, 4, 5]
+  observation:
+    value: native
+  data:
+    value: data/human
+  prior-root:
+    value: saves/obp_prior_split0
+  prior-layout:
+    value: split_0
+  prior-env-name:
+    value: overcooked_v3
+  prior-architecture:
+    value: cnn
+  epochs:
+    value: 30
+  batch-size:
+    value: 512
+  val-fraction:
+    value: 0.25
+  output-root:
+    value: saves/obp_bc_single
+  project:
+    value: overcooked-v3-obp-bc
+  group:
+    value: obp_bc_single
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_equals}

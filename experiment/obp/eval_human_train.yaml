@@ -1,0 +1,46 @@
+# The evaluation human.
+#
+# A best response cannot be scored against the model it trained on -- that is
+# its own objective, not a measure of anything. The paper scores against a
+# ground-truth proxy the human models never saw; our nearest equivalent is the
+# quarter of the episodes each seed already holds out.
+#
+# So this is plain behavior cloning, no prior, fitted on the other side of the
+# split. For a given seed it shares no episode with any of the three arms (30
+# episodes to them, 10 to this), which is what makes it a fair opponent for all
+# four conditions.
+
+program: baselines/OBP/train_bc.py
+name: obp-eval-human-train
+method: grid
+metric:
+  goal: maximize
+  name: final/train_accuracy
+
+parameters:
+  arm:
+    value: bc
+  split-side:
+    value: validation
+  seed:
+    values: [0, 1, 2, 3, 4, 5]
+  data:
+    value: data/human
+  epochs:
+    value: 30
+  batch-size:
+    value: 512
+  val-fraction:
+    value: 0.25
+  output-root:
+    value: saves/obp_eval_human
+  project:
+    value: overcooked-v3-obp-bc
+  group:
+    value: obp_eval_human
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_equals}

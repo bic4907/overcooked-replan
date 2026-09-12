@@ -42,6 +42,11 @@ def parse_args(argv=None):
     )
     parser.add_argument("--prior-architecture", default="cnn", choices=("cnn", "rnn"))
     parser.add_argument("--prior-layout", default="obp10")
+    parser.add_argument(
+        "--prior-env-name",
+        default="overcooked_v3_multilayout",
+        help="Which environment the prior was trained in; part of its filename.",
+    )
     parser.add_argument("--arm", default=None, help="Label for reporting.")
     partner = parser.add_mutually_exclusive_group()
     partner.add_argument(
@@ -49,6 +54,16 @@ def parse_args(argv=None):
         help=(
             "Directory written by train_bc.py to seat opposite the model. "
             "Without one, both seats are the model itself."
+        ),
+    )
+    partner.add_argument(
+        "--partner-arm",
+        choices=("bc", "obp", "obp-frozen", "prior"),
+        help=(
+            "Seat a collaborative AI opposite the model, composing its "
+            "checkpoint from the arm and --seed: one of the three best "
+            "responses, or the self-play prior, which is its own best "
+            "response and so is the paper's SP baseline."
         ),
     )
     partner.add_argument(
@@ -60,9 +75,28 @@ def parse_args(argv=None):
         ),
     )
     parser.add_argument("--partner-architecture", default="cnn", choices=("cnn", "rnn"))
+    parser.add_argument(
+        "--partner-br-root",
+        default="saves/obp_br",
+        help="Where --partner-arm looks for a trained best response.",
+    )
+    parser.add_argument(
+        "--partner-prior-root",
+        default="saves/obp_prior",
+        help="Where --partner-arm=prior looks for the self-play checkpoint.",
+    )
     parser.add_argument("--partner-label", default=None)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--layout", default="split_0")
+    parser.add_argument(
+        "--observation",
+        default="canvas",
+        choices=("canvas", "native"),
+        help=(
+            "Play on the shared 13x7 canvas, or at the layout's own size. It "
+            "has to match what the model was trained on."
+        ),
+    )
     parser.add_argument("--episodes", type=int, default=50)
     parser.add_argument("--max-steps", type=int, default=450)
     parser.add_argument(
@@ -70,7 +104,21 @@ def parse_args(argv=None):
         action="store_true",
         help=(
             "Take the most likely action instead of sampling. People vary, and "
-            "the environment is deterministic, so sampling is the default."
+            "the environment is deterministic, so sampling is the default. Note "
+            "that two deterministic copies of one policy deadlock: neither ever "
+            "breaks a tie the other does not."
+        ),
+    )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=1.0,
+        help=(
+            "Divide the logits before sampling. A human model fitted on data "
+            "where most actions are 'stay' hesitates, and hesitation compounds "
+            "over 450 steps; sharpening the distribution cuts that without "
+            "making the policy deterministic. Measured optimum on split_0 is "
+            "around 0.4-0.5, which is worth about half the model's score."
         ),
     )
     parser.add_argument("--data", default="data/human")
@@ -88,6 +136,31 @@ def parse_args(argv=None):
         choices=("online", "offline", "disabled"),
     )
     return parser.parse_args(argv)
+
+
+def find_best_response(root, arm: str, seed: int, architecture="cnn", layout="obp10"):
+    """The best response trained against this arm's human model, at this seed.
+
+    The trainer names the folder after the arm and the file after the layout,
+    so the pair identifies one run without a glob over everything.
+    """
+    folder = Path(root) / f"{layout}_{architecture}_obp_br_{arm}_seed{seed}"
+    if not folder.is_dir():
+        raise FileNotFoundError(
+            f"No best-response run at {folder}. Train the BR sweep for arm "
+            f"{arm!r} seed {seed} first."
+        )
+    matches = sorted(folder.glob(f"fcp_{architecture}_*_seed{seed}_vmap0.safetensors"))
+    # An interrupted run leaves intermediate checkpoints behind; the final one
+    # carries no update number, so it sorts last and is the one to play.
+    final = [path for path in matches if "_update" not in path.name]
+    if not final:
+        raise FileNotFoundError(
+            f"{folder} holds no final checkpoint (found {[p.name for p in matches]})."
+        )
+    if len(final) > 1:
+        raise RuntimeError(f"{len(final)} final checkpoints in {folder}: {final[:3]}")
+    return final[0]
 
 
 def human_reference(data_root, layout: str) -> dict:
@@ -132,19 +205,43 @@ def main(argv=None):
     elif args.prior_root:
         prior_checkpoint = str(
             find_prior(
-                args.prior_root, args.prior_architecture, args.prior_layout, args.seed
+                args.prior_root,
+                args.prior_architecture,
+                args.prior_layout,
+                args.seed,
+                env_name=args.prior_env_name,
             )
         )
+
+    layout = (
+        padded_dynamic_layout(args.layout)
+        if args.observation == "canvas"
+        else args.layout
+    )
+    env = jaxmarl.make(
+        "overcooked_v3",
+        layout=layout,
+        max_steps=args.max_steps,
+        random_agent_positions=False,
+        include_transition_countdown=True,
+        include_layout_change_mask=True,
+        transition_observer="both",
+    )
+    expected = tuple(env.observation_space("agent_0").shape)
 
     if model:
         logits_fn, params, config = bc.load(model)
         arm = args.arm or config.get("arm", Path(model).name)
+        if config.get("split_side") == "validation":
+            # A model fitted on the held-out episodes is the evaluation human,
+            # not the arm whose folder name it shares.
+            arm = f"{arm}-heldout"
         observation_shape = tuple(config["observation_shape"])
     else:
         network, logits_fn = bc.build_policy()
-        # The prior is scored on the same canvas the cloned models use, so the
-        # three arms are read off one axis.
-        observation_shape = (7, 13, 31)
+        # Whatever the environment gives: the prior is scored on the same
+        # observation the cloned models are, so the arms read off one axis.
+        observation_shape = expected
         params = bc.initial_params(
             network,
             observation_shape,
@@ -166,6 +263,35 @@ def main(argv=None):
                 f"The partner reads {tuple(partner_config['observation_shape'])} "
                 f"but the model reads {observation_shape}."
             )
+    elif args.partner_arm:
+        if args.partner_arm == "prior":
+            partner_path = find_prior(
+                args.partner_prior_root,
+                args.prior_architecture,
+                args.prior_layout,
+                args.seed,
+                env_name=args.prior_env_name,
+            )
+        else:
+            partner_path = find_best_response(
+                args.partner_br_root,
+                args.partner_arm,
+                args.seed,
+                architecture=args.partner_architecture,
+                layout=args.prior_layout,
+            )
+        partner_network, partner_logits = bc.build_policy(
+            config={"ARCHITECTURE": args.partner_architecture}
+        )
+        partner_params = bc.initial_params(
+            partner_network,
+            observation_shape,
+            jax.random.PRNGKey(0),
+            prior_checkpoint=partner_path,
+        )
+        partner_label = args.partner_label or (
+            "SP" if args.partner_arm == "prior" else f"BR({args.partner_arm})"
+        )
     elif args.partner_checkpoint:
         partner_network, partner_logits = bc.build_policy(
             config={"ARCHITECTURE": args.partner_architecture}
@@ -178,20 +304,10 @@ def main(argv=None):
         )
         partner_label = args.partner_label or Path(args.partner_checkpoint).stem
 
-    env = jaxmarl.make(
-        "overcooked_v3",
-        layout=padded_dynamic_layout(args.layout),
-        max_steps=args.max_steps,
-        random_agent_positions=False,
-        include_transition_countdown=True,
-        include_layout_change_mask=True,
-        transition_observer="both",
-    )
-    expected = env.observation_space("agent_0").shape
-    if tuple(expected) != observation_shape:
+    if expected != observation_shape:
         raise ValueError(
-            f"The model expects {observation_shape} but {args.layout} on the "
-            f"canvas gives {tuple(expected)}."
+            f"The model expects {observation_shape} but {args.layout} at the "
+            f"{args.observation} size gives {expected}."
         )
 
     def rollout(key):
@@ -202,7 +318,7 @@ def main(argv=None):
             return (
                 jnp.argmax(logits)
                 if args.deterministic
-                else jax.random.categorical(action_key, logits)
+                else jax.random.categorical(action_key, logits / args.temperature)
             )
 
         def step(carry, _):
@@ -264,6 +380,7 @@ def main(argv=None):
             "episodes": args.episodes,
             "max_steps": args.max_steps,
             "deterministic": args.deterministic,
+            "temperature": args.temperature,
             "model": model,
             "prior_checkpoint": prior_checkpoint,
         },

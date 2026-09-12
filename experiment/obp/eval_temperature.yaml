@@ -1,0 +1,48 @@
+# How sharply should a human model act?
+#
+# The demonstrations are more than a third "stay", and a model fitted on them
+# inherits that hesitation. Over 450 steps hesitation compounds: the pair drifts
+# instead of cooking, and a third of episodes end at zero. Dividing the logits
+# before sampling cuts the hesitation without making the policy deterministic --
+# two deterministic copies of one policy deadlock outright, scoring nothing.
+#
+# Measured on split_0 with plain BC: 38.3 at temperature 1, 57.8 at 0.4-0.5,
+# 0.2 at 0.1. The optimum is a real setting, not a monotone knob, so it is swept
+# rather than assumed.
+
+program: baselines/OBP/eval_human_model.py
+name: obp-eval-temperature
+method: grid
+metric:
+  goal: maximize
+  name: return_mean
+
+parameters:
+  temperature:
+    values: [0.3, 0.4, 0.5, 0.6, 0.8, 1.0]
+  arm:
+    values: [bc, obp, obp-frozen, obp-lastlayer]
+  seed:
+    values: [0, 1, 2, 3, 4, 5]
+  model-root:
+    value: saves/obp_bc_single
+  observation:
+    value: native
+  layout:
+    value: split_0
+  episodes:
+    value: 50
+  max-steps:
+    value: 450
+  data:
+    value: data/human
+  project:
+    value: overcooked-v3-obp-eval
+  group:
+    value: obp_eval_temperature
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_equals}

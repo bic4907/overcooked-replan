@@ -1,0 +1,51 @@
+# @package _global_
+
+# Stage 3 of the optimal behavior prior: the collaborative AI.
+#
+# The paper's second hypothesis is not about the human model itself but about
+# what you get by best-responding to it. So the human model is frozen and a
+# fresh policy is trained opposite it with PPO -- which is exactly what the FCP
+# trainer already does, with a population of one.
+#
+#   BR(BC)          best response to the randomly-initialised human model
+#   BR(BC_OBP)      best response to the prior-initialised one
+#   BR(BC_OBP+f)    best response to the frozen-trunk one
+#
+# CNN throughout. The partner's parameters have to describe the same network as
+# the learner's, and the human model has no recurrence.
+
+defaults:
+  - fcp_overcooked_v3
+  - override /scenario: obp10
+  - _self_
+
+ARCHITECTURE: cnn
+ALGORITHM: BR-obp
+
+# Which human model to sit opposite. The arm names match train_bc.py, and the
+# seed is shared all the way down the chain -- prior, human model, best
+# response -- so one seed is one complete pipeline.
+HUMAN_MODEL_ARM: obp
+HUMAN_MODEL_ROOT: saves/obp_bc
+HUMAN_MODEL_SEED: ${SEED}
+
+FCP:
+  population_checkpoints:
+    - ${HUMAN_MODEL_ROOT}/${HUMAN_MODEL_ARM}_seed${HUMAN_MODEL_SEED}/policy.safetensors
+  population_dir: null
+
+SAVES_DIR: saves/obp_br
+# The arm has to reach the folder name: the checkpoint filename is built
+# from layout, architecture and seed, which the three arms share.
+EXPERIMENT_FOLDER: obp_br_${HUMAN_MODEL_ARM}
+EXPERIMENT: optimal_behavior_prior
+CONDITION: obp10
+
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-obp-br}
+WANDB_GROUP: obp_br
+WANDB_TAGS:
+  - obp
+  - best-response
+  - human-model-${HUMAN_MODEL_ARM}
+RUN_NAME: br_${HUMAN_MODEL_ARM}_seed${SEED}
+NOTES: Best response to a frozen OBP human model; population of one.

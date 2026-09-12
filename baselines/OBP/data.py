@@ -165,11 +165,17 @@ def pad_state(state: State, top: int, left: int, height: int, width: int) -> Sta
 
 def load_episode(
     path: str | Path,
-    width: int = OBP_CANVAS_WIDTH,
-    height: int = OBP_CANVAS_HEIGHT,
+    width: int | None = OBP_CANVAS_WIDTH,
+    height: int | None = OBP_CANVAS_HEIGHT,
     verify: bool = True,
 ) -> Episode:
     """Read one archive and re-render its observations on the canvas.
+
+    Passing ``width=None`` or ``height=None`` keeps the layout's own grid
+    instead. The canvas exists to make ten kitchens one shape; a model that
+    only ever sees one kitchen does not need it, and a prior trained on that
+    kitchen alone cannot read a padded one -- its flattened layer is the wrong
+    width.
 
     With ``verify`` the rebuilt state is first replayed through the layout's own
     environment and checked against the stored observations, so a change to the
@@ -182,10 +188,12 @@ def load_episode(
     layout = env_kwargs.pop("layout")
     state = _state_from_arrays(arrays)
 
-    if verify:
+    native = width is None or height is None
+    if verify or native:
         reference = jaxmarl.make("overcooked_v3", layout=layout, **env_kwargs)
         rendered = jax.jit(jax.vmap(reference.get_obs))(state)
         stacked = jnp.stack([rendered[agent] for agent in reference.agents], axis=1)
+    if verify:
         stored = jnp.asarray(arrays["observations"])
         # Not exact equality: the countdown channel is a division whose rounding
         # depends on how XLA fuses the surrounding graph, which differs between
@@ -199,16 +207,19 @@ def load_episode(
                 "it did during collection"
             )
 
-    top, left = canvas_offset(layout, width, height)
-    padded_env = jaxmarl.make(
-        "overcooked_v3",
-        layout=padded_dynamic_layout(layout, width, height),
-        **env_kwargs,
-    )
-    padded = jax.jit(jax.vmap(padded_env.get_obs))(
-        pad_state(state, top, left, height, width)
-    )
-    observations = jnp.stack([padded[agent] for agent in padded_env.agents], axis=1)
+    if native:
+        observations = stacked
+    else:
+        top, left = canvas_offset(layout, width, height)
+        padded_env = jaxmarl.make(
+            "overcooked_v3",
+            layout=padded_dynamic_layout(layout, width, height),
+            **env_kwargs,
+        )
+        padded = jax.jit(jax.vmap(padded_env.get_obs))(
+            pad_state(state, top, left, height, width)
+        )
+        observations = jnp.stack([padded[agent] for agent in padded_env.agents], axis=1)
 
     actions = jnp.asarray(arrays["actions"])
     steps = actions.shape[0]

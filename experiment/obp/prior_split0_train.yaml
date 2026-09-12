@@ -1,0 +1,53 @@
+# A prior that can actually play the kitchen the demonstrations come from.
+#
+# Stage 1 trains self-play over ten layouts, which is the paper's SP^E. Played
+# on split_0 alone it scores zero, so the arms built on it start from a policy
+# that cannot cook there -- and freezing its features, the paper's OBP+f, has
+# nothing to hold on to.
+#
+# This is the paper's single-layout prior, SP^1: self-play on split_0 only,
+# under exactly the observation the demonstrations were collected with. Every
+# env key the collector recorded is pinned in the scenario, so the prior and a
+# model cloned from the data read the same thing and the weights transfer
+# without reshaping.
+#
+# It has to be retrained rather than reused: self-play checkpoints for split_0
+# do exist from August, but the role maps were reindexed on the 25th, so those
+# policies learned a different kitchen and spam interact here.
+
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: obp-prior-split0-train
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+parameters:
+  scenario:
+    value: split_0_obp
+  ARCHITECTURE:
+    value: cnn
+  ALGORITHM:
+    value: IPPO-SP-obp
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  NUM_SEEDS:
+    value: 1
+  SAVES_DIR:
+    value: saves/obp_prior_split0
+  EXPERIMENT_FOLDER:
+    value: obp_prior_split0
+  PROJECT:
+    value: overcooked-v3-obp-prior
+  WANDB_GROUP:
+    value: obp_prior_split0
+  WANDB_TAGS:
+    value: [obp, prior, single-layout]
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

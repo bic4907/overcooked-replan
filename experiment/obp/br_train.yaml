@@ -1,0 +1,45 @@
+# Stage 3: the collaborative AI, and the paper's second hypothesis.
+#
+# Each run freezes one human model and trains a fresh CNN policy opposite it
+# with PPO -- the FCP trainer with a population of one. The three arms differ
+# only in which human model they best-respond to, so any gap between them is
+# inherited from stage 2.
+#
+# The paper's fourth condition, SP^E, needs no run: a self-play agent is its
+# own best response, so the stage-1 prior is that arm already.
+#
+# Needs stage 2 finished for the matching arm and seed. It says so and stops
+# rather than training against a checkpoint that is not there.
+
+program: baselines/FCP/fcp_overcooked_v3.py
+name: obp-br-train
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+parameters:
+  HUMAN_MODEL_ARM:
+    values: [bc, obp, obp-frozen]
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  NUM_SEEDS:
+    value: 1
+  HUMAN_MODEL_ROOT:
+    value: saves/obp_bc
+  SAVES_DIR:
+    value: saves/obp_br
+  PROJECT:
+    value: overcooked-v3-obp-br
+  WANDB_GROUP:
+    value: obp_br
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - --config-name
+  - obp_br_overcooked_v3
+  - ${args_no_hyphens}

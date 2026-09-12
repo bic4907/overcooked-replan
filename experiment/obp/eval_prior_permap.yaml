@@ -1,0 +1,56 @@
+# Which of the ten kitchens can the prior actually cook in?
+#
+# The prior averages a healthy return during training, but that average is over
+# a layout drawn fresh each episode -- it says nothing about any one kitchen.
+# Played on split_0 it scores zero on every seed, so either the distribution
+# never taught it that kitchen or it learned only the easy ones.
+#
+# This asks the question directly: the same checkpoint, one layout at a time.
+# The paper's prior reached single-layout self-play level on every evaluation
+# layout, which is what made freezing its features reasonable; if ours does not,
+# that is the difference to report rather than a result to explain away.
+
+program: baselines/OBP/eval_human_model.py
+name: obp-eval-prior-per-map
+method: grid
+metric:
+  goal: maximize
+  name: return_mean
+
+parameters:
+  arm:
+    value: prior
+  seed:
+    values: [0, 1, 2, 3, 4, 5]
+  layout:
+    values:
+      - outage_0
+      - outage_2
+      - outage_2_plate
+      - distance_switch_0
+      - split_0
+      - outage_wide_2
+      - outage_wide_2_plate
+      - split_wide
+      - outage_wide
+      - distance_switch_wide
+  prior-root:
+    value: saves/obp_prior
+  prior-architecture:
+    value: cnn
+  episodes:
+    value: 50
+  max-steps:
+    value: 450
+  data:
+    value: data/human
+  project:
+    value: overcooked-v3-obp-eval
+  group:
+    value: obp_eval_prior_permap
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_equals}

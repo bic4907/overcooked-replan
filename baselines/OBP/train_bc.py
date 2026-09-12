@@ -19,11 +19,17 @@ from pathlib import Path
 
 import numpy as np
 
-ARMS = ("bc", "obp", "obp-frozen")
+ARMS = ("bc", "obp", "obp-frozen", "obp-lastlayer")
 
 #: The trunk the frozen arm holds fixed: everything the prior learned about
 #: reading a kitchen, leaving the action and value heads to the human data.
 TRUNK_PREFIX = "params/CNN_0"
+
+#: The action head. The paper's freezing condition holds everything else fixed
+#: and fits only this, which is a stronger claim about the prior than freezing
+#: the convolutions alone: not just that its features are usable, but that
+#: human behaviour is a relabelling of its decisions.
+ACTION_HEAD_PREFIX = "params/Dense_1"
 
 
 def parse_args(argv=None):
@@ -49,10 +55,36 @@ def parse_args(argv=None):
     )
     parser.add_argument("--prior-architecture", default="cnn", choices=("cnn", "rnn"))
     parser.add_argument("--prior-layout", default="obp10")
+    parser.add_argument(
+        "--prior-env-name",
+        default="overcooked_v3_multilayout",
+        help="Which environment the prior was trained in; part of its filename.",
+    )
+    parser.add_argument(
+        "--observation",
+        default="canvas",
+        choices=("canvas", "native"),
+        help=(
+            "Render demonstrations on the shared 13x7 canvas, or at the "
+            "layout's own size. A prior trained on one kitchen can only read "
+            "the native size."
+        ),
+    )
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=512)
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--val-fraction", type=float, default=0.25)
+    parser.add_argument(
+        "--split-side",
+        default="train",
+        choices=("train", "validation"),
+        help=(
+            "Which side of the episode split to fit. The default is the arms' "
+            "side. Fitting the other one produces a model that shares no "
+            "episode with them -- an evaluation human for a best response to "
+            "be scored against, rather than the one it trained on."
+        ),
+    )
     parser.add_argument("--output-root", default="saves/obp_bc")
     parser.add_argument(
         "--entity", default=os.getenv("WANDB_ENTITY", "cilab-overcooked")
@@ -74,10 +106,21 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
-def find_prior(root, architecture: str, layout: str, seed: int) -> Path:
-    """The prior trained with this seed, or a message saying what is missing."""
+def find_prior(
+    root,
+    architecture: str,
+    layout: str,
+    seed: int,
+    env_name: str = "overcooked_v3_multilayout",
+) -> Path:
+    """The prior trained with this seed, or a message saying what is missing.
+
+    ``env_name`` selects which trainer wrote it: the layout-distribution
+    environment for the paper's SP^E, or plain ``overcooked_v3`` for a prior
+    trained on the one kitchen the demonstrations come from.
+    """
     root = Path(root)
-    name = f"ippo_{architecture}_overcooked_v3_multilayout_{layout}_seed{seed}_vmap0.safetensors"
+    name = f"ippo_{architecture}_{env_name}_{layout}_seed{seed}_vmap0.safetensors"
     matches = sorted(root.rglob(name))
     if not matches:
         available = sorted({path.name for path in root.rglob("*.safetensors")})[:6]
@@ -113,13 +156,21 @@ def main(argv=None):
             f"No demonstrations under {args.data}"
             + (f" for layouts {args.layouts}" if args.layouts else "")
         )
-    episodes = [load_episode(path) for path in paths]
+    # None for the canvas size means "the layout's own", which is what a prior
+    # trained on a single kitchen reads.
+    size = {} if args.observation == "canvas" else {"width": None, "height": None}
+    episodes = [load_episode(path, **size) for path in paths]
     dataset = build_dataset(episodes)
     train_rows, validation_rows = split_by_episode(
         dataset, args.val_fraction, seed=args.seed
     )
     train_rows = np.asarray(train_rows)
     validation_rows = np.asarray(validation_rows)
+    if args.split_side == "validation":
+        # The two sides simply change places: what the arms hold out is what
+        # this model is fitted on, and vice versa. The split is by episode, so
+        # the resulting model shares no episode with the arms of this seed.
+        train_rows, validation_rows = validation_rows, train_rows
 
     observations = dataset.observations[train_rows]
     actions = dataset.actions[train_rows]
@@ -130,23 +181,34 @@ def main(argv=None):
 
     prior = None
     freeze = ()
-    if args.arm in ("obp", "obp-frozen"):
+    freeze_except = ()
+    if args.arm != "bc":
         prior = find_prior(
-            args.prior_root, args.prior_architecture, args.prior_layout, args.seed
+            args.prior_root,
+            args.prior_architecture,
+            args.prior_layout,
+            args.seed,
+            env_name=args.prior_env_name,
         )
     if args.arm == "obp-frozen":
         freeze = (TRUNK_PREFIX,)
+    elif args.arm == "obp-lastlayer":
+        freeze_except = (ACTION_HEAD_PREFIX,)
 
     layouts = sorted({episode.layout for episode in episodes})
+    # A model fitted on the held-out side is a different object from the arm of
+    # the same name, so it is labelled as one everywhere it is recorded.
+    label = args.arm if args.split_side == "train" else f"{args.arm}-heldout"
     run = wandb.init(
         entity=args.entity,
         project=args.project,
         group=args.group,
-        tags=list(args.tags) + [args.arm],
-        name=f"{args.arm}-seed{args.seed}",
+        tags=list(args.tags) + [label],
+        name=f"{label}-seed{args.seed}",
         mode=args.wandb_mode,
         config={
             "arm": args.arm,
+            "split_side": args.split_side,
             "seed": args.seed,
             "layouts": layouts,
             "episodes": len(episodes),
@@ -171,6 +233,7 @@ def main(argv=None):
         held_out_actions,
         prior_checkpoint=prior,
         freeze_prefixes=freeze,
+        freeze_except=freeze_except,
         epochs=args.epochs,
         batch_size=args.batch_size,
         learning_rate=args.learning_rate,
@@ -219,6 +282,7 @@ def main(argv=None):
         observations.shape[1:],
         metadata={
             "arm": args.arm,
+            "split_side": args.split_side,
             "seed": args.seed,
             "layouts": layouts,
             "prior_checkpoint": str(prior) if prior else None,
@@ -229,7 +293,7 @@ def main(argv=None):
     print(f"Saved human model: {output}")
 
     if args.upload_checkpoint and args.wandb_mode == "online":
-        artifact = wandb.Artifact(f"obp-{args.arm}-seed{args.seed}", type="human-model")
+        artifact = wandb.Artifact(f"obp-{label}-seed{args.seed}", type="human-model")
         artifact.add_dir(str(output))
         run.log_artifact(artifact, aliases=["final"])
         run.summary["checkpoint/uploaded"] = True
