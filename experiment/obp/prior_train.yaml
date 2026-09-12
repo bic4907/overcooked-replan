@@ -1,0 +1,43 @@
+# Stage 1 of the optimal behavior prior: self-play across the layout
+# distribution. This is the prior every OBP arm is initialised from, so its
+# seed is what pairs it with the human model built on it.
+#
+# CNN, not RNN. The paper's human model has no recurrence, and the transfer
+# only works if the prior is the same network.
+
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: obp-prior-train
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+parameters:
+  scenario:
+    value: obp10
+  ARCHITECTURE:
+    value: cnn
+  ALGORITHM:
+    value: IPPO-SP-obp
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  NUM_SEEDS:
+    value: 1
+  SAVES_DIR:
+    value: saves/obp_prior
+  EXPERIMENT_FOLDER:
+    value: obp_prior
+  PROJECT:
+    value: overcooked-v3-obp-prior
+  WANDB_GROUP:
+    value: obp_prior
+  WANDB_TAGS:
+    value: [obp, prior]
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

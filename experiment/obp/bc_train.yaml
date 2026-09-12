@@ -1,0 +1,47 @@
+# Stage 2: three human-model arms over the same demonstrations.
+#
+#   bc          cloning from random weights, the paper's BC baseline
+#   obp         the same, started from the seed-matched self-play prior
+#   obp-frozen  the same again, with the prior's convolutional trunk held fixed
+#
+# Nothing else differs between them -- data, split, optimiser and seed are
+# shared -- so the gap is the prior and only the prior. The obp arms need
+# stage 1 finished for their seed, and say so rather than falling back to
+# random weights if it is missing.
+
+program: baselines/OBP/train_bc.py
+name: obp-bc-train
+method: grid
+metric:
+  goal: maximize
+  name: final/validation_accuracy
+
+parameters:
+  arm:
+    values: [bc, obp, obp-frozen]
+  seed:
+    values: [0, 1, 2, 3, 4, 5]
+  data:
+    value: data/human
+  prior-root:
+    value: saves/obp_prior
+  prior-architecture:
+    value: cnn
+  epochs:
+    value: 30
+  batch-size:
+    value: 512
+  val-fraction:
+    value: 0.25
+  output-root:
+    value: saves/obp_bc
+  project:
+    value: overcooked-v3-obp-bc
+  group:
+    value: obp_bc
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_equals}

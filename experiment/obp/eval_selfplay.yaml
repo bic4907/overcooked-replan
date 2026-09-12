@@ -1,0 +1,40 @@
+# Stage 3a: each human model plays split_0 with a copy of itself.
+#
+# Held-out accuracy says a model predicts people; this says it can still cook.
+# A model that has collapsed onto the majority action scores a respectable
+# accuracy and zero reward, and that is the failure the prior is meant to
+# remove -- so the run records both, against the 160.5 the people themselves
+# averaged on this kitchen.
+
+program: baselines/OBP/eval_human_model.py
+name: obp-eval-selfplay
+method: grid
+metric:
+  goal: maximize
+  name: return_mean
+
+parameters:
+  arm:
+    values: [bc, obp, obp-frozen]
+  seed:
+    values: [0, 1, 2, 3, 4, 5]
+  model-root:
+    value: saves/obp_bc
+  layout:
+    value: split_0
+  episodes:
+    value: 50
+  max-steps:
+    value: 450
+  data:
+    value: data/human
+  project:
+    value: overcooked-v3-obp-eval
+  group:
+    value: obp_eval_selfplay
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_equals}
