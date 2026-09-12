@@ -125,6 +125,11 @@ class OvercookedV3(OvercookedV3Base):
             ],
             dtype=jnp.int32,
         )
+        # Phases belonging to one layout. A layout-distribution subclass stacks
+        # several layouts into the phase arrays and keeps this at the per-layout
+        # count, so "the phase after the last one" wraps inside its own layout
+        # instead of falling into the next one.
+        self.phases_per_layout = int(len(dynamic_layout.phases))
         self.phase_ends = jnp.cumsum(self.phase_durations)
         self.cycle_steps = int(dynamic_layout.cycle_steps)
 
@@ -168,6 +173,15 @@ class OvercookedV3(OvercookedV3Base):
         cycle_step = jnp.mod(step, self.cycle_steps)
         return jnp.sum(cycle_step >= self.phase_ends).astype(jnp.int32)
 
+    def _phase_index(self, step: jax.Array, layout_base: jax.Array) -> jax.Array:
+        """Index into the phase arrays for this step of this episode's layout."""
+        return layout_base + self.get_layout_index(step)
+
+    def _next_phase_index(self, step: jax.Array, layout_base: jax.Array) -> jax.Array:
+        """The phase that follows, wrapping within the episode's own layout."""
+        local = self.get_layout_index(step)
+        return layout_base + jnp.mod(local + 1, self.phases_per_layout)
+
     def get_steps_until_layout_change(self, step: jax.Array) -> jax.Array:
         cycle_step = jnp.mod(step, self.cycle_steps)
         layout_index = self.get_layout_index(step)
@@ -187,9 +201,9 @@ class OvercookedV3(OvercookedV3Base):
             steps_remaining <= self.transition_warning_steps
         )
 
-    def get_layout_change_mask(self, step: jax.Array) -> jax.Array:
-        layout_index = self.get_layout_index(step)
-        next_layout_index = (layout_index + 1) % self.phase_static_objects.shape[0]
+    def get_layout_change_mask(self, step: jax.Array, layout_base=0) -> jax.Array:
+        layout_index = self._phase_index(step, layout_base)
+        next_layout_index = self._next_phase_index(step, layout_base)
         static_change_mask = (
             self.phase_static_objects[layout_index]
             != self.phase_static_objects[next_layout_index]
@@ -210,14 +224,15 @@ class OvercookedV3(OvercookedV3Base):
         )
         return static_change_mask | (recipe_changes & recipe_indicator_mask)
 
-    def get_observation_layout_change_mask(self, step: jax.Array) -> jax.Array:
-        return self.get_layout_change_mask(step) & self.get_transition_warning_active(
-            step
-        )
+    def get_observation_layout_change_mask(
+        self, step: jax.Array, layout_base=0
+    ) -> jax.Array:
+        return self.get_layout_change_mask(
+            step, layout_base
+        ) & self.get_transition_warning_active(step)
 
     def _set_transition_awareness(self, state: State) -> State:
-        layout_index = self.get_layout_index(state.step)
-        next_layout_index = (layout_index + 1) % self.phase_recipes.shape[0]
+        next_layout_index = self._next_phase_index(state.step, state.layout_base)
         next_recipe = jnp.where(
             self.phase_has_recipe[next_layout_index],
             self.phase_recipes[next_layout_index],
@@ -225,7 +240,9 @@ class OvercookedV3(OvercookedV3Base):
         )
         return state.replace(
             steps_until_layout_change=self.get_steps_until_layout_change(state.step),
-            layout_change_mask=self.get_layout_change_mask(state.step),
+            layout_change_mask=self.get_layout_change_mask(
+                state.step, state.layout_base
+            ),
             next_recipe=next_recipe,
         )
 
@@ -253,7 +270,7 @@ class OvercookedV3(OvercookedV3Base):
         )
         return jnp.concatenate([obs.astype(jnp.float32), preview], axis=-1)
 
-    def _append_default_transition_features(self, obs, step):
+    def _append_default_transition_features(self, obs, step, layout_base=0):
         transition_layers = []
         if self.include_transition_countdown:
             countdown = self.get_transition_countdown(step)
@@ -264,9 +281,9 @@ class OvercookedV3(OvercookedV3Base):
                 self._select_transition_observers(countdown_layer)
             )
         if self.include_layout_change_mask:
-            change_mask = self.get_observation_layout_change_mask(step).astype(
-                jnp.float32
-            )
+            change_mask = self.get_observation_layout_change_mask(
+                step, layout_base
+            ).astype(jnp.float32)
             change_mask = jnp.broadcast_to(
                 change_mask,
                 (*obs.shape[:-3], *change_mask.shape),
@@ -278,7 +295,7 @@ class OvercookedV3(OvercookedV3Base):
             return obs
         return jnp.concatenate([obs.astype(jnp.float32), *transition_layers], axis=-1)
 
-    def _append_featurized_transition_features(self, obs, step):
+    def _append_featurized_transition_features(self, obs, step, layout_base=0):
         transition_features = []
         if self.include_transition_countdown:
             countdown = self.get_transition_countdown(step)
@@ -289,9 +306,9 @@ class OvercookedV3(OvercookedV3Base):
                 self._select_transition_observers(countdown_feature)
             )
         if self.include_layout_change_mask:
-            change_mask = self.get_observation_layout_change_mask(step).astype(
-                jnp.float32
-            )
+            change_mask = self.get_observation_layout_change_mask(
+                step, layout_base
+            ).astype(jnp.float32)
             transition_features.append(
                 self._select_transition_observers(
                     jnp.broadcast_to(
@@ -312,12 +329,16 @@ class OvercookedV3(OvercookedV3Base):
 
     def get_obs_default(self, state: State):
         obs = super().get_obs_default(state)
-        obs = self._append_default_transition_features(obs, state.step)
+        obs = self._append_default_transition_features(
+            obs, state.step, state.layout_base
+        )
         return self._append_default_next_recipe(obs, state)
 
     def get_obs_featurized(self, state: State):
         obs = super().get_obs_featurized(state)
-        obs = self._append_featurized_transition_features(obs, state.step)
+        obs = self._append_featurized_transition_features(
+            obs, state.step, state.layout_base
+        )
         return self._append_featurized_next_recipe(obs, state)
 
     def reset(self, key: PRNGKeyArray):
@@ -336,7 +357,7 @@ class OvercookedV3(OvercookedV3Base):
 
     def _get_move_area(self, state: State) -> jax.Array:
         current_empty = state.grid[:, :, 0] == StaticObject.EMPTY
-        next_layout_index = self.get_layout_index(state.step + 1)
+        next_layout_index = self._phase_index(state.step + 1, state.layout_base)
         layout_will_change = next_layout_index != state.layout_index
         next_empty = self.phase_static_objects[next_layout_index] == StaticObject.EMPTY
         return current_empty & jnp.where(layout_will_change, next_empty, True)
@@ -356,7 +377,7 @@ class OvercookedV3(OvercookedV3Base):
         recipe_before_step = state.recipe
         obs, state, rewards, dones, infos = super().step_env(key, state, actions)
 
-        layout_index = self.get_layout_index(state.step)
+        layout_index = self._phase_index(state.step, state.layout_base)
         layout_changed = layout_index != state.layout_index
         state = lax.cond(
             layout_changed,

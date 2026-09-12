@@ -97,6 +97,14 @@ class State(BaseState):
         default_factory=lambda: jnp.array(0, dtype=jnp.int32)
     )
 
+    # Index of the first phase belonging to this episode's layout. Zero for a
+    # single-layout environment, where layout_index is already the phase index;
+    # a layout-distribution environment stacks every layout's phases into one
+    # array and uses this to address the block the episode was assigned.
+    layout_base: jax.Array = struct.field(
+        default_factory=lambda: jnp.array(0, dtype=jnp.int32)
+    )
+
     steps_until_layout_change: jax.Array = struct.field(
         default_factory=lambda: jnp.array(0, dtype=jnp.int32)
     )
