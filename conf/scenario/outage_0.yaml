@@ -9,3 +9,4 @@ RECORD_MAX_STEPS: 450
 EXPERIMENT: resource_outage
 CONDITION: outage_0
 WANDB_GROUP: resource_outage
+LAYOUT_REVISION: outage-narrow-diagonal-v1

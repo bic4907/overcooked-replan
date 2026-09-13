@@ -9,4 +9,4 @@ RECORD_MAX_STEPS: 450
 EXPERIMENT: kitchen_split
 CONDITION: split_1
 WANDB_GROUP: kitchen_split
-LAYOUT_REVISION: split-1-centered-choke-v2
+LAYOUT_REVISION: split-base-v1

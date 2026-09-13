@@ -814,21 +814,16 @@ def _register_distance_switch_catalog():
 _register_distance_switch_catalog()
 
 
-# Wide variants expand the selected tag-0 footprints to 13 columns. Outage
-# and Distance Switch add one row; Split keeps its original height.
-# Workloads, recipes and A -> B -> A timing stay fixed.
-# Keep these separately named so
-# existing numbered variants and hard-mode source maps retain their identities.
+# split_wide uses the selected 11x7 pillars geometry. Keep the historical
+# split_wide_pillars name below for reproducibility. A -> B -> A timing is fixed.
 split_wide = _build_split_workload(
     (
-        1,  # Same upper doorway as split_0; becomes a shared counter.
-        3,
-        ((1, 2), (11, 2)),
-        (("0", (0, 4)), ("P", (0, 5)), ("P", (1, 6))),
-        (("B", (9, 6)), ("B", (11, 0)), ("X", (10, 0)), ("X", (9, 0))),
+        3, 1, ((3, 3), (7, 3)),
+        (("0", (0, 2)), ("P", (0, 3)), ("P", (0, 4)), ("N", (2, 2))),
+        (("B", (10, 2)), ("B", (10, 4)), ("X", (10, 1)), ("X", (10, 5)),
+         ("N", (8, 4))),
     ),
-    width=13,
-    height=7,
+    width=11, height=7,
 )
 
 
@@ -843,7 +838,6 @@ split_narrow = _build_split_workload(
     ),
     width=7, height=6,
 )
-
 
 split_narrow_upper = _build_split_workload(
     (
@@ -879,6 +873,40 @@ split_narrow_crossing = _build_split_workload(
         (("B", (6, 2)), ("B", (6, 4)), ("X", (6, 1)), ("X", (5, 5))),
     ),
     width=7, height=6,
+)
+
+
+# Split candidates keep the same workload and timing. The selected pillars
+# variant puts all stations at opposite outer walls. N obstacles cannot store
+# objects, so obstacle variants change movement rather than storage capacity.
+split_wide_open = _build_split_workload(
+    (
+        3, 1, ((3, 3), (7, 3)),
+        (("0", (3, 0)), ("P", (4, 0)), ("P", (4, 6))),
+        (("B", (6, 0)), ("B", (6, 6)), ("X", (8, 0)), ("X", (8, 6))),
+    ),
+    width=11, height=7,
+)
+
+split_wide_pillars = _build_split_workload(
+    (
+        3, 1, ((3, 3), (7, 3)),
+        (("0", (0, 2)), ("P", (0, 3)), ("P", (0, 4)), ("N", (2, 2))),
+        (("B", (10, 2)), ("B", (10, 4)), ("X", (10, 1)), ("X", (10, 5)),
+         ("N", (8, 4))),
+    ),
+    width=11, height=7,
+)
+
+split_wide_baffles = _build_split_workload(
+    (
+        3, 1, ((4, 3), (8, 3)),
+        (("0", (4, 0)), ("P", (5, 0)), ("P", (5, 7)),
+         ("N", (2, 3)), ("N", (3, 3))),
+        (("B", (7, 0)), ("B", (7, 7)), ("X", (10, 0)), ("X", (10, 7)),
+         ("N", (9, 4)), ("N", (10, 4))),
+    ),
+    width=13, height=8,
 )
 
 
@@ -922,11 +950,15 @@ def _build_wide_outage():
     ]
 
 
-outage_wide = _build_wide_outage()
+_legacy_outage_wide = _build_wide_outage()
 
 
 def _build_shared_room_outage(source, missing_resource="0"):
-    """Open the center aisle and suspend one resource type in phase B."""
+    """Open the divider and suspend every dispenser of one resource in B.
+
+    Existing boundary counters provide shared stockpiling space. Inventory,
+    stored objects on unchanged counters, and pot contents survive the outage.
+    """
     if missing_resource not in {"0", "B"}:
         raise ValueError("Shared-room outage must remove onions or plates")
     rows = [list(row) for row in source[0][0].strip("\n").splitlines()]
@@ -943,6 +975,21 @@ def _build_shared_room_outage(source, missing_resource="0"):
     ]
 
 
+# The canonical Outage layouts use a shared room. Wide uses an 11x6 room
+# with staggered two-cell non-storage obstacles and an open central aisle.
+# The default removes all onion piles. Keep the former ``_2`` names as aliases
+# so existing checkpoints and experiment records remain loadable.
+_SHARED_WIDE_OUTAGE_SOURCE = [["""
+WWWP0R0PWWW
+X         X
+W ANN   A W
+W     NN  W
+W         W
+WWWBWWWBWWW
+""", _ROLE_PHASE_STEPS]]
+
+outage = _build_shared_room_outage(outage_0)
+outage_wide = _build_shared_room_outage(_SHARED_WIDE_OUTAGE_SOURCE)
 outage_narrow_upper = _build_shared_room_outage([["""
 W0PRP0W
 B A A B
@@ -964,6 +1011,12 @@ W N N W
 X   A B
 WWPWB0W
 """, _ROLE_PHASE_STEPS]])
+outage_2 = outage
+outage_wide_2 = outage_wide
+outage_2_plate = _build_shared_room_outage(outage_0, missing_resource="B")
+outage_wide_2_plate = _build_shared_room_outage(
+    _SHARED_WIDE_OUTAGE_SOURCE, missing_resource="B"
+)
 
 _DISTANCE_SWITCH_WIDE_SPEC = _vertical_distance_switch_spec(13, 6)
 _validate_distance_switch_spec(_DISTANCE_SWITCH_WIDE_SPEC)
@@ -978,6 +1031,67 @@ distance_switch_wide = [
 ]
 
 
-# Short aliases for the first selected layouts.
+# Three-map hard mode uses the existing tag-0 footprints. Entries describe
+# map identities A/B/C; durations describe chronological slots, not identities.
+def _hard_maps():
+    split_a, split_b = split_0[0][0], split_0[1][0]
+    # Reverse the closed kitchen's resource roles, keeping agent IDs/spawns.
+    split_rows = split_b.strip("\n").splitlines()
+    split_c = [list(row.replace("A", " ")[::-1]) for row in split_rows]
+    for y, row in enumerate(split_rows):
+        for x, cell in enumerate(row):
+            if cell == "A":
+                split_c[y][x] = "A"
+    split_c = "\n".join("".join(row) for row in split_c)
+
+    outage_a, outage_b = outage_0[0][0], outage_0[1][0]
+    outage_c = "\n".join(
+        "".join(
+            "W" if cell in "0O" and x < len(row) // 2 else cell
+            for x, cell in enumerate(row)
+        )
+        for row in outage_a.strip("\n").splitlines()
+    )
+
+    distance_a, distance_b = distance_switch_0[0][0], distance_switch_0[1][0]
+    # B's left bay and A's right bay both have short onion-input loops and
+    # long serving loops. Pots, plates, floor and starts stay in place.
+    distance_c = "\n".join(
+        row_b[: len(row_a) // 2] + row_a[len(row_a) // 2 :]
+        for row_a, row_b in zip(
+            distance_a.strip("\n").splitlines(),
+            distance_b.strip("\n").splitlines(),
+        )
+    )
+    return tuple(
+        [[a, _ROLE_PHASE_STEPS], [b, _ROLE_PHASE_STEPS], [c, _FINAL_PHASE_STEPS]]
+        for a, b, c in (
+            (split_a, split_b, split_c),
+            (outage_a, outage_b, outage_c),
+            (distance_a, distance_b, distance_c),
+        )
+    )
+
+
+split_hard, outage_hard, distance_switch_hard = _hard_maps()
+
+
+# Preserve the displaced catalog candidates under explicit legacy names before
+# assigning the six selected benchmark layouts their final numbered names.
+split_centered_choke_legacy = split_1
+outage_compact_legacy = outage_0
+outage_adjacent_relay_legacy = outage_1
+distance_relocation_legacy = distance_switch_1
+
+# Final benchmark names. The descriptive names remain compatible aliases for
+# checkpoints and experiment records produced during layout selection.
 split = split_0
-outage = outage_0
+split_0 = split_narrow_diagonal
+split_1 = split
+
+outage_0 = outage_narrow_diagonal
+outage_1 = outage
+
+distance_switch = distance_switch_0
+distance_0 = distance_switch
+distance_1 = distance_switch_wide

@@ -9,4 +9,4 @@ RECORD_MAX_STEPS: 450
 EXPERIMENT: resource_outage
 CONDITION: outage_1
 WANDB_GROUP: resource_outage
-LAYOUT_REVISION: outage-1-adjacent-relay-v2
+LAYOUT_REVISION: outage-shared-room-v1

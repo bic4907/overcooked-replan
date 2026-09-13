@@ -1,6 +1,7 @@
 """Validated cyclic layouts for the Overcooked V3 environment."""
 
 from dataclasses import dataclass
+from itertools import permutations
 from typing import Optional, Sequence, Tuple
 
 import numpy as np
@@ -87,12 +88,15 @@ class DynamicLayoutPhase:
 @dataclass(frozen=True)
 class DynamicLayout:
     phases: Tuple[DynamicLayoutPhase, ...]
+    randomize_phase_order: bool = False
 
     def __post_init__(self):
         phases = tuple(self.phases)
         object.__setattr__(self, "phases", phases)
         if not phases:
             raise ValueError("A dynamic layout must contain at least one phase")
+        if self.randomize_phase_order and len(phases) != 3:
+            raise ValueError("Random phase order requires exactly three maps A/B/C")
 
         first = phases[0]
         first_shape = first.layout.static_objects.shape
@@ -194,21 +198,42 @@ class DynamicLayout:
 
 ROLE_SCENARIO_LAYOUTS = {
     "split": (
-        "split_0", "split_1", "split_narrow", "split_narrow_upper",
-        "split_narrow_lower", "split_narrow_diagonal", "split_narrow_crossing",
-        "split_wide",
+        "split", "split_0", "split_1", "split_narrow",
+        "split_narrow_upper", "split_narrow_lower", "split_narrow_diagonal",
+        "split_narrow_crossing", "split_wide", "split_wide_open",
+        "split_wide_pillars", "split_wide_baffles",
     ),
     "outage": (
-        "outage_0", "outage_1", "outage_wide", "outage_narrow_upper",
-        "outage_narrow_lower", "outage_narrow_diagonal",
+        "outage", "outage_wide", "outage_narrow_upper",
+        "outage_narrow_lower", "outage_narrow_diagonal", "outage_0",
+        "outage_1", "outage_2_plate", "outage_wide_2_plate",
     ),
     "recipe_switch": ("recipe_switch_0",),
     "distance_switch": (
-        "distance_switch_0", "distance_switch_1", "distance_switch_wide"
+        "distance_0", "distance_1", "distance_switch", "distance_switch_0",
+        "distance_switch_1", "distance_switch_wide"
     ),
 }
 ROLE_SCENARIO_LAYOUT_NAMES = tuple(
     name for names in ROLE_SCENARIO_LAYOUTS.values() for name in names
+)
+
+# Selected six-layout benchmark. Candidate and legacy layouts remain registered
+# so checkpoints from earlier experiments can still be evaluated.
+SELECTED_BENCHMARK_LAYOUT_NAMES = (
+    "split_0",
+    "split_1",
+    "outage_0",
+    "outage_1",
+    "distance_0",
+    "distance_1",
+)
+
+HARD_SCENARIO_LAYOUT_NAMES = ("split_hard", "outage_hard", "distance_switch_hard")
+HARD_PHASE_ORDERS = tuple(permutations(range(3)))
+HARD_EVAL_PHASE_ORDER = (2, 1, 0)  # C -> B -> A; excluded from every training reset.
+HARD_TRAIN_PHASE_ORDERS = tuple(
+    order for order in HARD_PHASE_ORDERS if order != HARD_EVAL_PHASE_ORDER
 )
 
 
@@ -223,7 +248,14 @@ def _load_named_dynamic_layout(name, data):
             possible_recipes = _RECIPE_SWITCH_RECIPES
         else:
             possible_recipes = _DEFAULT_RECIPES
-        return DynamicLayout.from_data(data, possible_recipes=possible_recipes)
+        layout = DynamicLayout.from_data(
+            data,
+            names=("A", "B", "C") if name in HARD_SCENARIO_LAYOUT_NAMES else None,
+            possible_recipes=possible_recipes,
+        )
+        return DynamicLayout(
+            layout.phases, randomize_phase_order=name in HARD_SCENARIO_LAYOUT_NAMES
+        )
     except (TypeError, ValueError) as error:
         raise type(error)(f"Invalid dynamic layout {name!r}: {error}") from error
 
@@ -307,11 +339,16 @@ def _register_static_phase_policy_layouts() -> None:
 _register_static_phase_policy_layouts()
 
 __all__ = [
+    "HARD_SCENARIO_LAYOUT_NAMES",
+    "HARD_PHASE_ORDERS",
+    "HARD_TRAIN_PHASE_ORDERS",
+    "HARD_EVAL_PHASE_ORDER",
     "DynamicLayout",
     "DynamicLayoutPhase",
     "POLICY_SWITCH_BASE_LAYOUTS",
     "ROLE_SCENARIO_LAYOUTS",
     "ROLE_SCENARIO_LAYOUT_NAMES",
+    "SELECTED_BENCHMARK_LAYOUT_NAMES",
     "dynamic_layouts",
     "phase_policy_layout_name",
     "phase_policy_sequence",

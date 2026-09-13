@@ -25,49 +25,28 @@ features for the 29-channel encoding.
 
 ## Role-coordination scenarios
 
-The three `*_wide` variants expand the selected `_0` maps to 13 columns,
-adding one row for Outage and Distance Switch: `split_wide` is 13×7, `outage_wide` is 13×6,
-and `distance_switch_wide` is 13×6 (width×height). They retain resource counts,
-recipes, and transition timing. See the [design notes and phase images](../../../docs/overcooked_v3/wide_maps.md).
+The selected benchmark exposes two layouts per family: `split_0`, `split_1`,
+`outage_0`, `outage_1`, `distance_0`, and `distance_1`. Here `_0` selects the
+retained diagonal narrow layout for Split and Outage, while `_1` selects their
+base layouts and the retained wide Distance layout. Descriptive selection-time
+names remain available as aliases.
 
-`split_0` uses a 7×9 map. `split_narrow` compresses the same workload and
-doorway cycle into a 6×7 map. It opens one central doorway
-for 150 steps, then turns it into a handoff counter for 150 steps. The
+`split_0` is the selected 7×6 diagonal narrow layout. `split_1` is the retained
+9×7 base layout. Both open a central doorway for 150 steps, turn it into
+a handoff counter for 150 steps, and restore it for the final 150 steps. The
 left bay contains onions and pots, while the right bay contains plates and
-serving. Agents must choose opposite sides before the wall closes, then
-coordinate cook–server work through the counter.
-`split_narrow_upper`, `split_narrow_lower`, `split_narrow_diagonal`, and
-`split_narrow_crossing` keep the same compact footprint and workload while
-varying the doorway, resources, and initial agent positions.
+serving stations.
 
-`outage_0` has a compact 5×7 map with
-disconnected movement regions and shared center counters. Both bays are
-complete kitchens with pots, plates, serving, and onions. After a 150-step
-normal phase, every right onion pile becomes a wall for 150 steps, so the left cook must trade off local
-production against supplying the right cook through a handoff counter. Both
-conditions keep a separate fixed recipe display and a generic non-storage
-blocker in the center column. The
-onion-to-handoff route requires no movement and the handoff-to-right-pot route
-requires at most one move,
-making cross-kitchen supply competitive with continuing local production. The
-center column remains blocked in every phase: agents cannot cross bays and can
-exchange onions only through shared handoff counters.
-In selected `outage_0`, the blocker occupies the bottom center tile, leaving two
-adjacent counters above it where the left cook can preload onions. Candidate
-`outage_1` retains adjacent handoffs but changes the resource locations and adds
-mirrored lower notches. The surviving onion-to-handoff and handoff-to-pot relay
-therefore stays short while the left cook must choose between local production
-and supplying the right bay as soon as the outage begins.
-`outage_narrow_upper`, `outage_narrow_lower`, and
-`outage_narrow_diagonal` use compact 7×5 shared rooms. They remove every onion
-dispenser in phase B while varying stations, starts, and short baffles.
-Outage uses a two-onion recipe, so its pots begin cooking as soon as the second
-onion is added. Split retains the standard three-onion recipe, and both
-scenarios retain the standard 20-step cooking timer. Each family exposes one
-selected Easy layout under `_0`; Split and Outage also expose redesigned `_1`
-candidates. The existing observer W&B runs recorded the current `outage_0`
-geometry under the historical `outage_1` name, so new candidate runs must also
-be filtered by their `LAYOUT_REVISION`.
+`outage_0` and `outage_1` are 7×5 shared-room layouts. The first uses the
+selected compact diagonal arrangement. Both remove every onion dispenser in
+phase B. Stored objects, held inventory, and pot contents persist until the
+onions recover at step 300. Outage uses a two-onion recipe; Split retains the
+standard three-onion recipe and 20-step cooking timer.
+
+The descriptive aliases `split`, `split_narrow_diagonal`, `outage`, and
+`outage_narrow_diagonal` refer to the corresponding numbered layouts. Other
+selection-time candidates remain available under their descriptive or explicit
+legacy names for reproducing earlier runs.
 
 `recipe_switch_0` is a Mixed Recipe Relay layout.
 The center divider permanently separates an onion/serving bay from a
@@ -80,15 +59,10 @@ that had already started cooking before a switch remains deliverable, but a new
 pot can start only when its contents match the current recipe. Recipe Relay
 adds two next-recipe preview channels to the standard V3 observation.
 
-`distance_switch_0` and `distance_switch_1` are Distance-Driven Role Switch
-layouts based on `asymm_advantages`. All four selected Easy role scenarios use the
-same 450-step A → B → A schedule, with changes at steps 150 and 300.
-The standard three-onion recipe is
-fixed, and each agent's separate work region contains access to an onion pile,
-central pot, plate pile, and serving station. Pots and plates remain fixed.
-Canonical `_0` exchanges endpoint types in place; 9×6 candidate `_1` relocates
-all onion and serving stations onto positions that were inactive counters in
-the other phase. Both reverse which agent has the short onion-input loop and
-which has the short serving loop.
+`distance_0` and `distance_1` are Distance-Driven Role Switch layouts based on
+`asymm_advantages`. The first is the canonical 9×5 layout and the second is the
+selected 13×6 wide layout. Both reverse which agent has the short onion-input
+and serving loops during the middle phase. The former `distance_switch` and
+`distance_switch_wide` names remain compatible aliases.
 Because no recipe is scheduled, this layout uses the standard 31-channel V3
 observation rather than next-recipe preview channels.

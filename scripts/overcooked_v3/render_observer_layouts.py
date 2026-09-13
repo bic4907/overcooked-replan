@@ -16,7 +16,7 @@ from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
 LAYOUT_ROWS = (
     ("split_0", "split_1"),
     ("outage_0", "outage_1"),
-    ("distance_switch_0", "distance_switch_1"),
+    ("distance_0", "distance_1"),
 )
 WIDE_LAYOUT_ROWS = (
     ("split_wide",),
@@ -29,6 +29,7 @@ PHASES = (("Phase A", 0), ("Phase B", 1))
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wide", action="store_true", help="Render the three wide maps")
+    parser.add_argument("--layouts", nargs="+", help="Render named layouts, one per row")
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -173,6 +174,8 @@ def _contact_sheet(pair_sheets, layout_rows=LAYOUT_ROWS):
 def main():
     args = parse_args()
     layout_rows = WIDE_LAYOUT_ROWS if args.wide else LAYOUT_ROWS
+    if args.layouts:
+        layout_rows = tuple((name,) for name in args.layouts)
     if args.output_dir is None:
         args.output_dir = Path(
             "docs/overcooked_v3/wide_layouts"
@@ -203,6 +206,7 @@ def main():
 
     contact = _contact_sheet(pair_sheets, layout_rows)
     output_path = args.output_dir / (
+        "layout_candidates.png" if args.layouts else
         "wide_layouts_3.png" if args.wide else "observer_layouts_6.png"
     )
     contact.save(output_path, **save_options)
