@@ -332,6 +332,13 @@ class Layout:
                 raise ValueError("Recipes must contain between 1 and 3 ingredients")
             if len(recipe_lengths) != 1:
                 raise ValueError("All recipes in a layout must have the same length")
+            # A resource-outage phase may have no ingredient dispensers.
+            # Recipes still define its ingredient vocabulary, including stock
+            # carried over from an earlier phase.
+            num_ingredients = max(
+                num_ingredients,
+                max(ingredient for recipe in possible_recipes for ingredient in recipe) + 1,
+            )
         elif not includes_recipe_indicator:
             raise ValueError(
                 "Layout does not include a recipe indicator, a fixed recipe must be provided"
