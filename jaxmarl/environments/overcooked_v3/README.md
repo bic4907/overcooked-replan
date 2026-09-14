@@ -32,16 +32,16 @@ base layouts and the retained wide Distance layout. Descriptive selection-time
 names remain available as aliases.
 
 `split_0` is the selected 7×6 diagonal narrow layout. `split_1` is the retained
-9×7 base layout. Both open a central doorway for 150 steps, turn it into
-a handoff counter for 150 steps, and restore it for the final 150 steps. The
-left bay contains onions and pots, while the right bay contains plates and
-serving stations.
+9×7 base layout. Both alternate an open central doorway and a handoff counter
+every 75 steps. The left bay contains onions and pots, while the right bay
+contains plates and serving stations.
 
 `outage_0` and `outage_1` are 7×5 shared-room layouts. The first uses the
 selected compact diagonal arrangement. Both remove every onion dispenser in
-phase B. Stored objects, held inventory, and pot contents persist until the
-onions recover at step 300. Outage uses a two-onion recipe; Split retains the
-standard three-onion recipe and 20-step cooking timer.
+phase B. Normal and outage phases alternate every 75 steps; stored objects,
+held inventory, and pot contents persist across each transition. Outage uses a
+two-onion recipe; Split retains the standard three-onion recipe and 20-step
+cooking timer.
 
 The descriptive aliases `split`, `split_narrow_diagonal`, `outage`, and
 `outage_narrow_diagonal` refer to the corresponding numbered layouts. Other
@@ -62,7 +62,7 @@ adds two next-recipe preview channels to the standard V3 observation.
 `distance_0` and `distance_1` are Distance-Driven Role Switch layouts based on
 `asymm_advantages`. The first is the canonical 9×5 layout and the second is the
 selected 13×6 wide layout. Both reverse which agent has the short onion-input
-and serving loops during the middle phase. The former `distance_switch` and
+and serving loops every 75 steps. The former `distance_switch` and
 `distance_switch_wide` names remain compatible aliases.
 Because no recipe is scheduled, this layout uses the standard 31-channel V3
 observation rather than next-recipe preview channels.

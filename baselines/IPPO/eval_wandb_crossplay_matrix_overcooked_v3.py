@@ -283,6 +283,20 @@ def match_algorithm(run, requested_algorithms):
         if config.get(key) is not None
     ]
     if configured:
+        if (
+            "ippo" in configured
+            and str(config.get("ARCHITECTURE", "")).casefold() == "rnn"
+        ):
+            recurrent = next(
+                (
+                    name
+                    for name in requested_algorithms
+                    if name.casefold() == "ippo-rnn"
+                ),
+                None,
+            )
+            if recurrent is not None:
+                return recurrent
         for requested in requested_algorithms:
             if requested.casefold() in configured:
                 return requested

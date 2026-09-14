@@ -118,7 +118,12 @@ def test_all_role_scenario_variants_are_resettable(layout_name):
 @pytest.mark.parametrize("layout_name", CANONICAL_ROLE_SCENARIOS)
 def test_all_role_scenarios_share_phase_boundaries(layout_name):
     layout = dynamic_layouts[layout_name]
-    assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
+    expected = (
+        (150, 150, 1000)
+        if layout_name.startswith("recipe_switch")
+        else (75, 75, 75, 75, 75, 1000)
+    )
+    assert tuple(phase.steps for phase in layout.phases) == expected
 
 
 @pytest.mark.parametrize("layout_name", ROLE_SCENARIO_LAYOUTS["distance_switch"])
@@ -251,7 +256,9 @@ def test_outage_pot_starts_cooking_after_second_onion():
 @pytest.mark.parametrize("variant", range(2))
 def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
     layout = dynamic_layouts[f"outage_{variant}"]
-    assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
+    assert tuple(phase.steps for phase in layout.phases) == (
+        75, 75, 75, 75, 75, 1000
+    )
     normal_phase = layout.phases[0].layout.static_objects
     outage_phase = layout.phases[1].layout.static_objects
     left_start, right_start = layout.phases[0].agent_positions
@@ -356,7 +363,9 @@ def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
 @pytest.mark.parametrize("variant", range(2))
 def test_split_variants_keep_complementary_resources_in_separate_bays(variant):
     layout = dynamic_layouts[f"split_{variant}"]
-    assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
+    assert tuple(phase.steps for phase in layout.phases) == (
+        75, 75, 75, 75, 75, 1000
+    )
     open_phase = layout.phases[0].layout.static_objects
     closed_phase = layout.phases[1].layout.static_objects
     agent_starts = layout.phases[0].agent_positions

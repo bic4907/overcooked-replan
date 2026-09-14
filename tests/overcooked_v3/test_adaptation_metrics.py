@@ -26,14 +26,14 @@ def test_auto_parameters_follow_each_layouts_shortest_phase():
     recipe = adaptation_config_from_args(args, "recipe_switch_0")
     split = adaptation_config_from_args(args, "split_0")
 
-    assert (distance.window, distance.horizon) == (30, 150)
+    assert (distance.window, distance.horizon) == (30, 75)
     assert (recipe.window, recipe.horizon) == (30, 150)
-    assert (split.window, split.horizon) == (30, 150)
+    assert (split.window, split.horizon) == (30, 75)
 
 
-def test_role_scenario_final_phase_is_mapped_back_to_a():
+def test_repeated_phases_map_back_to_canonical_a_b_policies():
     assert canonical_phase_mapping("recipe_switch_0", 3) == (0, 1, 0)
-    assert canonical_phase_mapping("distance_switch_0", 3) == (0, 1, 0)
+    assert canonical_phase_mapping("distance_switch_0", 6) == (0, 1, 0, 1, 0, 1)
 
 
 def test_metrics_macro_average_a_to_b_and_b_to_a():

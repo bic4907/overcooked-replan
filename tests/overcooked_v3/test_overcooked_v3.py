@@ -62,7 +62,7 @@ def test_overcooked_v3_is_registered_and_based_on_v2():
     assert isinstance(env, OvercookedV3)
     assert isinstance(env, OvercookedV3Base)
     assert env.max_steps == 450
-    assert tuple(map(int, env.phase_durations)) == (150, 150, 1000)
+    assert tuple(map(int, env.phase_durations)) == (75, 75, 75, 75, 75, 1000)
 
 
 def test_registered_base_catalog_contains_only_role_scenarios():
