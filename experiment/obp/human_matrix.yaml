@@ -41,8 +41,6 @@ parameters:
     value: 450
   project:
     value: overcooked-v3-obp-human-matrix
-  group:
-    value: human_matrix
 
 command:
   - ${env}

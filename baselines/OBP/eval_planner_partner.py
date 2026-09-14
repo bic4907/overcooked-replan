@@ -116,7 +116,11 @@ def parse_args(argv=None):
         "--artifact-dir", default="artifacts", help="Where checkpoints are downloaded."
     )
     parser.add_argument("--project", default="overcooked-v3-obp-human-matrix")
-    parser.add_argument("--group", default="planner_matrix")
+    parser.add_argument(
+        "--group",
+        default=None,
+        help="W&B group; by default the kitchen, so the matrix groups by it.",
+    )
     parser.add_argument("--wandb-mode", default=os.getenv("WANDB_MODE", "online"))
     parser.add_argument("--output", default=None, help="Also append one JSON line here.")
     return parser.parse_args(argv)
@@ -408,21 +412,34 @@ def main(argv=None):
     if args.wandb_mode != "disabled":
         import wandb
 
+        # One run per cell, grouped by kitchen and typed by partner, so the
+        # project page already reads as the matrix: group by layout, split by
+        # job type, and every panel is one column of it.
         with wandb.init(
             entity=args.entity,
             project=args.project,
-            group=args.group,
+            group=args.group or args.layout,
             mode=args.wandb_mode,
-            name=f"{args.layout}_{args.human}-x-{args.partner}",
-            job_type="human-model-matrix",
+            name=f"{args.human}-x-{args.partner}",
+            job_type=args.partner,
+            tags=[f"human:{args.human}", f"partner:{args.partner}", args.layout],
             config=dict(vars(args), **{f"dial_{k}": v for k, v in human_dials.items()}),
         ) as run:
             run.log(summary)
+            # The same number under a key naming the column, so one chart can
+            # hold every partner without grouping being set up by hand.
+            run.log({f"partner/{args.partner}": summary["return_mean"]})
             table = wandb.Table(
                 columns=list(records[0].keys()),
                 data=[list(record.values()) for record in records],
             )
-            run.log({"games": table})
+            # Not "games": that name is already the count in the summary, and
+            # a table logged over it makes the count unreadable.
+            run.log({"game_log": table})
+            run.summary["return_mean"] = summary["return_mean"]
+            run.summary["human"] = args.human
+            run.summary["partner"] = args.partner
+            run.summary["layout"] = args.layout
     return 0
 
 
