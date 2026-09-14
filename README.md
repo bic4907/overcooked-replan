@@ -35,8 +35,8 @@ distinct maps A/B/C: training samples ABC/ACB/BAC/BCA/CAB uniformly per episode;
 evaluation holds out CBA. Transitions remain at steps 150 and 300 of a 450-step
 episode. IPPO CNN/RNN and FCP hard-mode sweep configs are included.
 
-Kitchen Split starts with a central doorway open for 150 steps and turns it into
-a handoff counter for the next 150 steps. `split_0` is the compact diagonal
+Kitchen Split alternates a central doorway and a handoff counter every 75
+steps. `split_0` is the compact diagonal
 layout selected from the narrow candidates; `split_1` is the retained base layout.
 Both require the agents to choose complementary bays before the doorway closes.
 
@@ -58,8 +58,7 @@ Select any layout through its Hydra scenario name, such as
 Distance keeps the standard three-onion recipe and the original
 `asymm_advantages` comparative-cost structure. `distance_0` is the canonical
 9×5 layout and `distance_1` is the retained 13×6 wide layout. In both maps the
-short onion-input and serving loops reverse at step 150 and return to their
-initial assignment at step 300.
+short onion-input and serving loops reverse every 75 steps.
 
 Overcooked V3 exposes upcoming layout transitions to every agent. The final two
 channels of the default 31-channel observation contain a global transition

@@ -5,10 +5,9 @@
 # The recipe display stays at a separate fixed cell. A non-storage blocker
 # separates the dynamic doorway or handoff counters from the rest of the map.
 #
-# Kitchen Split starts with one open central doorway. After 150 steps, that
-# doorway becomes a handoff counter and traps agents in their chosen bays until
-# step 300. The left bay has onions and pots, while the right bay has
-# plates and serving, so agents must occupy different sides and divide labor.
+# Kitchen Split alternates an open central doorway and a handoff counter every
+# 75 steps. The left bay has onions and pots, while the right bay has plates and
+# serving, so agents must occupy different sides and divide labor.
 #
 # Resource Outage permanently separates two otherwise complete kitchens. Each
 # bay owns at least one pot, plate pile, serving station, and onion pile in the normal
@@ -20,8 +19,21 @@
 # candidate with the same scenario mechanics and a different route geometry.
 
 
-_ROLE_PHASE_STEPS = 150
+_ROLE_PHASE_STEPS = 75
+_HARD_PHASE_STEPS = 150
 _FINAL_PHASE_STEPS = 1000
+
+
+def _alternating_role_phases(phase_a, phase_b):
+    """Alternate A/B every role phase, then hold B through episode end."""
+    return [
+        [phase_a, _ROLE_PHASE_STEPS],
+        [phase_b, _ROLE_PHASE_STEPS],
+        [phase_a, _ROLE_PHASE_STEPS],
+        [phase_b, _ROLE_PHASE_STEPS],
+        [phase_a, _ROLE_PHASE_STEPS],
+        [phase_b, _FINAL_PHASE_STEPS],
+    ]
 
 
 def _role_grid(
@@ -87,11 +99,7 @@ def _build_split_workload(spec, width=11, recipe_row=0, counters=(), height=7):
         width=width,
         height=height,
     )
-    return [
-        [open_grid, _ROLE_PHASE_STEPS],
-        [closed_grid, _ROLE_PHASE_STEPS],
-        [open_grid, _FINAL_PHASE_STEPS],
-    ]
+    return _alternating_role_phases(open_grid, closed_grid)
 
 
 def _compact_outage_grid(
@@ -143,11 +151,7 @@ def _build_compact_outage_variant(spec):
         blocker_row,
         notches,
     )
-    return [
-        [normal_grid, _ROLE_PHASE_STEPS],
-        [outage_grid, _ROLE_PHASE_STEPS],
-        [normal_grid, _FINAL_PHASE_STEPS],
-    ]
+    return _alternating_role_phases(normal_grid, outage_grid)
 
 
 def _rotated_take(positions, count, offset):
@@ -804,18 +808,16 @@ def _register_distance_switch_catalog():
         _validate_distance_switch_spec(spec)
         phase_a = _distance_switch_grid(spec, roles_swapped=False)
         phase_b = _distance_switch_grid(spec, roles_swapped=True)
-        globals()[f"distance_switch_{variant_index}"] = [
-            [phase_a, _ROLE_PHASE_STEPS],
-            [phase_b, _ROLE_PHASE_STEPS],
-            [phase_a, _FINAL_PHASE_STEPS],
-        ]
+        globals()[f"distance_switch_{variant_index}"] = (
+            _alternating_role_phases(phase_a, phase_b)
+        )
 
 
 _register_distance_switch_catalog()
 
 
 # split_wide uses the selected 11x7 pillars geometry. Keep the historical
-# split_wide_pillars name below for reproducibility. A -> B -> A timing is fixed.
+# split_wide_pillars name below for reproducibility.
 split_wide = _build_split_workload(
     (
         3, 1, ((3, 3), (7, 3)),
@@ -943,11 +945,7 @@ def _build_wide_outage():
         )
 
     normal_grid, outage_grid = phase(False), phase(True)
-    return [
-        [normal_grid, _ROLE_PHASE_STEPS],
-        [outage_grid, _ROLE_PHASE_STEPS],
-        [normal_grid, _FINAL_PHASE_STEPS],
-    ]
+    return _alternating_role_phases(normal_grid, outage_grid)
 
 
 _legacy_outage_wide = _build_wide_outage()
@@ -968,11 +966,7 @@ def _build_shared_room_outage(source, missing_resource="0"):
     normal = "\n" + "\n".join("".join(row) for row in rows) + "\n"
     removed_symbols = {"0", "O"} if missing_resource == "0" else {"B"}
     suspended = "".join("W" if cell in removed_symbols else cell for cell in normal)
-    return [
-        [normal, _ROLE_PHASE_STEPS],
-        [suspended, _ROLE_PHASE_STEPS],
-        [normal, _FINAL_PHASE_STEPS],
-    ]
+    return _alternating_role_phases(normal, suspended)
 
 
 # The canonical Outage layouts use a shared room and remove every plate
@@ -1027,11 +1021,9 @@ _distance_wide_a = _distance_switch_grid(_DISTANCE_SWITCH_WIDE_SPEC)
 _distance_wide_b = _distance_switch_grid(
     _DISTANCE_SWITCH_WIDE_SPEC, roles_swapped=True
 )
-distance_switch_wide = [
-    [_distance_wide_a, _ROLE_PHASE_STEPS],
-    [_distance_wide_b, _ROLE_PHASE_STEPS],
-    [_distance_wide_a, _FINAL_PHASE_STEPS],
-]
+distance_switch_wide = _alternating_role_phases(
+    _distance_wide_a, _distance_wide_b
+)
 
 
 # Three-map hard mode uses the existing tag-0 footprints. Entries describe
@@ -1067,7 +1059,7 @@ def _hard_maps():
         )
     )
     return tuple(
-        [[a, _ROLE_PHASE_STEPS], [b, _ROLE_PHASE_STEPS], [c, _FINAL_PHASE_STEPS]]
+        [[a, _HARD_PHASE_STEPS], [b, _HARD_PHASE_STEPS], [c, _FINAL_PHASE_STEPS]]
         for a, b, c in (
             (split_a, split_b, split_c),
             (outage_a, outage_b, outage_c),

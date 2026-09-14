@@ -3,6 +3,7 @@ defaults:
   - _self_
 
 ARCHITECTURE: rnn
+ALGORITHM: IPPO-RNN
 
 # A/B are the fixed Overcooked identities agent_0/agent_1. The environment
 # keeps the observation shape fixed and masks only the transition signal.
