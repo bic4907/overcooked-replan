@@ -20,7 +20,7 @@ metric:
 
 parameters:
   HUMAN_MODEL_ARM:
-    values: [bc, obp, obp-frozen]
+    values: [bc, obp, obp_frozen, obp_frozen_conv]
   SEED:
     values: [0, 1, 2, 3, 4, 5]
   NUM_SEEDS:

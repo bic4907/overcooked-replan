@@ -2,9 +2,12 @@
 
 Three arms answer the paper's question directly:
 
-    bc          behavior cloning from random weights
-    obp         the same, started from the self-play prior
-    obp-frozen  the same again, with the prior's convolutional trunk held fixed
+    bc               behavior cloning from random weights
+    obp              the same, started from the self-play prior
+    obp_frozen       the same again, fitting only the action head, which is the
+                     paper's freezing condition
+    obp_frozen_conv  a milder version of it, holding only the convolutional
+                     trunk fixed
 
 They differ in nothing else -- same data, same split, same optimiser, same
 seed -- so the gap between them is the prior and only the prior.
@@ -19,16 +22,18 @@ from pathlib import Path
 
 import numpy as np
 
-ARMS = ("bc", "obp", "obp-frozen", "obp-lastlayer")
+ARMS = ("bc", "obp", "obp_frozen", "obp_frozen_conv")
 
-#: The trunk the frozen arm holds fixed: everything the prior learned about
-#: reading a kitchen, leaving the action and value heads to the human data.
+#: The convolutional trunk: everything the prior learned about reading a
+#: kitchen, leaving the action and value heads to the human data. This is the
+#: milder of the two freezing conditions and is ours, not the paper's.
 TRUNK_PREFIX = "params/CNN_0"
 
-#: The action head. The paper's freezing condition holds everything else fixed
-#: and fits only this, which is a stronger claim about the prior than freezing
-#: the convolutions alone: not just that its features are usable, but that
-#: human behaviour is a relabelling of its decisions.
+#: The action head. The paper's freezing condition -- "all layers except the
+#: last" -- holds everything else fixed and fits only this, which is a stronger
+#: claim about the prior than freezing the convolutions alone: not just that
+#: its features are usable, but that human behaviour is a relabelling of its
+#: decisions. Being the paper's, it takes the plain name.
 ACTION_HEAD_PREFIX = "params/Dense_1"
 
 
@@ -74,6 +79,15 @@ def parse_args(argv=None):
     parser.add_argument("--batch-size", type=int, default=512)
     parser.add_argument("--learning-rate", type=float, default=3e-4)
     parser.add_argument("--val-fraction", type=float, default=0.25)
+    parser.add_argument(
+        "--select-by",
+        default="last",
+        choices=("last", "validation"),
+        help=(
+            "Keep the last epoch, or the one that predicted held-out people "
+            "best. Starting from a prior overfits well before the last epoch."
+        ),
+    )
     parser.add_argument(
         "--split-side",
         default="train",
@@ -190,9 +204,9 @@ def main(argv=None):
             args.seed,
             env_name=args.prior_env_name,
         )
-    if args.arm == "obp-frozen":
+    if args.arm == "obp_frozen_conv":
         freeze = (TRUNK_PREFIX,)
-    elif args.arm == "obp-lastlayer":
+    elif args.arm == "obp_frozen":
         freeze_except = (ACTION_HEAD_PREFIX,)
 
     layouts = sorted({episode.layout for episode in episodes})
@@ -234,6 +248,7 @@ def main(argv=None):
         prior_checkpoint=prior,
         freeze_prefixes=freeze,
         freeze_except=freeze_except,
+        select_by=args.select_by,
         epochs=args.epochs,
         batch_size=args.batch_size,
         learning_rate=args.learning_rate,
@@ -267,6 +282,7 @@ def main(argv=None):
         },
         **{f"actual/{name}": float(share) for name, share in zip(action_names, truth)},
         "frozen_parameters": len(report.frozen),
+        "selected_epoch": report.selected_epoch,
         # Total variation between the model's action mix and the people's: zero
         # when they agree, one when the model never picks what a person picks.
         # A model that has collapsed onto the majority action reads high here
@@ -283,6 +299,8 @@ def main(argv=None):
         metadata={
             "arm": args.arm,
             "split_side": args.split_side,
+            "select_by": args.select_by,
+            "selected_epoch": report.selected_epoch,
             "seed": args.seed,
             "layouts": layouts,
             "prior_checkpoint": str(prior) if prior else None,

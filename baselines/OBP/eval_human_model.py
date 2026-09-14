@@ -58,7 +58,7 @@ def parse_args(argv=None):
     )
     partner.add_argument(
         "--partner-arm",
-        choices=("bc", "obp", "obp-frozen", "prior"),
+        choices=("bc", "obp", "obp_frozen", "obp_frozen_conv", "prior"),
         help=(
             "Seat a collaborative AI opposite the model, composing its "
             "checkpoint from the arm and --seed: one of the three best "
@@ -123,6 +123,37 @@ def parse_args(argv=None):
     )
     parser.add_argument("--data", default="data/human")
     parser.add_argument(
+        "--record",
+        default=None,
+        help=(
+            "Write one episode to this MP4. The episode is one of the scored "
+            "ones -- same key, same actions -- so what it shows is a sample of "
+            "what the number means, not a separate run."
+        ),
+    )
+    parser.add_argument("--record-fps", type=float, default=5.0)
+    parser.add_argument("--record-tile-size", type=int, default=32)
+    parser.add_argument(
+        "--record-episode",
+        type=int,
+        default=None,
+        help=(
+            "Which scored episode to record, by index. The default picks the "
+            "one closest to the mean, which is what the reported number "
+            "describes; the best-scoring episode is not."
+        ),
+    )
+    parser.add_argument(
+        "--record-target-score",
+        type=float,
+        default=None,
+        help=(
+            "Record the episode closest to this score instead of to this run's "
+            "own mean. Use it to aim at the mean over every seed, which is what "
+            "a table reports and no single seed reproduces exactly."
+        ),
+    )
+    parser.add_argument(
         "--entity", default=os.getenv("WANDB_ENTITY", "cilab-overcooked")
     )
     parser.add_argument(
@@ -181,6 +212,88 @@ def human_reference(data_root, layout: str) -> dict:
         "human/return_std": float(np.std(returns)),
         "human/episodes": len(returns),
     }
+
+
+def _record_episode(
+    args, env, logits_fn, params, partner_logits, partner_params, returns, arm, partner
+):
+    """Replay one scored episode step by step and save it as a video."""
+    import jax
+    import jax.numpy as jnp
+    import numpy as np
+    from pathlib import Path
+
+    from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
+
+    index = args.record_episode
+    if index is None:
+        # The episode nearest the mean, not the best one: a video of the
+        # luckiest run is not what the reported number describes.
+        target = (
+            args.record_target_score
+            if args.record_target_score is not None
+            else float(returns.mean())
+        )
+        index = int(np.argmin(np.abs(returns - target)))
+    key = jax.random.split(jax.random.PRNGKey(args.seed), args.episodes)[index]
+
+    def choose(fn, own_params, observation, action_key):
+        logits = fn(own_params, observation[None, :])[0]
+        return (
+            jnp.argmax(logits)
+            if args.deterministic
+            else jax.random.categorical(action_key, logits / args.temperature)
+        )
+
+    step = jax.jit(env.step_env)
+    observations, state = env.reset(key)
+    states, captions = [state], [f"step 0  score 0"]
+    total = 0.0
+    first, second = env.agents
+    for number in range(args.max_steps):
+        key, first_key, second_key, env_key = jax.random.split(key, 4)
+        actions = {
+            first: choose(logits_fn, params, observations[first], first_key),
+            second: choose(
+                partner_logits, partner_params, observations[second], second_key
+            ),
+        }
+        observations, state, reward, dones, _ = step(env_key, state, actions)
+        total += float(reward[first])
+        states.append(state)
+        captions.append(f"step {number + 1}  score {total:g}")
+        if bool(dones["__all__"]):
+            break
+
+    path = Path(args.record)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    visualizer = OvercookedV3Visualizer(
+        tile_size=args.record_tile_size,
+        seconds_per_step=1.0 / args.record_fps,
+        transition_warning_steps=env.transition_warning_steps,
+    )
+    if path.suffix.lower() == ".gif":
+        # One frame per step at the environment's own pace, so the video runs
+        # in step time and a hesitating agent looks like one.
+        import imageio.v2 as imageio
+
+        frames = visualizer._animation_frames(states, captions=captions)
+        imageio.mimsave(
+            str(path), frames, format="GIF",
+            duration=1.0 / args.record_fps,
+            loop=0,
+            # Without this a GIF keeps whatever the frame before it drew, so
+            # the countdown text smears across the frames that follow.
+            disposal=2,
+        )
+    else:
+        visualizer.save_video(
+            states, filename=str(path), captions=captions, fps=args.record_fps
+        )
+    print(
+        f"  recorded episode {index} ({arm} with {partner}, "
+        f"score {total:g}, scored {returns[index]:g}): {path}"
+    )
 
 
 def main(argv=None):
@@ -345,6 +458,19 @@ def main(argv=None):
 
     keys = jax.random.split(jax.random.PRNGKey(args.seed), args.episodes)
     returns = np.asarray(jax.jit(jax.vmap(rollout))(keys))
+
+    if args.record:
+        _record_episode(
+            args,
+            env,
+            logits_fn,
+            params,
+            partner_logits if partner_logits is not None else logits_fn,
+            partner_params if partner_params is not None else params,
+            returns,
+            arm,
+            partner_label,
+        )
 
     reference = human_reference(args.data, args.layout)
     summary = {

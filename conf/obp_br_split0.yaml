@@ -1,0 +1,42 @@
+# @package _global_
+
+# The collaborative AI for the single-layout arms: best response to a frozen
+# human model on split_0, under the observation the demonstrations were
+# collected with.
+#
+# Same trainer as the layout-distribution version -- FCP with a population of
+# one -- but on the kitchen the demonstrations actually come from, which is the
+# only one there is data for. The human model reads the layout's own grid, so
+# the learner does too.
+
+defaults:
+  - fcp_overcooked_v3
+  - override /scenario: split_0_obp
+  - _self_
+
+ARCHITECTURE: cnn
+ALGORITHM: BR-obp
+
+HUMAN_MODEL_ARM: obp
+HUMAN_MODEL_ROOT: saves/obp_bc_single
+HUMAN_MODEL_SEED: ${SEED}
+
+FCP:
+  population_checkpoints:
+    - ${HUMAN_MODEL_ROOT}/${HUMAN_MODEL_ARM}_seed${HUMAN_MODEL_SEED}/policy.safetensors
+  population_dir: null
+
+SAVES_DIR: saves/obp_br_split0
+EXPERIMENT_FOLDER: obp_br_${HUMAN_MODEL_ARM}
+EXPERIMENT: optimal_behavior_prior
+CONDITION: split_0
+
+PROJECT: ${oc.env:WANDB_PROJECT,overcooked-v3-obp-br}
+WANDB_GROUP: obp_br_split0
+WANDB_TAGS:
+  - obp
+  - best-response
+  - single-layout
+  - human-model-${HUMAN_MODEL_ARM}
+RUN_NAME: br_${HUMAN_MODEL_ARM}_seed${SEED}
+NOTES: Best response to a frozen OBP human model on split_0.

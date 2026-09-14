@@ -21,7 +21,7 @@ parameters:
   temperature:
     values: [0.3, 0.4, 0.5, 0.6, 0.8, 1.0]
   arm:
-    values: [bc, obp, obp-frozen, obp-lastlayer]
+    values: [bc, obp, obp_frozen, obp_frozen_conv]
   seed:
     values: [0, 1, 2, 3, 4, 5]
   model-root:

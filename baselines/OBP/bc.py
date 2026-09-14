@@ -41,6 +41,9 @@ class TrainingReport(NamedTuple):
     params: dict
     history: list[dict]
     frozen: tuple[str, ...]
+    #: Which epoch's parameters ``params`` holds. The last one unless the run
+    #: selected on validation loss.
+    selected_epoch: int = 0
 
 
 def build_policy(num_actions: int = NUM_ACTIONS, config: dict | None = None):
@@ -150,9 +153,19 @@ def train(
     max_grad_norm: float = 0.5,
     seed: int = 0,
     policy_config: dict | None = None,
+    select_by: str = "last",
     log: Callable[[dict], None] | None = None,
 ) -> TrainingReport:
-    """Fit action logits to human actions, starting from the prior."""
+    """Fit action logits to human actions, starting from the prior.
+
+    ``select_by="validation"`` keeps the epoch with the lowest held-out loss
+    rather than the last one. Starting from a prior fits the training data
+    faster than it fits people, so the epoch that predicts held-out humans best
+    arrives well before the last -- which is the overfitting the paper reports
+    as OBP's higher validation loss.
+    """
+    if select_by not in ("last", "validation"):
+        raise ValueError("select_by must be 'last' or 'validation'")
     if observations.shape[0] != actions.shape[0]:
         raise ValueError("observations and actions must have the same length")
     if observations.shape[0] < batch_size:
@@ -216,6 +229,7 @@ def train(
     rows = observations.shape[0]
     batches = rows // batch_size
     history = []
+    best = (float("inf"), 0, params)
     for epoch in range(epochs):
         key, shuffle_key = jax.random.split(key)
         order = jax.random.permutation(shuffle_key, rows)
@@ -239,11 +253,23 @@ def train(
             )
             record["validation_loss"] = validation_loss
             record["validation_accuracy"] = validation_accuracy
+            if validation_loss < best[0]:
+                best = (validation_loss, epoch + 1, params)
         history.append(record)
         if log is not None:
             log(record)
 
-    return TrainingReport(params=params, history=history, frozen=frozen)
+    if select_by == "validation":
+        if not jnp.isfinite(best[0]):
+            raise ValueError(
+                "select_by='validation' needs validation data to select on"
+            )
+        return TrainingReport(
+            params=best[2], history=history, frozen=frozen, selected_epoch=best[1]
+        )
+    return TrainingReport(
+        params=params, history=history, frozen=frozen, selected_epoch=len(history)
+    )
 
 
 def save(

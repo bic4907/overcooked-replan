@@ -10,9 +10,9 @@
 #
 #   bc              cloning from random weights, at the native size
 #   obp             started from the split_0 self-play prior
-#   obp-frozen      the same, convolutional trunk held fixed
-#   obp-lastlayer   the same, everything but the action head held fixed
-#                   -- the paper's own freezing condition
+#   obp_frozen       the same, fitting only the action head -- the paper's own
+#                    freezing condition
+#   obp_frozen_conv  a milder version, holding only the convolutional trunk
 #
 # Seed 0 is absent because that self-play run never learned; fetch_prior.py
 # skips it, and an arm without a prior would not be the same experiment.
@@ -26,7 +26,7 @@ metric:
 
 parameters:
   arm:
-    values: [bc, obp, obp-frozen, obp-lastlayer]
+    values: [bc, obp, obp_frozen, obp_frozen_conv]
   seed:
     values: [1, 2, 3, 4, 5]
   observation:

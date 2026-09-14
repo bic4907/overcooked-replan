@@ -15,7 +15,7 @@ metric:
 
 parameters:
   arm:
-    values: [bc, obp, obp-frozen]
+    values: [bc, obp, obp_frozen_conv]
   seed:
     values: [0, 1, 2, 3, 4, 5]
   model-root:

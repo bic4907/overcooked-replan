@@ -144,3 +144,35 @@ def test_action_distribution_sums_to_one(toy_dataset):
     shares = bc.action_distribution(logits_fn, report.params, observations)
     assert shares.shape == (bc.NUM_ACTIONS,)
     assert np.isclose(shares.sum(), 1.0)
+
+
+def test_selecting_on_validation_keeps_an_earlier_epoch(toy_dataset):
+    """Starting from a prior fits the training rows faster than it fits people."""
+    observations, actions = toy_dataset
+    held_out, held_out_actions = observations[:64], 1 - actions[:64]
+    last = bc.train(
+        observations, actions, held_out, held_out_actions,
+        epochs=8, batch_size=64, seed=0,
+    )
+    selected = bc.train(
+        observations, actions, held_out, held_out_actions,
+        epochs=8, batch_size=64, seed=0, select_by="validation",
+    )
+    losses = [record["validation_loss"] for record in last.history]
+    assert last.selected_epoch == 8
+    assert selected.selected_epoch == losses.index(min(losses)) + 1
+    assert selected.history == last.history, "selection must not change training"
+
+
+def test_selecting_on_validation_needs_validation_data(toy_dataset):
+    observations, actions = toy_dataset
+    with pytest.raises(ValueError, match="needs validation data"):
+        bc.train(
+            observations, actions, epochs=2, batch_size=64, select_by="validation"
+        )
+
+
+def test_an_unknown_selection_rule_is_refused(toy_dataset):
+    observations, actions = toy_dataset
+    with pytest.raises(ValueError, match="select_by"):
+        bc.train(observations, actions, epochs=1, batch_size=64, select_by="best")

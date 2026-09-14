@@ -6,7 +6,8 @@
 #   SP              the prior, which is its own best response
 #   BR(bc)          best response to the randomly-initialised human model
 #   BR(obp)         best response to the prior-initialised one
-#   BR(obp-frozen)  best response to the frozen-trunk one
+#   BR(obp_frozen)       best response to the paper's frozen one
+#   BR(obp_frozen_conv)  best response to the frozen-trunk one
 #
 # The human side is identical across all four, so the returns are directly
 # comparable and the only thing that varies is which human model the teammate
@@ -21,7 +22,7 @@ metric:
 
 parameters:
   partner-arm:
-    values: [prior, bc, obp, obp-frozen]
+    values: [prior, bc, obp, obp_frozen, obp_frozen_conv]
   seed:
     values: [0, 1, 2, 3, 4, 5]
   arm:

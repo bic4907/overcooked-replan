@@ -77,17 +77,17 @@ def test_each_arm_gets_its_own_checkpoint_folder():
     shared by the three arms -- so the arm has to reach the folder name."""
     folders = {
         arm: experiment_folder(_compose([f"HUMAN_MODEL_ARM={arm}", "SEED=2"]))
-        for arm in ("bc", "obp", "obp-frozen")
+        for arm in ("bc", "obp", "obp_frozen", "obp_frozen_conv")
     }
-    assert len(set(folders.values())) == 3
+    assert len(set(folders.values())) == 4
     for arm, folder in folders.items():
         assert arm in folder
 
 
 def test_the_partner_checkpoint_follows_the_arm_and_the_seed():
-    config = _compose(["HUMAN_MODEL_ARM=obp-frozen", "SEED=4"])
+    config = _compose(["HUMAN_MODEL_ARM=obp_frozen_conv", "SEED=4"])
     assert config["FCP"]["population_checkpoints"] == [
-        "saves/obp_bc/obp-frozen_seed4/policy.safetensors"
+        "saves/obp_bc/obp_frozen_conv_seed4/policy.safetensors"
     ]
 
 
@@ -109,11 +109,16 @@ def test_an_untrained_arm_says_so(tmp_path):
         find_best_response(tmp_path, "obp", 1)
 
 
-def test_the_br_sweeps_cover_three_arms_and_six_seeds():
+def test_the_br_sweeps_cover_every_arm_and_six_seeds():
     train = _sweep("br_train.yaml")
-    assert train["parameters"]["HUMAN_MODEL_ARM"]["values"] == ["bc", "obp", "obp-frozen"]
+    assert train["parameters"]["HUMAN_MODEL_ARM"]["values"] == [
+        "bc",
+        "obp",
+        "obp_frozen",
+        "obp_frozen_conv",
+    ]
     assert train["parameters"]["SEED"]["values"] == [0, 1, 2, 3, 4, 5]
-    assert _run_count(train) == 18
+    assert _run_count(train) == 24
     assert "obp_br_overcooked_v3" in train["command"]
 
 
@@ -131,7 +136,8 @@ def test_every_collaborative_agent_is_scored_against_the_same_human():
         "prior",
         "bc",
         "obp",
-        "obp-frozen",
+        "obp_frozen",
+        "obp_frozen_conv",
     ]
     assert sweep["parameters"]["model-root"]["value"] == "saves/obp_eval_human"
-    assert _run_count(sweep) == 24
+    assert _run_count(sweep) == 30

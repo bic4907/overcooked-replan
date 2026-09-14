@@ -2,7 +2,7 @@
 #
 #   bc          cloning from random weights, the paper's BC baseline
 #   obp         the same, started from the seed-matched self-play prior
-#   obp-frozen  the same again, with the prior's convolutional trunk held fixed
+#   obp_frozen_conv  the same again, with the prior's convolutional trunk held fixed
 #
 # Nothing else differs between them -- data, split, optimiser and seed are
 # shared -- so the gap is the prior and only the prior. The obp arms need
@@ -18,7 +18,7 @@ metric:
 
 parameters:
   arm:
-    values: [bc, obp, obp-frozen]
+    values: [bc, obp, obp_frozen_conv]
   seed:
     values: [0, 1, 2, 3, 4, 5]
   data:
