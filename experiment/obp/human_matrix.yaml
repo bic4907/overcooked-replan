@@ -1,0 +1,51 @@
+# Stage 4: what every agent we have is worth next to a simulated human.
+#
+# Rows are the planner-based humans: BR, the noise-free heuristic, and H0/H1/H2
+# at the paper's dials. Columns are those four and the three trained policies on
+# the kitchen (IPPO CNN, IPPO RNN, FCP), all countdown-on. Every one of the ten
+# kitchens has six countdown-on seeds of all three, so the grid is 4 x 7 x 10.
+#
+# Each cell is one run of twelve games: the partner's six training seeds, each
+# played in both seat orders. Two planners have no training seed, so their cell
+# is six episode seeds in both orders instead.
+
+program: baselines/OBP/eval_planner_partner.py
+name: obp-human-matrix
+method: grid
+metric:
+  goal: maximize
+  name: return_mean
+
+parameters:
+  human:
+    values: [br, h0, h1, h2]
+  partner:
+    values: [br, h0, h1, h2, cnn, rnn, fcp]
+  layout:
+    values:
+      - split_0
+      - split_wide
+      - outage_0
+      - outage_2
+      - outage_2_plate
+      - outage_wide
+      - outage_wide_2
+      - outage_wide_2_plate
+      - distance_switch_0
+      - distance_switch_wide
+  seeds:
+    value: 6
+  episodes:
+    value: 1
+  max-steps:
+    value: 450
+  project:
+    value: overcooked-v3-obp-human-matrix
+  group:
+    value: human_matrix
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_equals}

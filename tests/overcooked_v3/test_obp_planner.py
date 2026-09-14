@@ -112,3 +112,22 @@ def test_waiting_shows_up_in_the_distribution(env):
     )
     stay = int(OvercookedActionsEnum.stay)
     np.testing.assert_allclose(waiting[:, stay], 0.3 + 0.7 * plain[:, stay], atol=1e-5)
+
+
+def test_matrix_sweep_covers_every_pairing():
+    """The sweep plays each simulated human against every agent we have."""
+    sweep = _sweep("human_matrix.yaml")
+    parameters = sweep["parameters"]
+    assert parameters["human"]["values"] == ["br", "h0", "h1", "h2"]
+    assert parameters["partner"]["values"] == [
+        "br",
+        "h0",
+        "h1",
+        "h2",
+        "cnn",
+        "rnn",
+        "fcp",
+    ]
+    assert parameters["seeds"]["value"] == 6
+    assert len(parameters["layout"]["values"]) == 10
+    assert sweep["program"] == "baselines/OBP/eval_planner_partner.py"
