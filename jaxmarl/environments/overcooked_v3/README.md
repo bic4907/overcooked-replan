@@ -38,10 +38,10 @@ left bay contains onions and pots, while the right bay contains plates and
 serving stations.
 
 `outage_0` and `outage_1` are 7×5 shared-room layouts. The first uses the
-selected compact diagonal arrangement. Both remove every onion dispenser in
-phase B. Stored objects, held inventory, and pot contents persist until the
-onions recover at step 300. Outage uses a two-onion recipe; Split retains the
-standard three-onion recipe and 20-step cooking timer.
+selected compact diagonal arrangement. Both remove every plate dispenser in
+phase B. Stored plates, held inventory, and pot contents persist until the
+plate dispensers recover at step 300. Outage uses a two-onion recipe; Split
+retains the standard three-onion recipe and 20-step cooking timer.
 
 The descriptive aliases `split`, `split_narrow_diagonal`, `outage`, and
 `outage_narrow_diagonal` refer to the corresponding numbered layouts. Other

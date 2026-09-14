@@ -249,108 +249,30 @@ def test_outage_pot_starts_cooking_after_second_onion():
 
 
 @pytest.mark.parametrize("variant", range(2))
-def test_outage_makes_cross_kitchen_supply_a_short_route(variant):
+def test_outage_removes_all_plate_dispensers_and_preserves_other_resources(
+    variant,
+):
     layout = dynamic_layouts[f"outage_{variant}"]
     assert tuple(phase.steps for phase in layout.phases) == (150, 150, 1000)
     normal_phase = layout.phases[0].layout.static_objects
     outage_phase = layout.phases[1].layout.static_objects
-    left_start, right_start = layout.phases[0].agent_positions
     onion = StaticObject.ingredient_pile(0)
 
     assert normal_phase.shape == (5, 7)
-    assert right_start not in _reachable_floor(normal_phase, left_start)
-    assert right_start not in _reachable_floor(outage_phase, left_start)
-    assert _shortest_floor_distance(outage_phase, {left_start}, {right_start}) is None
-    assert np.sum(outage_phase[:, 3] == StaticObject.EMPTY) == 0
-    assert np.sum(outage_phase[:, 3] == StaticObject.RECIPE_INDICATOR) == 1
     differences = np.argwhere(normal_phase != outage_phase)
-    expected_onions = np.sum(normal_phase[:, :3] == onion)
-    expected_pots = np.sum(normal_phase[:, :3] == StaticObject.POT)
-    expected_plates = np.sum(normal_phase[:, :3] == StaticObject.PLATE_PILE)
-    expected_goals = np.sum(normal_phase[:, :3] == StaticObject.GOAL)
-    assert min(expected_onions, expected_pots, expected_plates, expected_goals) >= 1
-    assert differences.shape == (expected_onions, 2)
+    expected_plates = np.sum(normal_phase == StaticObject.PLATE_PILE)
+    assert expected_plates > 0
+    assert differences.shape == (expected_plates, 2)
     for outage_y, outage_x in differences:
-        assert outage_x > 3
-        assert normal_phase[outage_y, outage_x] == onion
+        assert normal_phase[outage_y, outage_x] == StaticObject.PLATE_PILE
         assert outage_phase[outage_y, outage_x] == StaticObject.WALL
 
-    expected = {
-        onion: expected_onions,
-        StaticObject.POT: expected_pots,
-        StaticObject.PLATE_PILE: expected_plates,
-        StaticObject.GOAL: expected_goals,
-    }
-    for object_type, count in expected.items():
-        assert np.sum(normal_phase[:, :3] == object_type) == count
-        assert np.sum(normal_phase[:, 4:] == object_type) == count
-    assert np.sum(outage_phase[:, :3] == onion) == expected_onions
-    assert np.sum(outage_phase[:, 4:] == onion) == 0
-
-    left_reachable = _reachable_floor(outage_phase, left_start)
-    right_reachable = _reachable_floor(outage_phase, right_start)
-    for object_type in (
-        onion,
-        StaticObject.POT,
-        StaticObject.PLATE_PILE,
-        StaticObject.GOAL,
-    ):
-        for y, x in np.argwhere(outage_phase == object_type):
-            assert _can_interact_from(
-                outage_phase,
-                (x, y),
-                left_reachable if x < 3 else right_reachable,
-            )
-    handoffs = [
-        ((2, y), (4, y))
-        for y in range(1, outage_phase.shape[0] - 1)
-        if outage_phase[y, 3] == StaticObject.WALL
-        and (2, y) in left_reachable
-        and (4, y) in right_reachable
-    ]
-    assert handoffs
-
-    onion_interaction_floors = set()
-    for left_onion_y, left_onion_x in np.argwhere(outage_phase[:, :3] == onion):
-        onion_interaction_floors.update(
-            position
-            for position in (
-                (left_onion_x - 1, left_onion_y),
-                (left_onion_x + 1, left_onion_y),
-                (left_onion_x, left_onion_y - 1),
-                (left_onion_x, left_onion_y + 1),
-            )
-            if position in left_reachable
+    assert np.sum(outage_phase == StaticObject.PLATE_PILE) == 0
+    for object_type in (onion, StaticObject.POT, StaticObject.GOAL):
+        assert np.array_equal(
+            normal_phase == object_type,
+            outage_phase == object_type,
         )
-    pot_interaction_floors = set()
-    for right_pot_y, relative_pot_x in np.argwhere(
-        outage_phase[:, 4:] == StaticObject.POT
-    ):
-        right_pot_x = relative_pot_x + 4
-        pot_interaction_floors.update(
-            position
-            for position in (
-                (right_pot_x - 1, right_pot_y),
-                (right_pot_x + 1, right_pot_y),
-                (right_pot_x, right_pot_y - 1),
-                (right_pot_x, right_pot_y + 1),
-            )
-            if position in right_reachable
-        )
-    left_handoff_floors = {left for left, _right in handoffs}
-    right_handoff_floors = {right for _left, right in handoffs}
-    assert (
-        _shortest_floor_distance(
-            outage_phase, onion_interaction_floors, left_handoff_floors
-        )
-        <= 1
-    )
-    assert (
-        _shortest_floor_distance(
-            outage_phase, right_handoff_floors, pot_interaction_floors
-        )
-        <= 1
-    )
 
 
 @pytest.mark.parametrize("variant", range(2))
@@ -688,7 +610,7 @@ def test_split_runtime_closes_handoff_wall_at_step_150():
     assert jnp.all(infos["layout_changed"])
 
 
-def test_outage_runtime_removes_only_the_right_kitchen_onion_at_step_150():
+def test_outage_runtime_removes_all_plate_dispensers_at_step_150():
     env = OvercookedV3(layout="outage", max_steps=220)
     _, state = env.reset(jax.random.PRNGKey(0))
     state = state.replace(step=jnp.array(149))
@@ -699,11 +621,10 @@ def test_outage_runtime_removes_only_the_right_kitchen_onion_at_step_150():
     assert state.step.item() == 150
     assert state.layout_index.item() == 1
     assert state.grid[0, 1, 0].item() == StaticObject.ingredient_pile(0)
-    assert state.grid[0, 5, 0].item() == StaticObject.WALL
-    assert jnp.all(infos["left_workload_tile_count"] == 6)
-    assert jnp.all(infos["right_workload_tile_count"] == 6)
+    assert state.grid[0, 5, 0].item() == StaticObject.ingredient_pile(0)
+    assert jnp.sum(state.grid[..., 0] == StaticObject.PLATE_PILE) == 0
     assert jnp.all(infos["left_ingredient_pile_count"] == 1)
-    assert jnp.all(infos["right_ingredient_pile_count"] == 0)
+    assert jnp.all(infos["right_ingredient_pile_count"] == 1)
     assert jnp.all(infos["layout_changed"])
 
 

@@ -12,7 +12,7 @@ The following role-coordination experiments are currently available:
 | `split_0` | Diagonal Narrow Kitchen Split | Does the compact diagonal arrangement preserve coordination while increasing cross-play difficulty? |
 | `split_1` | Kitchen Split | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
 | `outage_0` | Diagonal Narrow Resource Outage | Can agents adapt to the outage through compact diagonal routes? |
-| `outage_1` | Shared-room Resource Outage | Can agents prepare and ration onions before every dispenser becomes unavailable? |
+| `outage_1` | Shared-room Resource Outage | Can agents prepare and ration plates before every dispenser becomes unavailable? |
 | `recipe_switch_0` | Mixed Recipe Relay | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
 | `distance_0` | Distance-Driven Role Switch | Can agents exchange cook/server roles when reachable stations swap asymmetric near/far costs? |
 | `distance_1` | Wide Distance-Driven Role Switch | Can agents reassign roles when near/far distance differences increase? |
@@ -40,7 +40,7 @@ a handoff counter for the next 150 steps. `split_0` is the compact diagonal
 layout selected from the narrow candidates; `split_1` is the retained base layout.
 Both require the agents to choose complementary bays before the doorway closes.
 
-Resource Outage uses one shared room and removes every onion dispenser during
+Resource Outage uses one shared room and removes every plate dispenser during
 phase B. `outage_0` is the compact diagonal variant and `outage_1` is the
 retained base layout. Stored objects, held inventory, and pot contents survive the
 outage. Split uses the standard three-onion recipe, while Outage uses a two-onion

@@ -975,10 +975,10 @@ def _build_shared_room_outage(source, missing_resource="0"):
     ]
 
 
-# The canonical Outage layouts use a shared room. Wide uses an 11x6 room
-# with staggered two-cell non-storage obstacles and an open central aisle.
-# The default removes all onion piles. Keep the former ``_2`` names as aliases
-# so existing checkpoints and experiment records remain loadable.
+# The canonical Outage layouts use a shared room and remove every plate
+# dispenser during phase B. Wide uses an 11x6 room with staggered two-cell
+# non-storage obstacles and an open central aisle. Keep the former ``_2`` names
+# as aliases so existing checkpoints and experiment records remain loadable.
 _SHARED_WIDE_OUTAGE_SOURCE = [["""
 WWWP0R0PWWW
 X         X
@@ -988,7 +988,7 @@ W         W
 WWWBWWWBWWW
 """, _ROLE_PHASE_STEPS]]
 
-outage = _build_shared_room_outage(outage_0)
+outage = _build_shared_room_outage(outage_0, missing_resource="B")
 outage_wide = _build_shared_room_outage(_SHARED_WIDE_OUTAGE_SOURCE)
 outage_narrow_upper = _build_shared_room_outage([["""
 W0PRP0W
@@ -1004,13 +1004,16 @@ W     W
 B A A B
 W0PWP0W
 """, _ROLE_PHASE_STEPS]])
-outage_narrow_diagonal = _build_shared_room_outage([["""
+outage_narrow_diagonal = _build_shared_room_outage(
+    [["""
 W0BRPWW
 B A   X
 W N N W
 X   A B
 WWPWB0W
-""", _ROLE_PHASE_STEPS]])
+""", _ROLE_PHASE_STEPS]],
+    missing_resource="B",
+)
 outage_2 = outage
 outage_wide_2 = outage_wide
 outage_2_plate = _build_shared_room_outage(outage_0, missing_resource="B")
