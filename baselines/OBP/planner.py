@@ -613,6 +613,130 @@ class GreedyPlanner:
         ).astype(jnp.int32)
         return action, jnp.where(reachable, flat, -1)
 
+    # -- the same choice, as probabilities ---------------------------------
+
+    def seat_features(self, carry: PlannerCarry, state):
+        """What each seat's action distribution is made from, dial-free.
+
+        Fitting the three dials to people means scoring every recorded action
+        under many settings; everything expensive -- the distance fields, the
+        halves, the goal sets -- does not depend on the dials, so it is computed
+        once here and ``probs_from_features`` is the cheap part that is
+        repeated. Goal claiming and collision avoidance between the two seats
+        use the first seat's most likely goal and move rather than a sample, so
+        the features are a deterministic function of the state.
+        """
+        inputs = self._seat_inputs(carry, state)
+        move_area, costs = inputs["move_area"], inputs["costs"]
+        height, width = state.grid.shape[:2]
+        claimed = jnp.zeros((height, width), dtype=bool)
+        heading = jnp.zeros((height, width), dtype=bool)
+        features = []
+        for index in range(self.env.num_agents):
+            goals, penalty, actionable = inputs["seats"][index]
+            free = goals & ~claimed
+            goals = jnp.where(jnp.any(free), free, goals)
+            pos = Position(x=state.agents.pos.x[index], y=state.agents.pos.y[index])
+            others = (
+                jnp.zeros((height, width), dtype=bool)
+                .at[state.agents.pos.y, state.agents.pos.x]
+                .set(True)
+                .at[pos.y, pos.x]
+                .set(False)
+            ) | heading
+            here = costs[index]
+            goal_costs = jnp.where(goals, here + penalty, jnp.inf).reshape(-1)
+
+            def step_grid(move_direction):
+                moved = pos.move_in_bounds(move_direction, self.env.width, self.env.height)
+                blocked = ~move_area[moved.y, moved.x]
+                landed = Position(
+                    x=jnp.where(blocked, pos.x, moved.x),
+                    y=jnp.where(blocked, pos.y, moved.y),
+                )
+                grid = self._cost_grid(move_area, landed, move_direction)
+                return (grid + jnp.where(others[landed.y, landed.x], 20.0, 0.0)).reshape(-1), landed
+
+            step_costs, landed = jax.vmap(step_grid)(DIRECTIONS)  # (4, H*W)
+            features.append(
+                dict(
+                    goal_costs=goal_costs,
+                    step_costs=step_costs,
+                    at_goal=(here == 0).reshape(-1),
+                    does_something=actionable.reshape(-1),
+                )
+            )
+            # The next seat plans around this one's most likely choice.
+            best = jnp.argmin(goal_costs)
+            reachable = jnp.isfinite(goal_costs[best])
+            claimed = claimed | jnp.zeros((height, width), dtype=bool).reshape(-1).at[best].set(reachable).reshape(height, width)
+            move = jnp.argmin(step_costs[:, best])
+            heading = heading.at[landed.y[move], landed.x[move]].set(reachable & ~(here == 0).reshape(-1)[best])
+        return features
+
+    @staticmethod
+    def probs_from_features(features, hltemp, lltemp, prob_wait):
+        """The (6,) action distribution of one seat under the three dials.
+
+        The goal is drawn by Boltzmann over its cost (argmin at hltemp 0), the
+        move by Boltzmann over how much each step lengthens the way to that
+        goal (argmin at lltemp 0); at the goal the seat interacts when that does
+        anything and otherwise stays. ``prob_wait`` mixes a stay in on top.
+        """
+        goal_costs = features["goal_costs"]
+        finite = jnp.isfinite(goal_costs)
+        safe = jnp.where(finite, goal_costs, 0.0)
+        if hltemp > 0.0:
+            logits = jnp.where(finite, -safe / hltemp, -1e9)
+            p_goal = jax.nn.softmax(logits)
+        else:
+            p_goal = jax.nn.one_hot(jnp.argmin(jnp.where(finite, safe, 1e9)), goal_costs.shape[0])
+        p_goal = jnp.where(finite, p_goal, 0.0)
+        p_goal = jnp.where(jnp.any(finite), p_goal, 0.0)
+
+        step_costs = features["step_costs"]  # (4, G)
+        # A goal no step reaches has weight zero below; its column is only
+        # kept finite so that zero does not become nan.
+        step_finite = jnp.isfinite(step_costs)
+        step_safe = jnp.where(step_finite, step_costs, 0.0)
+        if lltemp > 0.0:
+            logits = jnp.where(step_finite, -step_safe / lltemp, -1e9)
+            p_move = jax.nn.softmax(logits, axis=0)
+        else:
+            p_move = jax.nn.one_hot(jnp.argmin(jnp.where(step_finite, step_safe, 1e9), axis=0), 4).T
+        # (4, G) -> (6, G): move actions in Direction order.
+        p_move_actions = jnp.zeros((6, step_costs.shape[1])).at[MOVES].set(p_move)
+
+        at_goal = features["at_goal"]
+        does = features["does_something"]
+        p_at = (
+            jnp.zeros((6, step_costs.shape[1]))
+            .at[OvercookedActionsEnum.interact]
+            .set(jnp.where(does, 1.0, 0.0))
+            .at[OvercookedActionsEnum.stay]
+            .set(jnp.where(does, 0.0, 1.0))
+        )
+        p_given_goal = jnp.where(at_goal[None, :], p_at, p_move_actions)
+        probs = p_given_goal @ p_goal  # (6,)
+        # No reachable goal at all: the seat stays.
+        stay = jax.nn.one_hot(OvercookedActionsEnum.stay, 6)
+        probs = jnp.where(jnp.any(finite), probs, stay)
+        return prob_wait * stay + (1.0 - prob_wait) * probs
+
+    def action_probs(self, carry: PlannerCarry, state):
+        """(num_agents, 6) action distribution under this planner's dials.
+
+        The unstuck rule is left out: it reads the previous step and rolls
+        dice, so it has no place in a per-state likelihood.
+        """
+        features = self.seat_features(carry, state)
+        return jnp.stack(
+            [
+                self.probs_from_features(f, self.hltemp, self.lltemp, self.prob_wait)
+                for f in features
+            ]
+        )
+
     # -- the unstuck rule -------------------------------------------------
 
     def _step_aside(self, move_area, state, index):

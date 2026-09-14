@@ -68,3 +68,47 @@ def test_planner_cooks(env):
         )
         total += float(reward[env.agents[0]])
     assert total > 100.0
+
+
+def test_action_probs_are_distributions(env):
+    """Every dial setting gives each seat a proper distribution over actions."""
+    _, seen = _states(env, 20)
+    for dials in (
+        dict(prob_wait=0.0, lltemp=0.0, hltemp=0.0),
+        dict(prob_wait=0.072, lltemp=0.286, hltemp=0.45),
+        dict(prob_wait=0.4, lltemp=0.8, hltemp=2.0),
+    ):
+        probs_fn = jax.jit(GreedyPlanner(env, **dials).action_probs)
+        for carry, state in seen:
+            probs = np.asarray(probs_fn(carry, state))
+            assert probs.shape == (env.num_agents, 6)
+            assert np.all(np.isfinite(probs))
+            assert np.all(probs >= 0.0)
+            np.testing.assert_allclose(probs.sum(axis=1), 1.0, atol=1e-5)
+
+
+def test_probs_agree_with_the_greedy_action(env):
+    """With the dials at zero the likeliest action is the one it would play."""
+    planner, seen = _states(env, 20)
+    probs_fn = jax.jit(planner.action_probs)
+    act = jax.jit(planner.actions)
+    agreed = 0
+    for carry, state in seen:
+        probs = np.asarray(probs_fn(carry, state))
+        _, actions = act(carry, state, jax.random.PRNGKey(0))
+        agreed += int(np.sum(np.argmax(probs, axis=1) == np.asarray(actions)))
+    # The unstuck rule and stepping aside are deliberately not modelled, so a
+    # few steps disagree; the plan itself must not.
+    assert agreed >= int(0.9 * len(seen) * env.num_agents)
+
+
+def test_waiting_shows_up_in_the_distribution(env):
+    """prob_wait is mixed in on top of whatever the planner would do."""
+    _, seen = _states(env, 5)
+    carry, state = seen[0]
+    plain = np.asarray(jax.jit(GreedyPlanner(env).action_probs)(carry, state))
+    waiting = np.asarray(
+        jax.jit(GreedyPlanner(env, prob_wait=0.3).action_probs)(carry, state)
+    )
+    stay = int(OvercookedActionsEnum.stay)
+    np.testing.assert_allclose(waiting[:, stay], 0.3 + 0.7 * plain[:, stay], atol=1e-5)
