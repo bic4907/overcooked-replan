@@ -1,16 +1,19 @@
-# Stage 4: what every agent we have is worth next to a simulated human.
+# What every agent we have is worth next to a cook that stands in for a person.
 #
-# Rows are the planner-based humans: BR, the noise-free heuristic, and H0/H1/H2
-# at the paper's dials. Columns are those four and the three trained policies on
-# the kitchen (IPPO CNN, IPPO RNN, FCP), all countdown-on. Every one of the ten
-# kitchens has six countdown-on seeds of all three, so the grid is 4 x 7 x 10.
+# Rows are the heuristic cook at four settings of its dials: BR, which plays as
+# well as it can, and H0, H1 and H2, which wait or wander enough to pass for
+# someone who has not done this before. Columns are those four and the three
+# policies trained on the kitchen -- IPPO CNN, IPPO RNN, FCP -- all
+# countdown-on. Every one of the ten kitchens has six seeds of all three, so the
+# grid is 4 x 7 x 10.
 #
 # Each cell is one run of twelve games: the partner's six training seeds, each
-# played in both seat orders. Two planners have no training seed, so their cell
-# is six episode seeds in both orders instead.
+# played in both seat orders, so neither a lucky seed nor who sits where decides
+# it. Two planners have no training seed, so their cell is six episode seeds in
+# both orders instead.
 
 program: baselines/planner/eval_planner_partner.py
-name: obp-human-matrix
+name: planner-human-matrix
 method: grid
 metric:
   goal: maximize

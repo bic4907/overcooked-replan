@@ -1,7 +1,7 @@
 """Play the simulated humans against every other agent we have trained.
 
-The paper's H2 asks what a teammate trained against a human model is worth when
-a real person sits down. We have no person in the loop, so the row of this
+The Optimal Behavior Prior paper (arXiv:2211.01602) asks what a teammate trained
+against a human model is worth when a real person sits down. We have no person in the loop, so the row of this
 matrix is the planner-based stand-ins -- BR and H0/H1/H2 -- and the column is
 everything that can hold the other side: the same stand-ins, and the IPPO CNN,
 IPPO RNN and FCP policies already trained on this kitchen.
@@ -32,7 +32,7 @@ import numpy as np
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-#: Dials of the paper's simulated humans, Table 1, whose columns run
+#: Dials of that paper's simulated humans, its Table 1, whose columns run
 #: (hltemp, lltemp, prob_wait): H0 (0, 0, 0.5), H1 (0.072, 0.286, 0.45),
 #: H2 (0.070, 0.249, 0.04). H1 is the arm that waits, which is why the paper has
 #: it scoring the least of the three. ``_local`` arms are the same three dials
@@ -147,8 +147,8 @@ def arm_dials(name, dials_path):
     key = name.split("_")[0].upper()
     if key not in payload:
         raise ValueError(
-            f"{dials_path} has no {key}; fit it with baselines.OBP.fit_human "
-            "(H2 is added by the prob_wait sweep)"
+            f"{dials_path} has no {key}. The _local arms read dials fit to "
+            "recorded human play; without that file, use the paper's arms."
         )
     entry = payload[key]
     return dict(
