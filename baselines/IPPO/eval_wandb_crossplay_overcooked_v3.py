@@ -13,6 +13,10 @@ import numpy as np
 import wandb
 
 import jaxmarl
+from baselines.agent_reward_metrics import (
+    summarize_agent_rewards,
+    write_agent_reward_episodes,
+)
 from baselines.adaptation_metrics import (
     adaptation_config_dict,
     adaptation_config_from_args,
@@ -348,8 +352,10 @@ def evaluate_crossplay(
     first_states = None
     first_captions = None
     adaptation_traces = []
+    agent_reward_episodes = []
 
     for episode in range(args.episodes):
+        agent_reward_episode = {"episode": episode + 1}
         episode_return, length, states, captions, key, adaptation_trace = (
             evaluate_episode(
                 runtime.policy,
@@ -360,9 +366,11 @@ def evaluate_crossplay(
                 runtime.hidden_sizes,
                 record_trajectory=record_trajectory,
                 collect_adaptation=True,
+                agent_reward_episode=agent_reward_episode,
             )
         )
         returns.append(episode_return)
+        agent_reward_episodes.append(agent_reward_episode)
         lengths.append(length)
         adaptation_traces.append(adaptation_trace)
         if record_trajectory and first_states is None:
@@ -374,6 +382,11 @@ def evaluate_crossplay(
                     "eval/episode": episode + 1,
                     "eval/episode_return": episode_return,
                     "eval/episode_length": length,
+                    **{
+                        f"eval/{agent}/{kind}": agent_reward_episode[kind + "s"][agent]
+                        for agent in runtime.env.agents
+                        for kind in ("individual_return", "shaped_return")
+                    },
                 }
             )
         if record_trajectory:
@@ -397,6 +410,8 @@ def evaluate_crossplay(
         "env": runtime.env,
         "adaptation_traces": adaptation_traces,
         "adaptation_metrics": adaptation_metrics,
+        "agent_reward_episodes": agent_reward_episodes,
+        "agent_reward_metrics": summarize_agent_rewards(agent_reward_episodes),
     }
 
 
@@ -477,9 +492,26 @@ def main():
             "eval/max_return": float(np.max(returns)),
             "eval/mean_episode_length": float(np.mean(lengths)),
             **adaptation_wandb_metrics(result["adaptation_metrics"]),
+            **{f"eval/{key}": value for key, value in result["agent_reward_metrics"].items()},
         }
         wandb.log(summary)
         evaluation_run.summary.update(summary)
+        reward_path = (
+            args.metrics_json.with_name(args.metrics_json.stem + "_agent_rewards.json")
+            if args.metrics_json is not None else
+            Path(f"evaluation/overcooked_v3/crossplay/{run_name}_agent_rewards.json")
+        )
+        write_agent_reward_episodes(
+            reward_path, result["agent_reward_episodes"], layout=result["layout"],
+            agent_0_run=run_paths[0], agent_1_run=run_paths[1],
+            evaluation_seed=args.seed, stochastic=args.stochastic,
+            transition_observer=_transition_observer(run_configs[0]),
+        )
+        reward_artifact = wandb.Artifact(
+            f"agent-rewards-{evaluation_run.id}", type="evaluation-rewards"
+        )
+        reward_artifact.add_file(str(reward_path))
+        evaluation_run.log_artifact(reward_artifact)
 
         if args.metrics_json is not None:
             write_metrics_json(

@@ -330,3 +330,46 @@ W&B에는 `role-scenario-sp-xp-report` run이 생성되며,
 `report/map_results`에 `map | sample_rollout | payoff_matrix | SP | XP | gap`
 형태의 media table을 기록한다. 선택한 레이아웃은 training sweep YAML을
 기본으로 사용하고, 필요하면 `--layouts`로 직접 지정할 수 있다.
+# Per-agent reward attribution
+
+Overcooked V3 still returns the same shared sparse team reward to both agents.
+It additionally exposes `info["individual_reward"]["agent_0" / "agent_1"]`:
+the sparse delivery reward earned by that agent's interaction, including an
+incorrect-delivery penalty when negative rewards are enabled. Agent 0 is role A;
+agent 1 is role B. Their individual rewards sum to the team reward at every step.
+`info["shaped_reward"]` remains the separate, unweighted auxiliary reward.
+
+IPPO CNN/RNN and FCP checkpoints evaluated through the common cross-play
+evaluators automatically record both types of per-agent reward:
+
+- `pair_results.csv` and `pair_results.json` add
+  `agent_0_mean_individual_return`, `agent_0_std_individual_return`,
+  `agent_0_mean_shaped_return`, `agent_0_std_shaped_return`, and corresponding
+  `agent_1` fields. Standard deviations are across evaluation episodes (`ddof=0`),
+  consistent with the existing team-return report; they are not seed-level CIs.
+- `agent_reward_episodes.csv` has one row per ordered pair and episode, retaining
+  model identities, training seeds, observer condition, evaluation seed, episode
+  number, team return, and both agents' individual and shaped returns.
+- `agent_reward_episodes.json` also stores every step's `team_rewards`,
+  `individual_rewards`, `shaped_rewards`, and pre-step `phase_indices`. Array
+  index 0 is the first action. These traces are saved even without
+  `--save-adaptation-traces` or video rendering.
+- W&B receives pair-level statistics, SP/XP mean individual and shaped returns,
+  and the raw files in the evaluation artifact. Existing team SP/XP/GAP and
+  adaptation metrics retain their definitions.
+
+The single-pair W&B evaluator saves an `*_agent_rewards.json` file and uploads
+it as an `evaluation-rewards` artifact. The local checkpoint evaluator accepts
+`--metrics-json`; by default it writes
+`evaluation/overcooked_v3/local/<architecture>_<layout>_seed<seed>.json`.
+Use distinct paths to retain multiple evaluations with the same default name.
+
+Resume caches now include `agent_reward_version`. Old team-only evaluations
+must be rerun with the existing checkpoints to obtain attribution; it cannot
+be recovered from shared reward alone. No retraining is required.
+
+Individual sparse return measures delivery attribution, not total cooperative
+contribution: an agent preparing ingredients may enable the other agent's
+deliveries. Observer comparisons should retain the same layout, agent role,
+and checkpoint/seed pairing. Comparing separately trained observer conditions
+does not alone identify the causal effect of toggling a warning on a fixed policy.

@@ -226,7 +226,9 @@ class OvercookedV3Base(MultiAgentEnv):
             indices=jnp.array([actions[f"agent_{i}"] for i in range(self.num_agents)])
         )
 
-        state, reward, shaped_rewards = self.step_agents(key, state, acts)
+        state, reward, shaped_rewards, individual_rewards = (
+            self._step_agents_with_individual_rewards(key, state, acts)
+        )
 
         state = state.replace(step=state.step + 1)
 
@@ -249,7 +251,13 @@ class OvercookedV3Base(MultiAgentEnv):
             lax.stop_gradient(state),
             rewards,
             dones,
-            {"shaped_reward": shaped_rewards},
+            {
+                "shaped_reward": shaped_rewards,
+                "individual_reward": {
+                    f"agent_{i}": value
+                    for i, value in enumerate(individual_rewards)
+                },
+            },
         )
 
     @partial(jax.jit, static_argnums=(0,))
@@ -1065,6 +1073,14 @@ class OvercookedV3Base(MultiAgentEnv):
         state: State,
         actions: jax.Array,
     ) -> Tuple[State, Float[Array, ""], Float[Array, " num_agents"]]:
+        """Preserve the public three-value transition API."""
+        state, reward, shaped_rewards, _ = self._step_agents_with_individual_rewards(
+            key, state, actions
+        )
+        return state, reward, shaped_rewards
+
+    def _step_agents_with_individual_rewards(self, key, state, actions):
+        """Also attribute sparse delivery rewards to the interacting agent."""
         grid = state.grid
 
         # print("actions: ", actions)
@@ -1172,10 +1188,10 @@ class OvercookedV3Base(MultiAgentEnv):
                     reward + interact_reward,
                     new_legacy_deliveries,
                 )
-                return carry, (new_agent, shaped_reward)
+                return carry, (new_agent, shaped_reward, interact_reward)
 
             return jax.lax.cond(
-                is_interact, _interact, lambda c, a: (c, (a, 0.0)), carry, agent
+                is_interact, _interact, lambda c, a: (c, (a, 0.0, 0.0)), carry, agent
             )
 
         carry = (
@@ -1190,7 +1206,9 @@ class OvercookedV3Base(MultiAgentEnv):
             new_correct_delivery,
             reward,
             new_legacy_deliveries,
-        ), (new_agents, shaped_rewards) = jax.lax.scan(_interact_wrapper, carry, xs)
+        ), (new_agents, shaped_rewards, individual_rewards) = jax.lax.scan(
+            _interact_wrapper, carry, xs
+        )
 
         # Update extra info:
         def _timestep_wrapper(cell):
@@ -1235,6 +1253,7 @@ class OvercookedV3Base(MultiAgentEnv):
             ),
             reward,
             shaped_rewards,
+            individual_rewards,
         )
 
     def process_interact(

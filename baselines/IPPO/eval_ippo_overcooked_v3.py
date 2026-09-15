@@ -9,6 +9,7 @@ import jax.numpy as jnp
 import numpy as np
 
 import jaxmarl
+from baselines.agent_reward_metrics import write_agent_reward_episodes
 from baselines.adaptation_metrics import (
     EpisodeAdaptationTrace,
     adaptation_config_from_args,
@@ -79,6 +80,14 @@ def parse_args(default_architecture="cnn"):
     parser.add_argument("--fc-dim-size", type=int, default=128)
     parser.add_argument("--gru-hidden-dim", type=int, default=128)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--metrics-json",
+        type=Path,
+        help=(
+            "Reward output path (default: evaluation/overcooked_v3/local/"
+            "<architecture>_<layout>_seed<seed>.json)."
+        ),
+    )
     parser.add_argument(
         "--stochastic",
         action="store_true",
@@ -151,6 +160,7 @@ def evaluate_episode(
     hidden_size,
     record_trajectory=True,
     collect_adaptation=False,
+    agent_reward_episode=None,
 ):
     key, reset_key = jax.random.split(key)
     obs, state = env.reset(reset_key)
@@ -168,8 +178,19 @@ def evaluate_episode(
     episode_return = 0.0
     step_rewards = [] if collect_adaptation else None
     phase_indices = [] if collect_adaptation else None
+    if agent_reward_episode is not None:
+        agent_reward_episode.update({
+            "individual_returns": {agent: 0.0 for agent in env.agents},
+            "shaped_returns": {agent: 0.0 for agent in env.agents},
+            "team_rewards": [],
+            "individual_rewards": {agent: [] for agent in env.agents},
+            "shaped_rewards": {agent: [] for agent in env.agents},
+            "phase_indices": [],
+        })
 
     def episode_result(length):
+        if agent_reward_episode is not None:
+            agent_reward_episode.update(team_return=episode_return, length=length)
         result = (episode_return, length, state_seq, captions, key)
         if collect_adaptation:
             result += (
@@ -183,6 +204,8 @@ def evaluate_episode(
     for step in range(env.max_steps):
         if collect_adaptation:
             phase_indices.append(int(state.layout_index))
+        if agent_reward_episode is not None:
+            agent_reward_episode["phase_indices"].append(int(state.layout_index))
         key, action_key, step_key = jax.random.split(key, 3)
         obs_batch = jnp.stack([obs[agent] for agent in env.agents])
         hidden, action = policy(
@@ -198,6 +221,16 @@ def evaluate_episode(
         obs, state, reward, done, info = env_step(step_key, state, actions)
         team_reward = float(reward["agent_0"])
         episode_return += team_reward
+        if agent_reward_episode is not None:
+            agent_reward_episode["team_rewards"].append(team_reward)
+            for agent in env.agents:
+                # Do not substitute shared reward when attribution is unavailable.
+                individual = float(info["individual_reward"][agent])
+                shaped = float(info["shaped_reward"][agent])
+                agent_reward_episode["individual_returns"][agent] += individual
+                agent_reward_episode["shaped_returns"][agent] += shaped
+                agent_reward_episode["individual_rewards"][agent].append(individual)
+                agent_reward_episode["shaped_rewards"][agent].append(shaped)
         if collect_adaptation:
             step_rewards.append(team_reward)
         if record_trajectory:
@@ -298,8 +331,10 @@ def main(default_architecture="cnn"):
     first_states = None
     first_captions = None
     adaptation_traces = []
+    agent_reward_episodes = []
 
     for episode in range(args.episodes):
+        agent_reward_episode = {"episode": episode + 1}
         episode_return, length, states, captions, key, adaptation_trace = (
             evaluate_episode(
                 policy,
@@ -309,9 +344,11 @@ def main(default_architecture="cnn"):
                 key,
                 args.gru_hidden_dim,
                 collect_adaptation=True,
+                agent_reward_episode=agent_reward_episode,
             )
         )
         returns.append(episode_return)
+        agent_reward_episodes.append(agent_reward_episode)
         lengths.append(length)
         adaptation_traces.append(adaptation_trace)
         if first_states is None:
@@ -325,6 +362,16 @@ def main(default_architecture="cnn"):
         f"mean_length={np.mean(lengths):.2f}"
     )
     phase_mapping = canonical_phase_mapping(args.layout, len(env.dynamic_layout.phases))
+    metrics_path = args.metrics_json or Path(
+        f"evaluation/overcooked_v3/local/{args.architecture}_{args.layout}_seed{args.seed}.json"
+    )
+    write_agent_reward_episodes(
+        metrics_path, agent_reward_episodes, layout=args.layout,
+        checkpoints=[str(path) for path in checkpoints],
+        evaluation_seed=args.seed, stochastic=args.stochastic,
+        mean_return=float(np.mean(returns)), std_return=float(np.std(returns)),
+    )
+    print(f"Saved per-agent reward results: {metrics_path}")
     adaptation_summary = summarize_adaptation_traces(
         adaptation_traces,
         adaptation_config,

@@ -21,6 +21,7 @@ matplotlib.use("Agg")
 
 import numpy as np
 import wandb
+from baselines.agent_reward_metrics import AGENT_REWARD_VERSION
 
 from baselines.adaptation_metrics import (
     ADAPTATION_PAIR_METRIC_KEYS,
@@ -539,6 +540,7 @@ def _record_key(layout, left_model_id, right_model_id, args):
         getattr(args, "transition_observer", None),
         *adaptation_config_dict(adaptation_config).values(),
         bool(getattr(args, "save_adaptation_traces", False)),
+        AGENT_REWARD_VERSION,
     )
 
 
@@ -560,6 +562,7 @@ def _cached_record_key(record):
         record.get("recovery_threshold"),
         record.get("recovery_persistence"),
         bool(record.get("save_adaptation_traces", False)),
+        record.get("agent_reward_version"),
     )
 
 
@@ -865,6 +868,8 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
         "std_return": float(np.std(result["returns"])),
         "mean_episode_length": float(np.mean(result["lengths"])),
         **adaptation_result_metrics(result["adaptation_metrics"]),
+        **result["agent_reward_metrics"],
+        "agent_reward_episodes": result["agent_reward_episodes"],
     }
     if task["save_adaptation_traces"]:
         record["adaptation_traces"] = [
@@ -1216,6 +1221,11 @@ def main():
                     "progress/completed_pairs": len(cached),
                     "pair/mean_return": record["mean_return"],
                     "pair/is_self_play": int(record["pair_type"] == "SP"),
+                    **{
+                        f"pair/{key}": value for key, value in record.items()
+                        if key.startswith(("agent_0_mean_", "agent_1_mean_",
+                                           "agent_0_std_", "agent_1_std_"))
+                    },
                     **adaptation_wandb_metrics(record, prefix="pair/adaptation"),
                 }
             )
@@ -1251,11 +1261,41 @@ def main():
             {
                 key: value
                 for key, value in record.items()
-                if key != "adaptation_traces"
+                if key not in ("adaptation_traces", "agent_reward_episodes")
             }
             for record in active_records
         ]
         _atomic_write_json(output_dir / "pair_results.json", table_records)
+        _atomic_write_json(output_dir / "agent_reward_episodes.json", [
+            {
+                **{key: record[key] for key in (
+                    "layout", "pair_type", "agent_0_model_id", "agent_1_model_id",
+                    "agent_0_seed", "agent_1_seed", "transition_observer",
+                    "evaluation_seed", "stochastic", "agent_reward_version",
+                )},
+                "agent_reward_episodes": record["agent_reward_episodes"],
+            }
+            for record in active_records
+        ])
+        _write_records_csv(output_dir / "agent_reward_episodes.csv", [
+            {
+                **{key: record[key] for key in (
+                    "layout", "pair_type", "agent_0_model_id", "agent_1_model_id",
+                    "agent_0_seed", "agent_1_seed", "transition_observer",
+                    "evaluation_seed", "stochastic",
+                )},
+                "episode": episode["episode"],
+                "length": episode["length"],
+                "team_return": episode["team_return"],
+                **{
+                    f"{agent}_{kind}": episode[kind + "s"][agent]
+                    for agent in ("agent_0", "agent_1")
+                    for kind in ("individual_return", "shaped_return")
+                },
+            }
+            for record in active_records
+            for episode in record["agent_reward_episodes"]
+        ])
         if args.save_adaptation_traces:
             _atomic_write_json(output_dir / "adaptation_traces.json", active_records)
         summary = summarize_records(active_records)
@@ -1266,6 +1306,16 @@ def main():
             "counts/SP_pairs": summary["SP_pairs"],
             "counts/XP_pairs": summary["XP_pairs"],
             **summarize_adaptation_records(active_records),
+            **{
+                f"{pair_type}/{agent}_mean_{kind}": float(np.mean([
+                    record[f"{agent}_mean_{kind}"] for record in active_records
+                    if record["pair_type"] == pair_type
+                ]))
+                for pair_type in ("SP", "XP")
+                if any(record["pair_type"] == pair_type for record in active_records)
+                for agent in ("agent_0", "agent_1")
+                for kind in ("individual_return", "shaped_return")
+            },
         }
         matrix_views = select_matrix_views(layout_models, args.algorithms)
         model_heatmap = output_dir / f"{args.layout}_model_matrix.png"
