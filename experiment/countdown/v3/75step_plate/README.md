@@ -149,3 +149,50 @@ kitchen.
   work.
 * **Concurrent CPU-heavy jobs.** Two of these on one machine exhausted memory in
   LLVM during compilation; run one per GPU rather than oversubscribing.
+
+## The sweeps as created (2026-09-15)
+
+```
+# Stage 1 -- independent
+cilab-overcooked/overcooked-v3-ippo-cdoff-cnn-75step-plate-0915_train/mdhmuowq
+cilab-overcooked/overcooked-v3-ippo-cdoff-rnn-75step-plate-0915_train/t7j50z3e
+cilab-overcooked/overcooked-v3-ippo-multimap-cnn-75step-plate-0915_train/r7uo5jfn
+cilab-overcooked/overcooked-v3-ippo-multimap-rnn-75step-plate-0915_train/6wbor815
+# Stage 2 -- frozen partners
+cilab-overcooked/overcooked-v3-fcp-cdoff-75step-plate-0915_population/ujws5yoj
+cilab-overcooked/overcooked-v3-fcp-multimap-75step-plate-0915_population/iun8zonk
+# Stage 3 -- best responses, only after stage 2
+cilab-overcooked/overcooked-v3-fcp-cdoff-75step-plate-0915_train/hk5zsa0f
+cilab-overcooked/overcooked-v3-fcp-multimap-75step-plate-0915_train/imqy6x51
+# Stage 4 -- the common protocol
+cilab-overcooked/overcooked-v3-ippo-cdoff-cnn-75step-plate-0915_eval/4tytnbl4
+cilab-overcooked/overcooked-v3-ippo-cdoff-rnn-75step-plate-0915_eval/nmfhxjcm
+cilab-overcooked/overcooked-v3-fcp-cdoff-75step-plate-0915_eval/8fsl159p
+cilab-overcooked/overcooked-v3-ippo-multimap-cnn-75step-plate-0915_eval/vozdivgi
+cilab-overcooked/overcooked-v3-ippo-multimap-rnn-75step-plate-0915_eval/n30939uq
+cilab-overcooked/overcooked-v3-fcp-multimap-75step-plate-0915_eval/15s9dgit
+```
+
+On a four-GPU machine, one runner call covers the whole experiment in order:
+
+```bash
+GPUS="0 1 2 3" bash experiment/run_agents_sequential.sh \
+  cilab-overcooked/overcooked-v3-ippo-cdoff-cnn-75step-plate-0915_train/mdhmuowq \
+  cilab-overcooked/overcooked-v3-ippo-multimap-cnn-75step-plate-0915_train/r7uo5jfn \
+  cilab-overcooked/overcooked-v3-ippo-cdoff-rnn-75step-plate-0915_train/t7j50z3e \
+  cilab-overcooked/overcooked-v3-ippo-multimap-rnn-75step-plate-0915_train/6wbor815 \
+  cilab-overcooked/overcooked-v3-fcp-cdoff-75step-plate-0915_population/ujws5yoj \
+  cilab-overcooked/overcooked-v3-fcp-multimap-75step-plate-0915_population/iun8zonk \
+  cilab-overcooked/overcooked-v3-fcp-cdoff-75step-plate-0915_train/hk5zsa0f \
+  cilab-overcooked/overcooked-v3-fcp-multimap-75step-plate-0915_train/imqy6x51 \
+  cilab-overcooked/overcooked-v3-ippo-cdoff-cnn-75step-plate-0915_eval/4tytnbl4 \
+  cilab-overcooked/overcooked-v3-ippo-cdoff-rnn-75step-plate-0915_eval/nmfhxjcm \
+  cilab-overcooked/overcooked-v3-fcp-cdoff-75step-plate-0915_eval/8fsl159p \
+  cilab-overcooked/overcooked-v3-ippo-multimap-cnn-75step-plate-0915_eval/vozdivgi \
+  cilab-overcooked/overcooked-v3-ippo-multimap-rnn-75step-plate-0915_eval/n30939uq \
+  cilab-overcooked/overcooked-v3-fcp-multimap-75step-plate-0915_eval/15s9dgit
+```
+
+The two CNN sweeps are small enough to take two agents per card; running them
+first under `GPUS="0 0 1 1 2 2 3 3"` in a separate call halves their nine hours
+at no risk to the rest. The RNN and FCP sweeps get one agent per card.
