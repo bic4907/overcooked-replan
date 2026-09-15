@@ -12,6 +12,10 @@ ENV_KWARGS:
   include_transition_countdown: true
   include_layout_change_mask: true
   transition_warning_steps: 20
+  # Switching condition. cyclic walks the authored A -> B -> A schedule inside
+  # one episode; episode_random draws one kitchen at reset and holds it, so an
+  # episode never crosses a boundary (the multimap arm).
+  layout_mode: cyclic
 
 # OvercookedV2 FCP hyperparameters, retaining the V3 rollout scale.
 LR: 0.0007

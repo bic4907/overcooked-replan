@@ -1,0 +1,66 @@
+# The multimap arm of the 75-step benchmark: the comparison that asks what
+# switching during training buys, over and above having seen both kitchens.
+#
+# layout_mode=episode_random draws one of the two distinct kitchens at reset
+# and holds it for the whole episode, so training never crosses a boundary.
+# Both kitchens are still trained on, at half the episodes each.
+#
+# One arm only. Under episode_random get_transition_warning_active returns
+# False outright, so the countdown and change-mask channels are constant zero
+# for all 450 steps whatever the observer gate is set to. The channels stay in
+# the observation, which keeps the width equal to the baseline's 31 and makes
+# the baseline-versus-multimap comparison a clean one.
+#
+# Scoring is the common switchmap protocol regardless of how a cell trained:
+# 450-step episodes with boundaries every 75 steps, so these policies meet at
+# evaluation the boundary they never met in training.
+#
+# Stage 2: the frozen partners the multimap best response is trained against --
+# themselves trained one kitchen per episode. Each seed uploads snapshots at
+# 10, 50 and 100 percent, so a layout ends with 18 partners. POPULATION_ROOT is
+# scoped to this arm on purpose: discovery filters on architecture and layout
+# only, and now that every arm shares one observation width a wrong root no
+# longer fails loudly -- it quietly hands one arm the other arm's partners.
+
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: v3-75step-plate-multimap-fcp-population
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+parameters:
+  scenario:
+    values:
+      - split_0
+      - split_1
+      - outage_0
+      - outage_1
+      - distance_0
+      - distance_1
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  TRANSITION_OBSERVER:
+    value: both
+  ENV_KWARGS.layout_mode:
+    value: episode_random
+  ALGORITHM:
+    value: IPPO-SP-multimap
+  POPULATION_ROOT:
+    value: saves/75step_plate_0915/multimap/fcp_population
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-fcp-multimap-75step-plate-0915_population
+  WANDB_TAGS:
+    value: "[0915, 75-step, plate-outage, FCP-Population, multimap]"
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - --config-name
+  - fcp_population_transition_window_overcooked_v3
+  - ${args_no_hyphens}

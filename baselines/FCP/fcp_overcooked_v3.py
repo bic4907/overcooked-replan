@@ -935,6 +935,13 @@ def make_train(config):
                     train_agent_indices, (env.num_agents, 1)
                 )
 
+                # The env reports per-agent sparse rewards as a dict for the
+                # evaluator; stack it like shaped_reward so the batch reshape
+                # below sees one array per agent, not one array per env.
+                if "individual_reward" in info:
+                    info["individual_reward"] = jnp.array(
+                        [info["individual_reward"][agent] for agent in env.agents]
+                    )
                 info = jax.tree.map(lambda x: x.reshape((config["NUM_ACTORS"])), info)
                 done_batch = batchify(done, env.agents, config["NUM_ACTORS"]).squeeze()
                 rng, train_agent_rng, population_rng = jax.random.split(rng, 3)
