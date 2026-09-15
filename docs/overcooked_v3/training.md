@@ -50,33 +50,28 @@ credential 값 없이 `Loaded project .env`만 출력된다.
 | `scenario=distance_switch_0` | Distance-Driven Role Switch |
 | `scenario=distance_switch_1` | Distance-Driven Role Switch candidate |
 
-Kitchen Split은 처음 150 step 동안 중앙 통로 하나가 열려 있고, 이후 150 step 동안
-그 타일이 handoff counter 벽으로 바뀐다. 왼쪽에는 onion과 pot 두 개, 오른쪽에는
+Kitchen Split은 중앙 통로와 handoff counter 벽을 75 step마다 번갈아 사용한다.
+왼쪽에는 onion과 pot 두 개, 오른쪽에는
 plate pile과 serving station이 있다. 벽이 닫히기 전에 두 에이전트가 서로 다른
 bay를 선택해야 하며, 닫힌 뒤에는 중앙 counter로 재료와 dish를 전달하면서
 cook–server 역할을 유지해야 한다.
 
-Resource Outage는 중앙 counter wall로 두 에이전트의 이동 영역을 분리하되, 양쪽
-주방 모두 pot·plate·serving·onion을 갖는다. outage phase에는 오른쪽 양파만
-사라진다. 평소 각자 조리하던 왼쪽 에이전트가 자기 생산을 일부 포기하고 중앙
-shared counter로 양파를 넘겨야 오른쪽 주방이 조리를 계속할 수 있다.
-recipe indicator는 맵 위쪽 중앙의 별도 타일에 유지한다. 중앙열에는 이동과 물건
-보관을 모두 막는 일반 non-storage blocker를 둔다.
+Resource Outage는 normal phase에서 onion·pot·plate·serving을 모두 제공한다.
+outage phase에는 모든 plate dispenser가 사라진다. 신호를 본 에이전트는 전환
+전에 plate를 들거나 counter에 비축해야 하며, 저장된 plate와 held inventory,
+pot contents는 전환 뒤에도 유지된다. recipe indicator는 맵 위쪽 중앙의 별도
+타일에 유지한다.
 
 각 category에는 선별한 Easy 레이아웃 하나가 `_0`으로 등록되어 있다. Split,
 Outage, Distance Switch에는 직접 실행용 `_1` 후보도 있다. 현재 `outage_0`
 geometry는 기존 observer W&B run에서 `outage_1`로 기록되었으므로, 새
 `outage_1` run은 `LAYOUT_REVISION`까지 함께 필터링해야 한다.
-Split은 7×9, Resource Outage는 5×7이다. Outage는 normal과 outage를 각각 150 step 유지한다.
-모든 Outage variant는 onion→handoff와 handoff→pot 각각을 최대 1 step으로 제한한다.
-중앙은 항상 wall/counter로
-막혀 두 agent의 이동 영역이 완전히 분리된다. 오른쪽 agent는 왼쪽 onion pile에
-직접 갈 수 없고, left agent가 shared handoff counter에 올려놓은 onion만 받을 수 있다.
-blocker는 중앙열 아래쪽에 두고, 그 위의 인접한 counter 2칸에 onion을 미리
-적재할 수 있다.
+Split은 7×9, Resource Outage는 5×7이다. Outage는 normal과 outage를 각각
+75 step 유지한다. 두 agent는 전환 전에 plate를 미리 확보하고 제한된 재고를
+outage 구간에 배분해야 한다.
 Split은 기존의 양파 3개 레시피를 유지하고, Outage는 양파 2개를 pot에 넣으면
 바로 조리를 시작한다. 모든 scenario의 pot 조리시간은 기존과 동일한 20 step이다.
-모든 Outage variant는 outage phase에서 오른쪽 onion을 전부 제거한다. Easy
+선택된 `outage_0`과 `outage_1`은 outage phase에서 plate dispenser를 전부 제거한다. Easy
 layout은 `scenario=split_0` 또는 `scenario=outage_0`처럼 바로 선택할 수 있다.
 기본 sweep에는 네 category의 총 4개 layout이 등록되어 있다.
 
@@ -85,18 +80,18 @@ layout은 `scenario=split_0` 또는 `scenario=outage_0`처럼 바로 선택할 �
 Mixed Recipe Relay는 onion·serving이 있는 왼쪽 bay와 tomato·plate가 있는 오른쪽
 bay를 영구적으로 분리하고, 중앙 handoff counter 두 칸으로만 물건을 교환한다.
 기존 catalog의 `_7`을 새 `_0`으로 재인덱싱했다. 7×5이며
-tomato-major → onion-major → tomato-major 순서를 사용한다. 선택된 4개 Easy
-role scenario는 step 150과
-300에 전환하고 step 450에 종료하며, 모든 scenario config는
+tomato-major → onion-major → tomato-major 순서를 사용한다. Recipe Relay는
+기존의 150/300 step 전환을 유지한다. 선택된 Split·Outage·Distance는
+75·150·225·300·375 step에 전환하고 step 450에 종료하며, 모든 scenario config는
 `max_steps: 450`과 `RECORD_MAX_STEPS: 450`을 사용한다.
 
 Distance-Driven Role Switch는 표준 onion 3개 레시피를 episode 전체에서 고정하고
 원본 `asymm_advantages`의 비교비용 구조를 사용한다. 두 agent의 이동 영역은
 분리되어 있지만, 양쪽 영역 모두 onion·중앙 pot·plate·serving station을 직접
 사용할 수 있다. Phase A에서는 agent 0의 pot→plate→serving loop가 짧고 agent
-1의 onion→pot loop가 짧다. `_0`은 150 step에 endpoint 타입을 같은 자리에서
+1의 onion→pot loop가 짧다. `_0`은 75 step마다 endpoint 타입을 같은 자리에서
 교환한다. `_1`은 A/B에서 서로 다른 counter 위치로 onion과 serving station을
-이동해 비용 우위를 역전한다. 300 step에는 초기 배치로 돌아온다. Pot, plate,
+이동해 비용 우위를 75 step마다 역전한다. Pot, plate,
 floor와 agent 위치는 전환 중 고정된다. 레시피는 바뀌지 않으므로 관측은 표준
 V3 31채널이다.
 

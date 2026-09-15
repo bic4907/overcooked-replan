@@ -9,77 +9,48 @@ The following role-coordination experiments are currently available:
 
 | Hydra scenario | Environment | Research question |
 | --- | --- | --- |
-| `split_0` | Kitchen Split | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
-| `split_1` | Kitchen Split candidate | Does a centered choke point force a rapid, symmetric stay-versus-switch decision? |
-| `outage_0` | Resource Outage | Can a cook pause local production and supply the other kitchen through a shared handoff counter? |
-| `outage_1` | Resource Outage candidate | Can agents rapidly choose local cooking versus a short two-slot onion relay? |
+| `split_0` | Diagonal Narrow Kitchen Split | Does the compact diagonal arrangement preserve coordination while increasing cross-play difficulty? |
+| `split_1` | Kitchen Split | Can agents choose opposite bays before the doorway closes and sustain complementary roles? |
+| `outage_0` | Diagonal Narrow Resource Outage | Can agents prepare for the loss of every plate dispenser through compact diagonal routes? |
+| `outage_1` | Shared-room Resource Outage | Can agents prepare and ration plates before every dispenser becomes unavailable? |
 | `recipe_switch_0` | Mixed Recipe Relay | Can agents reverse supplier–cook roles as the shared recipe follows a fixed A→B→A schedule? |
-| `distance_switch_0` | Distance-Driven Role Switch | Can agents exchange cook/server roles when identical reachable stations move between asymmetric near/far positions? |
-| `distance_switch_1` | Distance-Driven Role Switch candidate | Does relocating stations onto inactive counters induce rapid route reassignment? |
+| `distance_0` | Distance-Driven Role Switch | Can agents exchange cook/server roles when reachable stations swap asymmetric near/far costs? |
+| `distance_1` | Wide Distance-Driven Role Switch | Can agents reassign roles when near/far distance differences increase? |
 | `split_wide` | Kitchen Split, 11×7 | Can agents coordinate between opposite-edge stations around two interior obstacles? |
-| `outage_wide` | Resource Outage, 13×6 | Can a cook balance longer local routes with supplying the other kitchen? |
+| `outage_wide` | Shared-room Resource Outage, 11×6 | Can agents compensate when every onion dispenser disappears around staggered obstacles? |
 | `distance_switch_wide` | Distance-Driven Role Switch, 13×6 | Can agents reassign roles when near/far station advantages reverse on a wider map? |
+| `split_hard` | Random-order Kitchen Split | Can agents generalize across three maps to a held-out order? |
+| `outage_hard` | Random-order Resource Outage | Can agents adapt to three outage maps in an unseen order? |
+| `distance_switch_hard` | Random-order Distance Switch | Can agents reassign routes across three cost configurations in an unseen order? |
 
-Wide maps retain the A→B→A schedule at steps 150 and 300 within 450-step
-episodes. See [wide map designs and previews](docs/overcooked_v3/wide_maps.md).
+The selected six-layout benchmark is `split_0`, `split_1`, `outage_0`,
+`outage_1`, `distance_0`, and `distance_1`. The `_0` and `_1` suffixes identify
+the two retained layouts in each family. Earlier descriptive names remain
+registered so existing checkpoints and experiment records can still be reproduced.
 
-Kitchen Split starts with one central doorway open for 150 steps. It then becomes
-a handoff counter for 150 steps, preventing agents from changing bays. The left
-bay has onions and pots; the right bay has plates and serving. Agents must
-choose opposite sides before closure and sustain complementary cook–server
-roles through the counter. Resource Outage instead keeps two complete kitchens
-in disconnected bays; the right onion pile disappears during the outage, so
-the left cook must trade off local production against supplying the right bay.
-Both conditions keep a recipe indicator at a separate fixed tile and use a
-generic non-storage blocker in the center column.
+Split, Outage, and Distance alternate their A and B maps every 75 steps, with
+transitions at steps 75, 150, 225, 300, and 375 in a 450-step episode. Kitchen
+Split alternates a central doorway and a handoff counter. Resource Outage uses
+one shared room and removes every plate dispenser during phase B; stored plates,
+held inventory, and pot contents survive the transition. Distance keeps the
+standard three-onion recipe and reverses the short onion-input and serving loops.
+Outage uses a two-onion recipe; all other cooking timers remain unchanged.
 
-Each category exposes one selected Easy layout under the `_0` tag. Split,
-Outage, and Distance Switch also expose a redesigned `_1` candidate for visual
-review and direct runs; these candidates are intentionally not part of the
-default W&B sweeps yet.
-The paper-facing layouts are `split_0`, `outage_0`, and `distance_switch_0`.
-The existing observer W&B runs recorded the current `outage_0` geometry under
-the historical `outage_1` name. That historical run label is not the same map
-as the newly registered `outage_1` candidate. New candidate runs carry a
-top-level `LAYOUT_REVISION` field; use it together with the layout name when
-querying W&B.
-Both Split candidates use a 7×9 map, while both Outage candidates use a compact
-5×7 map whose phases last
-150 steps each. Outage keeps each onion-to-handoff and handoff-to-pot leg
-within one movement step. The central wall always
-separates agent movement, so cross-bay assistance is possible only by placing
-objects on shared handoff counters. This keeps the right cook productive without
-allowing it to walk to the surviving onion pile directly.
-Split keeps the standard three-onion recipe, while Outage completes and starts
-cooking a pot with two onions. Pot cooking time remains 20 steps in every
-scenario.
-Selected `outage_0` places two adjacent storage counters above the blocker tile.
-Candidate `outage_1` keeps that two-slot relay principle but changes the resource
-placement and adds mirrored lower notches, so the left cook must immediately
-choose between its own pot and supplying the right cook when the outage begins.
+[Wide maps](docs/overcooked_v3/wide_maps.md) use larger route geometries: Split
+11×7, Outage 11×6, and Distance Switch 13×6 (width×height). They use the same
+75-step alternation as the selected six layouts.
+
+[Hard mode](docs/overcooked_v3/hard_mode.md) keeps the `_0` footprints and uses
+three distinct maps A/B/C. Training samples five orders and evaluation holds out
+CBA. Hard mode retains transitions at steps 150 and 300.
+
 Mixed Recipe Relay permanently separates an onion/serving bay from a
 tomato/plate bay and exposes exactly two shared handoff counters. Both bays have
 pots. The retained layout is former catalog `_7`, reindexed as `_0`. It is a
 7×5 tomato-major-first layout. The map stays fixed while the recipe changes at
-steps 150 and 300 within a 450-step episode. The four selected `_0` role
-scenarios use the same A → B → A phase schedule and episode length; the three
-new candidates follow it as well.
+steps 150 and 300 within a 450-step episode.
 Select any layout through its Hydra scenario name, such as
 `scenario=outage_0`.
-
-Distance-Driven Role Switch keeps the standard three-onion recipe fixed and
-follows the original `asymm_advantages` comparative-cost structure. The two
-agents work in separate regions, but each region can directly use an onion
-pile, central pot, plate pile, and serving station. During each 450-step episode
-the assignment follows A → B → A: agent 0 first has the short serving loop and
-agent 1 the short onion-input loop. In `_0`, the onion and serving endpoint
-types exchange in place at step 150. In `distance_switch_1`, those stations
-instead move onto four previously unused counter cells. Both return to Phase A
-at step 300. Pots, plates, floor, and agent positions remain fixed. The retained
-`_0` layout is the canonical 9×5 `asymm_advantages` map; candidate `_1` uses a
-similar 9×6 footprint with different station and interior-counter placements.
-Both keep at least a three-step comparative advantage for the efficient task
-loop.
 
 Overcooked V3 exposes upcoming layout transitions to every agent. The final two
 channels of the default 31-channel observation contain a global transition

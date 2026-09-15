@@ -3,14 +3,14 @@
 | Hydra scenario | Width × height | Revision | Mechanism |
 | --- | --- | --- | --- |
 | `split_wide` | 11×7 | `split-wide-pillars-edges-v3` | The central doorway closes; opposite-edge cooking and serving stations require coordinated handoffs. Two interior obstacles create detours. |
-| `outage_wide` | 13×6 | `outage-wide-v3` | Two disconnected kitchens retain a short central relay; the right onion pile disappears during phase B. |
+| `outage_wide` | 11×6 | `outage-wide-shared-room-v2` | Every onion dispenser disappears during phase B in a shared room with staggered obstacles. |
 | `distance_switch_wide` | 13×6 | `distance-switch-wide-v2` | Onion and serving locations exchange near/far advantages while pots and plates stay fixed. |
 
-All three maps use A→B→A: A for steps 0–149, B for 150–299, and A again
-for 300–449. Outage uses two onions per soup; Split and Distance Switch use
-three. These layouts can be selected directly without changing default sweeps.
-`outage_wide` is the divided-kitchen version; `outage_wide_2` is a separate
-shared-room variant.
+All three maps alternate A and B every 75 steps. Transitions occur at steps 75,
+150, 225, 300, and 375 in a 450-step episode. Outage uses two onions per soup;
+Split and Distance Switch use three. These layouts can be selected directly
+without changing default sweeps. Historical aliases remain registered for old
+checkpoints and experiment records.
 
 ```bash
 python baselines/IPPO/ippo_overcooked_v3.py scenario=split_wide ARCHITECTURE=rnn
@@ -19,8 +19,8 @@ python baselines/IPPO/ippo_overcooked_v3.py scenario=distance_switch_wide ARCHIT
 ```
 
 The published `split_wide` is the selected 11×7 pillars map. Historical runs
-named `split_wide` with `split-wide-v3` used a different 13×7 map. Always
-filter experiment results by layout revision as well as layout name.
+named `split_wide` with `split-wide-v3` used a different map. Always filter
+experiment results by layout revision as well as layout name.
 
 ## Phase previews
 

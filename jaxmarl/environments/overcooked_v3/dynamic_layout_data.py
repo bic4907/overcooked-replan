@@ -5,23 +5,34 @@
 # The recipe display stays at a separate fixed cell. A non-storage blocker
 # separates the dynamic doorway or handoff counters from the rest of the map.
 #
-# Kitchen Split starts with one open central doorway. After 150 steps, that
-# doorway becomes a handoff counter and traps agents in their chosen bays until
-# step 300. The left bay has onions and pots, while the right bay has
-# plates and serving, so agents must occupy different sides and divide labor.
+# Kitchen Split alternates an open central doorway and a handoff counter every
+# 75 steps. The left bay has onions and pots, while the right bay has plates and
+# serving, so agents must occupy different sides and divide labor.
 #
-# Resource Outage permanently separates two otherwise complete kitchens. Each
-# bay owns at least one pot, plate pile, serving station, and onion pile in the normal
-# phase. When the right onion pile disappears, the left agent must trade off
-# local cooking against supplying onions through the shared center counters.
+# The selected Resource Outage layouts use a shared room. Every plate dispenser
+# disappears in phase B, so agents must stockpile and ration plates before each
+# transition. Inventory, stored objects, and pot contents survive map changes.
 #
 # Each paper category keeps its selected ``0`` layout. The Split, Outage, and
 # Distance Switch families additionally expose a deliberately redesigned ``1``
 # candidate with the same scenario mechanics and a different route geometry.
 
 
-_ROLE_PHASE_STEPS = 150
+_ROLE_PHASE_STEPS = 75
+_HARD_PHASE_STEPS = 150
 _FINAL_PHASE_STEPS = 1000
+
+
+def _alternating_role_phases(phase_a, phase_b):
+    """Alternate A/B every role phase, then hold B through episode end."""
+    return [
+        [phase_a, _ROLE_PHASE_STEPS],
+        [phase_b, _ROLE_PHASE_STEPS],
+        [phase_a, _ROLE_PHASE_STEPS],
+        [phase_b, _ROLE_PHASE_STEPS],
+        [phase_a, _ROLE_PHASE_STEPS],
+        [phase_b, _FINAL_PHASE_STEPS],
+    ]
 
 
 def _role_grid(
@@ -64,7 +75,7 @@ def _role_grid(
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-def _build_split_workload(spec, width=11, recipe_row=0, counters=()):
+def _build_split_workload(spec, width=11, recipe_row=0, counters=(), height=7):
     door_row, blocker_row, agents, left_resources, right_resources = spec
     resources = [*left_resources, *right_resources]
     open_grid = _role_grid(
@@ -75,6 +86,7 @@ def _build_split_workload(spec, width=11, recipe_row=0, counters=()):
         recipe_row=recipe_row,
         counters=counters,
         width=width,
+        height=height,
     )
     closed_grid = _role_grid(
         resources,
@@ -84,12 +96,9 @@ def _build_split_workload(spec, width=11, recipe_row=0, counters=()):
         recipe_row=recipe_row,
         counters=counters,
         width=width,
+        height=height,
     )
-    return [
-        [open_grid, _ROLE_PHASE_STEPS],
-        [closed_grid, _ROLE_PHASE_STEPS],
-        [open_grid, _FINAL_PHASE_STEPS],
-    ]
+    return _alternating_role_phases(open_grid, closed_grid)
 
 
 def _compact_outage_grid(
@@ -141,11 +150,7 @@ def _build_compact_outage_variant(spec):
         blocker_row,
         notches,
     )
-    return [
-        [normal_grid, _ROLE_PHASE_STEPS],
-        [outage_grid, _ROLE_PHASE_STEPS],
-        [normal_grid, _FINAL_PHASE_STEPS],
-    ]
+    return _alternating_role_phases(normal_grid, outage_grid)
 
 
 def _rotated_take(positions, count, offset):
@@ -802,18 +807,16 @@ def _register_distance_switch_catalog():
         _validate_distance_switch_spec(spec)
         phase_a = _distance_switch_grid(spec, roles_swapped=False)
         phase_b = _distance_switch_grid(spec, roles_swapped=True)
-        globals()[f"distance_switch_{variant_index}"] = [
-            [phase_a, _ROLE_PHASE_STEPS],
-            [phase_b, _ROLE_PHASE_STEPS],
-            [phase_a, _FINAL_PHASE_STEPS],
-        ]
+        globals()[f"distance_switch_{variant_index}"] = (
+            _alternating_role_phases(phase_a, phase_b)
+        )
 
 
 _register_distance_switch_catalog()
 
 
-# Selected 11x7 pillars map, published as split_wide. Stations occupy
-# opposite outer walls; N obstacles block movement and cannot store objects.
+# split_wide uses the selected 11x7 pillars geometry. Keep the historical
+# split_wide_pillars name below for reproducibility.
 split_wide = _build_split_workload(
     (
         3, 1, ((3, 3), (7, 3)),
@@ -821,12 +824,97 @@ split_wide = _build_split_workload(
         (("B", (10, 2)), ("B", (10, 4)), ("X", (10, 1)), ("X", (10, 5)),
          ("N", (8, 4))),
     ),
-    width=11,
+    width=11, height=7,
+)
+
+
+# A compact 7x6 Split variant. Each bay is one floor column narrower and the
+# room one row shorter than the canonical 9x7 map, while preserving its workload
+# and A -> B -> A doorway cycle.
+split_narrow = _build_split_workload(
+    (
+        3, 1, ((2, 3), (4, 3)),
+        (("0", (0, 2)), ("P", (0, 4)), ("P", (1, 5))),
+        (("B", (6, 2)), ("B", (6, 4)), ("X", (6, 1)), ("X", (5, 5))),
+    ),
+    width=7, height=6,
+)
+
+split_narrow_upper = _build_split_workload(
+    (
+        2, 4, ((2, 2), (4, 2)),
+        (("0", (0, 1)), ("P", (0, 3)), ("P", (1, 5))),
+        (("B", (6, 1)), ("B", (6, 3)), ("X", (5, 0)), ("X", (5, 5))),
+    ),
+    width=7, height=6,
+)
+
+split_narrow_lower = _build_split_workload(
+    (
+        4, 2, ((2, 4), (4, 4)),
+        (("0", (1, 0)), ("P", (0, 1)), ("P", (0, 3))),
+        (("B", (5, 0)), ("B", (6, 1)), ("X", (6, 3)), ("X", (5, 5))),
+    ),
+    width=7, height=6,
+)
+
+split_narrow_diagonal = _build_split_workload(
+    (
+        3, 1, ((1, 2), (5, 4)),
+        (("0", (2, 0)), ("P", (0, 1)), ("P", (0, 4))),
+        (("B", (4, 0)), ("B", (6, 4)), ("X", (6, 1)), ("X", (5, 5))),
+    ),
+    width=7, height=6,
+)
+
+split_narrow_crossing = _build_split_workload(
+    (
+        3, 1, ((1, 2), (2, 4)),
+        (("0", (0, 2)), ("P", (0, 4)), ("P", (1, 5))),
+        (("B", (6, 2)), ("B", (6, 4)), ("X", (6, 1)), ("X", (5, 5))),
+    ),
+    width=7, height=6,
+)
+
+
+# Split candidates keep the same workload and timing. The selected pillars
+# variant puts all stations at opposite outer walls. N obstacles cannot store
+# objects, so obstacle variants change movement rather than storage capacity.
+split_wide_open = _build_split_workload(
+    (
+        3, 1, ((3, 3), (7, 3)),
+        (("0", (3, 0)), ("P", (4, 0)), ("P", (4, 6))),
+        (("B", (6, 0)), ("B", (6, 6)), ("X", (8, 0)), ("X", (8, 6))),
+    ),
+    width=11, height=7,
+)
+
+split_wide_pillars = _build_split_workload(
+    (
+        3, 1, ((3, 3), (7, 3)),
+        (("0", (0, 2)), ("P", (0, 3)), ("P", (0, 4)), ("N", (2, 2))),
+        (("B", (10, 2)), ("B", (10, 4)), ("X", (10, 1)), ("X", (10, 5)),
+         ("N", (8, 4))),
+    ),
+    width=11, height=7,
+)
+
+split_wide_baffles = _build_split_workload(
+    (
+        3, 1, ((4, 3), (8, 3)),
+        (("0", (4, 0)), ("P", (5, 0)), ("P", (5, 7)),
+         ("N", (2, 3)), ("N", (3, 3))),
+        (("B", (7, 0)), ("B", (7, 7)), ("X", (10, 0)), ("X", (10, 7)),
+         ("N", (9, 4)), ("N", (10, 4))),
+    ),
+    width=13, height=8,
 )
 
 
 def _build_wide_outage():
-    # Keep the short onion relay while widening both disconnected kitchens.
+    # Put onion/pot stations near the center, even as the serving route grows.
+    # (5, 1) accesses both the left onion and handoff (6, 1) without moving;
+    # the right receiver at (7, 1) moves once to reach pot (8, 0).
     left_resources = (
         ("0", (5, 0)),
         ("P", (4, 0)),
@@ -841,9 +929,12 @@ def _build_wide_outage():
         return _role_grid(
             (
                 *left_resources,
+                # Extend the non-storage divider, preserving two handoffs.
                 ("N", (6, 4)),
-                *(("W" if outage and symbol == "0" else symbol, position)
-                  for symbol, position in right_resources),
+                *(
+                    ("W" if outage and symbol == "0" else symbol, position)
+                    for symbol, position in right_resources
+                ),
             ),
             agent_positions=((3, 2), (9, 2)),
             blocker_row=3,
@@ -853,26 +944,10 @@ def _build_wide_outage():
         )
 
     normal_grid, outage_grid = phase(False), phase(True)
-    return [
-        [normal_grid, _ROLE_PHASE_STEPS],
-        [outage_grid, _ROLE_PHASE_STEPS],
-        [normal_grid, _FINAL_PHASE_STEPS],
-    ]
+    return _alternating_role_phases(normal_grid, outage_grid)
 
 
-outage_wide = _build_wide_outage()
-
-_DISTANCE_SWITCH_WIDE_SPEC = _vertical_distance_switch_spec(13, 6)
-_validate_distance_switch_spec(_DISTANCE_SWITCH_WIDE_SPEC)
-_distance_wide_a = _distance_switch_grid(_DISTANCE_SWITCH_WIDE_SPEC)
-_distance_wide_b = _distance_switch_grid(
-    _DISTANCE_SWITCH_WIDE_SPEC, roles_swapped=True
-)
-distance_switch_wide = [
-    [_distance_wide_a, _ROLE_PHASE_STEPS],
-    [_distance_wide_b, _ROLE_PHASE_STEPS],
-    [_distance_wide_a, _FINAL_PHASE_STEPS],
-]
+_legacy_outage_wide = _build_wide_outage()
 
 
 def _build_shared_room_outage(source, missing_resource="0"):
@@ -890,16 +965,13 @@ def _build_shared_room_outage(source, missing_resource="0"):
     normal = "\n" + "\n".join("".join(row) for row in rows) + "\n"
     removed_symbols = {"0", "O"} if missing_resource == "0" else {"B"}
     suspended = "".join("W" if cell in removed_symbols else cell for cell in normal)
-    return [
-        [normal, _ROLE_PHASE_STEPS],
-        [suspended, _ROLE_PHASE_STEPS],
-        [normal, _FINAL_PHASE_STEPS],
-    ]
+    return _alternating_role_phases(normal, suspended)
 
 
-# Shared-room tag 2 retains the compact footprint. Wide uses an 11x6 room
-# with staggered two-cell non-storage obstacles and an open central aisle.
-# The default removes all onion piles; plate variants use identical geometry.
+# The canonical Outage layouts use a shared room and remove every plate
+# dispenser during phase B. Wide uses an 11x6 room with staggered two-cell
+# non-storage obstacles and an open central aisle. Keep the former ``_2`` names
+# as aliases so existing checkpoints and experiment records remain loadable.
 _SHARED_WIDE_OUTAGE_SOURCE = [["""
 WWWP0R0PWWW
 X         X
@@ -909,14 +981,111 @@ W         W
 WWWBWWWBWWW
 """, _ROLE_PHASE_STEPS]]
 
-outage_2 = _build_shared_room_outage(outage_0)
-outage_wide_2 = _build_shared_room_outage(_SHARED_WIDE_OUTAGE_SOURCE)
+outage = _build_shared_room_outage(outage_0, missing_resource="B")
+outage_wide = _build_shared_room_outage(_SHARED_WIDE_OUTAGE_SOURCE)
+outage_narrow_upper = _build_shared_room_outage([["""
+W0PRP0W
+B A A B
+X     X
+W N   W
+WWBWBWW
+""", _ROLE_PHASE_STEPS]])
+outage_narrow_lower = _build_shared_room_outage([["""
+WWBRBWW
+X   N X
+W     W
+B A A B
+W0PWP0W
+""", _ROLE_PHASE_STEPS]])
+outage_narrow_diagonal = _build_shared_room_outage(
+    [["""
+W0BRPWW
+B A   X
+W N N W
+X   A B
+WWPWB0W
+""", _ROLE_PHASE_STEPS]],
+    missing_resource="B",
+)
+outage_2 = outage
+outage_wide_2 = outage_wide
 outage_2_plate = _build_shared_room_outage(outage_0, missing_resource="B")
 outage_wide_2_plate = _build_shared_room_outage(
     _SHARED_WIDE_OUTAGE_SOURCE, missing_resource="B"
 )
 
+_DISTANCE_SWITCH_WIDE_SPEC = _vertical_distance_switch_spec(13, 6)
+_validate_distance_switch_spec(_DISTANCE_SWITCH_WIDE_SPEC)
+_distance_wide_a = _distance_switch_grid(_DISTANCE_SWITCH_WIDE_SPEC)
+_distance_wide_b = _distance_switch_grid(
+    _DISTANCE_SWITCH_WIDE_SPEC, roles_swapped=True
+)
+distance_switch_wide = _alternating_role_phases(
+    _distance_wide_a, _distance_wide_b
+)
 
-# Short aliases for the first selected layouts.
+
+# Three-map hard mode uses the existing tag-0 footprints. Entries describe
+# map identities A/B/C; durations describe chronological slots, not identities.
+def _hard_maps():
+    split_a, split_b = split_0[0][0], split_0[1][0]
+    # Reverse the closed kitchen's resource roles, keeping agent IDs/spawns.
+    split_rows = split_b.strip("\n").splitlines()
+    split_c = [list(row.replace("A", " ")[::-1]) for row in split_rows]
+    for y, row in enumerate(split_rows):
+        for x, cell in enumerate(row):
+            if cell == "A":
+                split_c[y][x] = "A"
+    split_c = "\n".join("".join(row) for row in split_c)
+
+    outage_a, outage_b = outage_0[0][0], outage_0[1][0]
+    outage_c = "\n".join(
+        "".join(
+            "W" if cell in "0O" and x < len(row) // 2 else cell
+            for x, cell in enumerate(row)
+        )
+        for row in outage_a.strip("\n").splitlines()
+    )
+
+    distance_a, distance_b = distance_switch_0[0][0], distance_switch_0[1][0]
+    # B's left bay and A's right bay both have short onion-input loops and
+    # long serving loops. Pots, plates, floor and starts stay in place.
+    distance_c = "\n".join(
+        row_b[: len(row_a) // 2] + row_a[len(row_a) // 2 :]
+        for row_a, row_b in zip(
+            distance_a.strip("\n").splitlines(),
+            distance_b.strip("\n").splitlines(),
+        )
+    )
+    return tuple(
+        [[a, _HARD_PHASE_STEPS], [b, _HARD_PHASE_STEPS], [c, _FINAL_PHASE_STEPS]]
+        for a, b, c in (
+            (split_a, split_b, split_c),
+            (outage_a, outage_b, outage_c),
+            (distance_a, distance_b, distance_c),
+        )
+    )
+
+
+split_hard, outage_hard, distance_switch_hard = _hard_maps()
+
+
+# Preserve the displaced catalog candidates under explicit legacy names before
+# assigning the six selected benchmark layouts their final numbered names.
+split_centered_choke_legacy = split_1
+outage_compact_legacy = outage_0
+outage_adjacent_relay_legacy = outage_1
+distance_relocation_legacy = distance_switch_1
+
+# Final benchmark names. The descriptive names remain compatible aliases for
+# checkpoints and experiment records produced during layout selection.
 split = split_0
-outage = outage_0
+split_0 = split_narrow_diagonal
+split_1 = split
+
+outage_0 = outage_narrow_diagonal
+outage_1 = outage
+
+distance_switch = distance_switch_0
+distance_0 = distance_switch
+distance_1 = distance_switch_wide

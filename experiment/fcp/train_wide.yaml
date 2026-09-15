@@ -1,0 +1,31 @@
+program: baselines/FCP/fcp_overcooked_v3.py
+name: fcp-wide-final-best-response
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+# Run only after population_wide.yaml completes on the same filesystem.
+parameters:
+  scenario:
+    values: [split_wide, outage_wide, distance_switch_wide]
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-fcp_train
+  SAVES_DIR:
+    value: saves/fcp_wide
+  upload_final_checkpoint:
+    value: true
+  WANDB_TAGS:
+    value: [FCP, wide-final-20260910]
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

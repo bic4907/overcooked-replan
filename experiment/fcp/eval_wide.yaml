@@ -1,0 +1,36 @@
+program: baselines/IPPO/eval_crossplay_overcooked_v3.py
+name: fcp-wide-final-seedwise-xp
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+parameters:
+  algorithms:
+    value: FCP
+  layout:
+    values: [split_wide, outage_wide, distance_switch_wide]
+  episodes:
+    value: 20
+  max-steps:
+    value: 450
+  workers-per-gpu:
+    value: 8
+  entity:
+    value: cilab-overcooked
+  output-project:
+    value: cilab-overcooked/overcooked-v3-fcp_eval
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - cilab-overcooked/overcooked-v3-fcp_train
+  - --seeds
+  - "0"
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+  - "5"
+  - ${args_no_equals}
