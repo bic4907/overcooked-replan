@@ -1,0 +1,74 @@
+# The multimap arm of the 75-step benchmark: the comparison that asks what
+# switching during training buys, over and above having seen both kitchens.
+#
+# layout_mode=episode_random draws one of the two distinct kitchens at reset
+# and holds it for the whole episode, so training never crosses a boundary.
+# Both kitchens are still trained on, at half the episodes each.
+#
+# One arm only. Under episode_random get_transition_warning_active returns
+# False outright, so the countdown and change-mask channels are constant zero
+# for all 450 steps whatever the observer gate is set to. The channels stay in
+# the observation, which keeps the width equal to the baseline's 31 and makes
+# the baseline-versus-multimap comparison a clean one.
+#
+# Scoring is the common switchmap protocol regardless of how a cell trained:
+# 450-step episodes with boundaries every 75 steps, so these policies meet at
+# evaluation the boundary they never met in training.
+#
+# The evaluator rebuilds the environment from each run's observation config and
+# never copies layout_mode, so every cell is scored on the cyclic 75-step
+# schedule. The metric windows match the 09-15 baseline evaluation exactly,
+# which is what makes the arms comparable.
+
+program: baselines/IPPO/eval_crossplay_overcooked_v3.py
+name: v3-75step-plate-multimap-fcp-eval
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+parameters:
+  algorithms:
+    value: FCP-multimap
+  layout:
+    values:
+      - split_0
+      - split_1
+      - outage_0
+      - outage_1
+      - distance_0
+      - distance_1
+  transition-observer:
+    value: both
+  episodes:
+    value: 20
+  max-steps:
+    value: 450
+  adaptation-window:
+    value: 30
+  adaptation-horizon:
+    value: 75
+  drop-baseline-window:
+    value: 60
+  drop-horizon:
+    value: 60
+  workers-per-gpu:
+    value: 8
+  entity:
+    value: cilab-overcooked
+  output-project:
+    value: cilab-overcooked/overcooked-v3-fcp-multimap-75step-plate-0915_eval
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - cilab-overcooked/overcooked-v3-fcp-multimap-75step-plate-0915_train
+  - --seeds
+  - "0"
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+  - "5"
+  - ${args_no_equals}

@@ -1,0 +1,60 @@
+# The classic cross-play evaluation of the convolutional arm on the six-layout
+# benchmark: every pair of the six training seeds on its own kitchen, self-play
+# down the diagonal and cross-play everywhere else.
+#
+# Run only after ippo_cnn_75step_train.yaml finishes. The adaptation windows
+# follow the 75-step phases these maps now alternate on, matching the RNN and
+# FCP evaluations of 09-14/09-15 so the three arms are read the same way.
+
+program: baselines/IPPO/eval_crossplay_overcooked_v3.py
+name: ippo-cnn-75step-plate-seedwise-xp
+method: grid
+metric:
+  goal: maximize
+  name: XP
+
+parameters:
+  algorithms:
+    value: IPPO-CNN
+  layout:
+    values:
+      - split_0
+      - split_1
+      - outage_0
+      - outage_1
+      - distance_0
+      - distance_1
+  transition-observer:
+    value: both
+  episodes:
+    value: 20
+  max-steps:
+    value: 450
+  adaptation-window:
+    value: 30
+  adaptation-horizon:
+    value: 75
+  drop-baseline-window:
+    value: 60
+  drop-horizon:
+    value: 60
+  workers-per-gpu:
+    value: 8
+  entity:
+    value: cilab-overcooked
+  output-project:
+    value: cilab-overcooked/overcooked-v3-ippo-cnn-75step-plate-0915_eval
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - cilab-overcooked/overcooked-v3-ippo-cnn-75step-plate-0915_train
+  - --seeds
+  - "0"
+  - "1"
+  - "2"
+  - "3"
+  - "4"
+  - "5"
+  - ${args_no_equals}

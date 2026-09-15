@@ -1,0 +1,46 @@
+# The convolutional arm on the six-layout benchmark, so the human-model matrix
+# has a CNN column on the 75-step maps.
+#
+# The recurrent and FCP arms were trained on these layouts on 09-14/09-15; this
+# matches their conditions -- both agents see the transition window, the
+# countdown and change mask are on, 450-step episodes, 30M steps, six seeds --
+# so the three columns differ only in the policy behind them.
+
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: ippo-cnn-75step-plate
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+parameters:
+  scenario:
+    values:
+      - split_0
+      - split_1
+      - outage_0
+      - outage_1
+      - distance_0
+      - distance_1
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  TRANSITION_OBSERVER:
+    value: both
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-ippo-cnn-75step-plate-0915_train
+  SAVES_DIR:
+    value: saves/ippo_cnn_75step_plate
+  WANDB_TAGS:
+    value: "[0915, 75-step, plate-outage, IPPO-CNN, final6]"
+  recording:
+    value: disabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - --config-name
+  - ippo_cnn_transition_window_overcooked_v3
+  - ${args_no_hyphens}
