@@ -9,14 +9,14 @@ import pytest
 import yaml
 
 import jaxmarl
-from baselines.OBP.planner import GreedyPlanner
+from baselines.planner.planner import GreedyPlanner
 from jaxmarl.environments.overcooked_v3.common import OvercookedActionsEnum
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
 def _sweep(name):
-    return yaml.safe_load((ROOT / "experiment/obp" / name).read_text(encoding="utf-8"))
+    return yaml.safe_load((ROOT / "experiment/planner" / name).read_text(encoding="utf-8"))
 
 
 @pytest.fixture(scope="module")
@@ -130,4 +130,4 @@ def test_matrix_sweep_covers_every_pairing():
     ]
     assert parameters["seeds"]["value"] == 6
     assert len(parameters["layout"]["values"]) == 10
-    assert sweep["program"] == "baselines/OBP/eval_planner_partner.py"
+    assert sweep["program"] == "baselines/planner/eval_planner_partner.py"

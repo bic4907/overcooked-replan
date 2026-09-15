@@ -2,7 +2,7 @@
 
 Usage::
 
-    python -m baselines.OBP.eval_planner --layouts split_0 split_wide \\
+    python -m baselines.planner.eval_planner --layouts split_0 split_wide \\
         --prob-wait 0.395 --seeds 10
 """
 
@@ -52,7 +52,7 @@ def play(env, planner, seed, max_steps):
 def main(argv=None):
     args = parse_args(argv)
     import jaxmarl
-    from baselines.OBP.planner import GreedyPlanner
+    from baselines.planner.planner import GreedyPlanner
 
     means = {}
     for layout in args.layouts:

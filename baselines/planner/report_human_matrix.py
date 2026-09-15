@@ -5,7 +5,7 @@ running it and the wrong shape for reading it. This gathers them into one run:
 a table of every cell, one heatmap per kitchen, and a bar chart of what each
 partner is worth averaged over the simulated humans.
 
-    python -m baselines.OBP.report_human_matrix --sweep pd504s7p
+    python -m baselines.planner.report_human_matrix --sweep pd504s7p
 """
 
 from __future__ import annotations

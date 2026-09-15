@@ -11,7 +11,7 @@ training seeds, each seed in both seat orders, so the twelve games cover both
 who-sits-where and which seed the partner came from; a pair of planners has no
 training seed, so its twelve games are twelve episode seeds instead.
 
-    python -m baselines.OBP.eval_planner_partner \\
+    python -m baselines.planner.eval_planner_partner \\
         --layout split_0 --human h1 --partner fcp
 """
 
@@ -362,7 +362,7 @@ def planner_controller(env, dials, seat, seat_only=False):
     ``seat_only`` keeps the other reading, where the cook expects nothing of its
     partner and is always the one to give way.
     """
-    from baselines.OBP.planner import GreedyPlanner
+    from baselines.planner.planner import GreedyPlanner
 
     planner = GreedyPlanner(env, seat=seat if seat_only else None, **dials)
 

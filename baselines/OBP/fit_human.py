@@ -34,7 +34,7 @@ import numpy as np
 
 import jaxmarl
 from baselines.OBP.data import _read_archive, _state_from_arrays, find_episodes
-from baselines.OBP.planner import GreedyPlanner
+from baselines.planner.planner import GreedyPlanner
 from jaxmarl.environments.overcooked_v3.common import OvercookedActionsEnum
 
 

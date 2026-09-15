@@ -9,7 +9,7 @@
 # played in both seat orders. Two planners have no training seed, so their cell
 # is six episode seeds in both orders instead.
 
-program: baselines/OBP/eval_planner_partner.py
+program: baselines/planner/eval_planner_partner.py
 name: obp-human-matrix
 method: grid
 metric:

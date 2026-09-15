@@ -61,7 +61,7 @@ def main(argv=None):
     import jaxmarl
     import imageio.v2 as imageio
 
-    from baselines.OBP.planner import GreedyPlanner
+    from baselines.planner.planner import GreedyPlanner
     from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
 
     env = jaxmarl.make(
