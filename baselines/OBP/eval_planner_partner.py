@@ -32,13 +32,16 @@ import numpy as np
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-#: Dials of the paper's simulated humans, Table 1. ``_local`` arms are the same
-#: three dials fit to our own demonstrations instead and are read from --dials.
+#: Dials of the paper's simulated humans, Table 1, whose columns run
+#: (hltemp, lltemp, prob_wait): H0 (0, 0, 0.5), H1 (0.072, 0.286, 0.45),
+#: H2 (0.070, 0.249, 0.04). H1 is the arm that waits, which is why the paper has
+#: it scoring the least of the three. ``_local`` arms are the same three dials
+#: fit to our own demonstrations instead and are read from --dials.
 PAPER_ARMS = {
     "br": dict(prob_wait=0.0, lltemp=0.0, hltemp=0.0),
     "h0": dict(prob_wait=0.5, lltemp=0.0, hltemp=0.0),
-    "h1": dict(prob_wait=0.072, lltemp=0.286, hltemp=0.45),
-    "h2": dict(prob_wait=0.070, lltemp=0.249, hltemp=0.04),
+    "h1": dict(prob_wait=0.45, lltemp=0.286, hltemp=0.072),
+    "h2": dict(prob_wait=0.04, lltemp=0.249, hltemp=0.070),
 }
 LOCAL_ARMS = ("h0_local", "h1_local", "h2_local")
 POLICY_ARMS = ("cnn", "rnn", "fcp")

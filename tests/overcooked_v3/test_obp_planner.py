@@ -75,7 +75,7 @@ def test_action_probs_are_distributions(env):
     _, seen = _states(env, 20)
     for dials in (
         dict(prob_wait=0.0, lltemp=0.0, hltemp=0.0),
-        dict(prob_wait=0.072, lltemp=0.286, hltemp=0.45),
+        dict(prob_wait=0.45, lltemp=0.286, hltemp=0.072),
         dict(prob_wait=0.4, lltemp=0.8, hltemp=2.0),
     ):
         probs_fn = jax.jit(GreedyPlanner(env, **dials).action_probs)
