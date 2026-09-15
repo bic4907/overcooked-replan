@@ -149,11 +149,32 @@ def _evenly_spaced(items, count):
 
 
 def discover_population_checkpoints(config):
-    """Find compatible SP snapshots and select a balanced FCP population."""
+    """Find compatible SP snapshots and select a balanced FCP population.
+
+    A population can also be named outright, which is what a best response to a
+    single fixed partner needs: there is nothing to discover or balance, just
+    one policy to sit opposite. Naming it skips the snapshot search entirely,
+    including the minimum size -- a population of one is the point, not a
+    shortfall.
+    """
     fcp_config = dict(config.get("FCP") or {})
+    named = fcp_config.get("population_checkpoints")
+    if named:
+        paths = [Path(path).expanduser().resolve() for path in named]
+        missing = [path for path in paths if not path.is_file()]
+        if missing:
+            raise FileNotFoundError(
+                "FCP.population_checkpoints names files that do not exist: "
+                f"{[str(path) for path in missing]}. Train the partner first."
+            )
+        return paths
+
     population_dir = fcp_config.get("population_dir")
     if not population_dir:
-        raise ValueError("FCP.population_dir must point to SP checkpoints")
+        raise ValueError(
+            "FCP.population_dir must point to SP checkpoints, or "
+            "FCP.population_checkpoints must name the partners outright"
+        )
     population_dir = Path(population_dir).expanduser().resolve()
     if not population_dir.is_dir():
         raise FileNotFoundError(f"FCP population directory not found: {population_dir}")
