@@ -30,6 +30,13 @@ def parse_args(argv=None):
     parser.add_argument("--project", default="overcooked-v3-obp-human-matrix")
     parser.add_argument("--sweep", default=None, help="Read one sweep instead of the project.")
     parser.add_argument("--output", default="outputs/human_matrix", help="Markdown and CSV go here.")
+    parser.add_argument(
+        "--merge",
+        action="append",
+        default=[],
+        help="A cells.csv from an earlier run, for cells this sweep does not "
+        "cover; runs read from W&B win where both have a cell.",
+    )
     parser.add_argument("--name", default="matrix", help="Name of the run this writes.")
     parser.add_argument("--wandb-mode", default=os.getenv("WANDB_MODE", "online"))
     return parser.parse_args(argv)
@@ -90,6 +97,31 @@ def matrix(rows, layout=None):
     return grid
 
 
+def as_one_table(rows, layouts, humans, partners):
+    """Every kitchen in a single table: a block of rows per kitchen.
+
+    Ten tables of four rows each is ten things to scroll past; one table with
+    the kitchen in the first column is one thing to read, and the columns line
+    up so a partner can be followed down the page.
+    """
+    lines = [
+        "| kitchen | human | " + " | ".join(partners) + " |",
+        "|---|---" + "|---:" * len(partners) + "|",
+    ]
+    cells = {(r["layout"], r["human"], r["partner"]): r["return_mean"] for r in rows}
+    for layout in layouts:
+        for index, human in enumerate(humans):
+            name = layout if index == 0 else ""
+            values = [
+                "-" if (layout, human, partner) not in cells
+                else f"{cells[(layout, human, partner)]:.0f}"
+                for partner in partners
+            ]
+            lines.append(f"| {name} | **{human}** | " + " | ".join(values) + " |")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def as_markdown(grid, title):
     lines = [f"### {title}", "", "| human | " + " | ".join(PARTNERS) + " |", "|---" * (len(PARTNERS) + 1) + "|"]
     for index, human in enumerate(HUMANS):
@@ -129,6 +161,25 @@ def heatmap(grid, title, path):
 def main(argv=None):
     args = parse_args(argv)
     rows = collect(args)
+    seen = {(row["layout"], row["human"], row["partner"]) for row in rows}
+    for path in args.merge:
+        import csv as _csv
+
+        for row in _csv.DictReader(open(path)):
+            key = (row["layout"], row["human"], row["partner"])
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append(
+                dict(
+                    layout=row["layout"],
+                    human=row["human"],
+                    partner=row["partner"],
+                    return_mean=float(row["return_mean"]),
+                    return_std=float(row.get("return_std", "nan")),
+                    games=_as_int(row.get("games")),
+                )
+            )
     if not rows:
         raise SystemExit("No finished cells to report yet")
     layouts = sorted({row["layout"] for row in rows})
@@ -136,12 +187,19 @@ def main(argv=None):
     output.mkdir(parents=True, exist_ok=True)
 
     overall = matrix(rows)
-    document = [as_markdown(overall, f"All kitchens ({len(layouts)})")]
+    played_humans = [h for h in HUMANS if any(r["human"] == h for r in rows)]
+    played_partners = [p for p in PARTNERS if any(r["partner"] == p for r in rows)]
+    document = [
+        as_markdown(overall, f"All kitchens ({len(layouts)})"),
+        "### Kitchen by kitchen",
+        "",
+        as_one_table(rows, layouts, played_humans, played_partners),
+    ]
     images = {"matrix/all": heatmap(overall, "all kitchens", output / "all.png")}
     for layout in layouts:
-        grid = matrix(rows, layout)
-        document.append(as_markdown(grid, layout))
-        images[f"matrix/{layout}"] = heatmap(grid, layout, output / f"{layout}.png")
+        images[f"matrix/{layout}"] = heatmap(
+            matrix(rows, layout), layout, output / f"{layout}.png"
+        )
     (output / "tables.md").write_text("\n".join(document), encoding="utf-8")
 
     import csv

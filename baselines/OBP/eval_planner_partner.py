@@ -102,6 +102,14 @@ def parse_args(argv=None):
     parser.add_argument("--max-steps", type=int, default=450)
     parser.add_argument("--seed", type=int, default=0, help="Evaluation RNG seed.")
     parser.add_argument(
+        "--record",
+        default=None,
+        help="Write the game that scored nearest this cell's mean to this path "
+        "(a .gif), replayed from its own key once the cell is done.",
+    )
+    parser.add_argument("--record-fps", type=float, default=5.0)
+    parser.add_argument("--record-tile-size", type=int, default=32)
+    parser.add_argument(
         "--seat-only",
         action="store_true",
         help="Let the simulated human plan for its own seat alone, expecting "
@@ -232,6 +240,8 @@ def make_policy(env, run_config, seat, stochastic):
     )
 
     def act(params, hidden, observation, done, key):
+        # The scan hands this a single step for a single game, the shape the
+        # recurrent trunk was trained to take one step at a time.
         hidden, pi, _ = network.apply(
             params,
             hidden,
@@ -241,34 +251,100 @@ def make_policy(env, run_config, seat, stochastic):
         return hidden, action.reshape(-1)[0]
 
     return (
-        jax.jit(act),
+        act,
         lambda: ScannedRNN.initialize_carry(1, config["GRU_HIDDEN_DIM"]),
         load_params,
     )
 
 
-def play_episode(env, controllers, key, max_steps, step=None):
-    """One game; each seat is served by whatever controller was given for it."""
-    step = step or jax.jit(env.step_env)
-    key, reset_key = jax.random.split(key)
-    obs, state = env.reset(reset_key)
-    for controller in controllers:
-        controller["reset"](state)
-    done = jnp.zeros((), dtype=bool)
-    total = 0.0
-    for _ in range(max_steps):
+def make_player(env, controllers, max_steps):
+    """Compile one episode of this pairing into a single scan.
+
+    Stepping the game from Python costs more than playing it: four hundred and
+    fifty round trips to the host, each waiting on a kernel that takes
+    microseconds. Rolled into ``lax.scan`` the same operations run in the same
+    order without the traffic -- the returns are identical, the clock is not.
+
+    Parameters are arguments rather than captured, so the six seeds of a trained
+    partner share one compilation.
+    """
+    agents = env.agents
+
+    def body(carry, _):
+        key, obs, state, done, seats = carry
         key, step_key, *action_keys = jax.random.split(key, 2 + env.num_agents)
+        taken = []
         actions = {}
-        for seat, agent in enumerate(env.agents):
-            actions[agent] = controllers[seat]["act"](
-                state, obs[agent], done, action_keys[seat]
+        for seat, agent in enumerate(agents):
+            seat_state, params = seats[seat]
+            seat_state, action = controllers[seat]["act"](
+                params, seat_state, state, obs[agent], done, action_keys[seat]
             )
-        obs, state, reward, dones, _ = step(step_key, state, actions)
-        total += float(reward[env.agents[0]])
-        done = jnp.asarray(dones[env.agents[0]])
-        if bool(dones["__all__"]):
-            break
-    return total
+            taken.append((seat_state, params))
+            actions[agent] = action
+        obs, state, reward, dones, _ = env.step_env(step_key, state, actions)
+        done = dones[agents[0]]
+        return (key, obs, state, done, tuple(taken)), (reward[agents[0]], state)
+
+    def play(key, params, keep):
+        key, reset_key = jax.random.split(key)
+        obs, state = env.reset(reset_key)
+        seats = tuple(
+            (controllers[seat]["init"](state), params[seat])
+            for seat in range(env.num_agents)
+        )
+        start = (key, obs, state, jnp.zeros((), dtype=bool), seats)
+        _, (rewards, states) = jax.lax.scan(body, start, None, length=max_steps)
+        # Rewards are whole soups, exact in float32, so the order they are added
+        # up in cannot change the total.
+        return jnp.sum(rewards), (states, jnp.cumsum(rewards)) if keep else None
+
+    scored = jax.jit(lambda key, params: play(key, params, False)[0])
+    traced = jax.jit(lambda key, params: (lambda out: (out[0], out[1]))(play(key, params, True)))
+    return scored, traced
+
+
+def episode_trace(env, states, scores, max_steps):
+    """The stacked states of one game as the list a renderer wants."""
+    reset = jax.tree_util.tree_map(lambda leaf: leaf[0], states)
+    frames = [
+        jax.tree_util.tree_map(lambda leaf, i=i: leaf[i], states)
+        for i in range(max_steps)
+    ]
+    running = np.asarray(scores)
+    captions = ["step 0  score 0"] + [
+        f"step {i + 1}  score {running[i]:g}" for i in range(max_steps)
+    ]
+    # The scan hands back the state after each step; the one before the first is
+    # the reset, which the caller still holds.
+    return frames, captions, reset
+
+
+def write_gif(env, states, captions, path, fps=5.0, tile_size=32):
+    """One episode as a GIF, at the speed a person can follow."""
+    import imageio.v2 as imageio
+
+    from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    visualizer = OvercookedV3Visualizer(
+        tile_size=tile_size,
+        seconds_per_step=1.0 / fps,
+        transition_warning_steps=env.transition_warning_steps,
+    )
+    frames = visualizer._animation_frames(states, captions=captions)
+    imageio.mimsave(
+        str(path),
+        frames,
+        format="GIF",
+        duration=1.0 / fps,
+        loop=0,
+        # Without this a frame keeps whatever the one before it drew, and the
+        # countdown text smears across the rest of the episode.
+        disposal=2,
+    )
+    return path
 
 
 def planner_controller(env, dials, seat, seat_only=False):
@@ -289,34 +365,23 @@ def planner_controller(env, dials, seat, seat_only=False):
     from baselines.OBP.planner import GreedyPlanner
 
     planner = GreedyPlanner(env, seat=seat if seat_only else None, **dials)
-    actions = jax.jit(planner.actions)
-    box = {}
 
-    def reset(state):
-        box["carry"] = planner.initial_carry(state)
+    def act(params, carry, state, observation, done, key):
+        carry, chosen = planner.actions(carry, state, key)
+        return carry, chosen[seat]
 
-    def act(state, observation, done, key):
-        carry, chosen = actions(box["carry"], state, key)
-        box["carry"] = carry
-        return chosen[seat]
-
-    return dict(reset=reset, act=act)
+    return dict(init=planner.initial_carry, act=act, params=None)
 
 
 def policy_controller(env, run_config, checkpoint, seat, stochastic):
     act_fn, init_hidden, load = make_policy(env, run_config, seat, stochastic)
-    params = load(str(checkpoint))
-    box = {}
-
-    def reset(state):
-        box["hidden"] = init_hidden()
-
-    def act(state, observation, done, key):
-        hidden, action = act_fn(params, box["hidden"], observation, done, key)
-        box["hidden"] = hidden
-        return action
-
-    return dict(reset=reset, act=act)
+    return dict(
+        init=lambda state: init_hidden(),
+        act=lambda params, hidden, state, observation, done, key: act_fn(
+            params, hidden, observation, done, key
+        ),
+        params=load(str(checkpoint)),
+    )
 
 
 def main(argv=None):
@@ -342,14 +407,15 @@ def main(argv=None):
 
     records = []
     environments = {}
+    replays = []
     for index, (seed, run_id, run_config, checkpoint) in enumerate(runs):
         # One environment per observation configuration, so the compiled step
         # and the compiled planner are reused across the partner's seeds.
         signature = json.dumps(run_config, sort_keys=True, default=str)
         if signature not in environments:
             built = build_env(args.layout, args.max_steps, run_config)
-            environments[signature] = (built, jax.jit(built.step_env), {})
-        env, step, cache = environments[signature]
+            environments[signature] = (built, {})
+        env, cache = environments[signature]
         for human_seat in range(env.num_agents):
             partner_seat = env.num_agents - 1 - human_seat
             controllers = [None, None]
@@ -370,11 +436,22 @@ def main(argv=None):
                         env, partner_dials, partner_seat, args.seat_only
                     )
                 controllers[partner_seat] = cache[slot]
+            # One compilation per seating, shared by every seed of the partner:
+            # only the parameters differ between them, and those are arguments.
+            player = ("player", human_seat, partner_is_policy)
+            if player not in cache:
+                cache[player] = make_player(env, controllers, args.max_steps)
+            scored, traced = cache[player]
+            params = tuple(controller["params"] for controller in controllers)
             for episode in range(args.episodes):
                 key = jax.random.PRNGKey(
                     args.seed + 1000 * index + 100 * human_seat + episode
                 )
-                total = play_episode(env, controllers, key, args.max_steps, step)
+                total = float(scored(key, params))
+                seated = [None, None]
+                seated[human_seat] = args.human
+                seated[partner_seat] = args.partner
+                replays.append((total, traced, key, params, env, tuple(seated)))
                 records.append(
                     dict(
                         layout=args.layout,
@@ -391,6 +468,28 @@ def main(argv=None):
                     f"  seed {seed} human_seat {human_seat} episode {episode}: {total:g}",
                     flush=True,
                 )
+
+    if args.record:
+        # The typical game rather than the best one: a picture of a lucky
+        # episode says nothing about how the pair usually plays.
+        scores = np.array([replay[0] for replay in replays])
+        chosen = int(np.argmin(np.abs(scores - scores.mean())))
+        total, traced, key, params, env, seated = replays[chosen]
+        _, (states, scores) = traced(key, params)
+        frames, captions, reset = episode_trace(env, states, scores, args.max_steps)
+        states = [reset] + frames
+        # Which cook is which: the renderer paints agent_0 red and agent_1 blue,
+        # and a picture of two planners is unreadable without being told which
+        # of them is the trained policy.
+        colours = ("red", "blue", "green", "purple")
+        roster = "  ".join(
+            f"{colours[seat]} agent_{seat} = {name}" for seat, name in enumerate(seated)
+        )
+        captions = [f"{roster}  |  {caption}" for caption in captions]
+        path = write_gif(
+            env, states, captions, args.record, args.record_fps, args.record_tile_size
+        )
+        print(f"  recorded the game that scored {total:g} to {path}")
 
     returns = np.array([record["ret"] for record in records])
     summary = dict(
