@@ -431,11 +431,20 @@ class GreedyPlanner:
                 | jnp.any(kitchen["cooking"])
                 | jnp.any(kitchen["cooked"])
             )
+            # One cook can only carry one soup. When more are ready than the
+            # deliverer can lift, the second stands cooling however the errands
+            # compare, so this cook takes a plate too. Counted against what the
+            # other cook is already carrying: a soup it is walking out is one it
+            # has in hand, not one still in a pot.
+            ready = jnp.sum(kitchen["cooked"])
+            partner_carrying = (partner_inventory & DynamicObject.COOKED) != 0
+            more_than_one_can_lift = ready > jnp.where(partner_carrying, 0, 1)
             defer_plate = (
                 jnp.isfinite(my_serve)
                 & jnp.isfinite(their_serve)
                 & work_coming
                 & ~mine_is_cheaper
+                & ~more_than_one_can_lift
             )
         else:
             defer_plate = jnp.bool_(False)
