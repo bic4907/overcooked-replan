@@ -114,6 +114,7 @@ class GreedyPlanner:
         local_needs: bool = True,
         share_mode: str = "continuous",
         role_margin: int = 2,
+        cross_on_countdown: bool = True,
         seat: int | None = None,
     ):
         if not 0.0 <= prob_wait <= 1.0:
@@ -134,6 +135,13 @@ class GreedyPlanner:
         self.return_margin = float(return_margin)
         self.local_needs = bool(local_needs)
         self.role_margin = int(role_margin)
+        # Being on the wrong side when a door shuts costs the whole phase: the
+        # far room's pots and piles go untouched while both cooks work one half.
+        # So when the phase ahead would leave them sharing a room, whichever of
+        # them can get across soonest does, and it leaves in time rather than on
+        # a fixed warning -- twenty steps is not enough on a wide floor and is
+        # wasted on a narrow one.
+        self.cross_on_countdown = bool(cross_on_countdown)
         if share_mode not in ("two", "continuous"):
             raise ValueError("share_mode is 'two' or 'continuous'")
         self.share_mode = share_mode
@@ -231,6 +239,8 @@ class GreedyPlanner:
         given,
         vanishing_wall,
         displaced,
+        crossing,
+        cross_cells,
     ):
         """The next high level task, as the set of cells that complete it.
 
@@ -549,6 +559,11 @@ class GreedyPlanner:
             handover,
             jnp.where(~holding_something & jnp.any(useful), useful, wanted),
         )
+
+        # The door is about to shut on both of them in one room and this is
+        # the cook that reaches the other one first. Nothing it could be doing
+        # here is worth a phase with that room empty.
+        wanted = jnp.where(crossing & jnp.any(cross_cells), cross_cells, wanted)
 
         # Crossing is allowed but not free. A cook that wanders into the other
         # half for a job barely closer is out of position when the door shuts,
@@ -936,6 +951,49 @@ class GreedyPlanner:
         sides = here_regions[state.agents.pos.y, state.agents.pos.x]
         same_side = sides[0] == sides[1]
 
+        # The rooms of the phase this one is about to become. Only a change
+        # that leaves the two of them in one room matters; the countdown also
+        # runs before the door reopens, and crossing then is what puts both of
+        # them on one side for a whole phase.
+        next_index = (state.layout_index + 1) % self.phase_regions.shape[0]
+        next_rooms = self.phase_regions[next_index]
+        seat_rooms = next_rooms[state.agents.pos.y, state.agents.pos.x]
+        labelled = jnp.where(next_rooms >= 0, next_rooms, jnp.max(next_rooms))
+        several_rooms = jnp.max(next_rooms) > jnp.min(labelled)
+        sharing = (seat_rooms[0] == seat_rooms[1]) & (seat_rooms[0] >= 0)
+        splitting_ahead = (
+            several_rooms & sharing & (state.steps_until_layout_change > 0)
+        )
+        if self.cross_on_countdown and self.env.num_agents == 2:
+            elsewhere = (next_rooms >= 0) & (next_rooms != seat_rooms[0])
+            # What only the far side can reach. A counter on the boundary is
+            # next to both rooms, and a cook sent to one of those stands on its
+            # own side facing it and calls the crossing done. And a goal has to
+            # be a cell that cannot be walked on, since that is what the
+            # distance field measures -- aiming at the floor over there leaves
+            # every distance infinite and the rule never fires.
+            cross_cells = (
+                mark_adjacent_cells(elsewhere)
+                & ~mark_adjacent_cells(next_rooms == seat_rooms[0])
+                & (state.grid[:, :, 0] != StaticObject.EMPTY)
+            )
+            reach = jnp.stack(
+                [jnp.min(jnp.where(cross_cells, costs[seat], jnp.inf)) for seat in range(2)]
+            )
+            first_there = jnp.argmin(reach)
+            leaving_now = state.steps_until_layout_change <= (
+                reach[first_there] + self.return_margin
+            )
+            crossing_now = (
+                splitting_ahead
+                & leaving_now
+                & jnp.isfinite(reach[first_there])
+                & (jnp.arange(self.env.num_agents) == first_there)
+            )
+        else:
+            crossing_now = jnp.zeros((self.env.num_agents,), dtype=bool)
+            cross_cells = jnp.zeros(state.grid.shape[:2], dtype=bool)
+
         seats = []
         for index in range(self.env.num_agents):
             partner = self.env.num_agents - 1 - index
@@ -963,6 +1021,8 @@ class GreedyPlanner:
                 carry.given[index],
                 vanishing_wall,
                 standing[index] != region[index],
+                crossing_now[index],
+                cross_cells,
             )
             seats.append((goals, penalty, actionable))
         return dict(
