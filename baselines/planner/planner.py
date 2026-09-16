@@ -115,6 +115,8 @@ class GreedyPlanner:
         share_mode: str = "continuous",
         role_margin: int = 2,
         cross_on_countdown: bool = True,
+        advantage_roles: bool = False,
+        advantage_margin: float = 0.0,
         seat: int | None = None,
     ):
         if not 0.0 <= prob_wait <= 1.0:
@@ -142,6 +144,19 @@ class GreedyPlanner:
         # a fixed warning -- twenty steps is not enough on a wide floor and is
         # wasted on a narrow one.
         self.cross_on_countdown = bool(cross_on_countdown)
+        # Who fetches the plate is not about who is nearer the plate: it is
+        # about who loses less by walking the soup to the serving window. Where
+        # the ingredients sit at one end of the floor and the window at the
+        # other, the cook beside the pile pays for that trip twice -- once
+        # walking it and once in the pot that stands empty meanwhile. Each cook
+        # compares its own two errands, window against pile, and the one with
+        # relatively less to lose delivers while the other keeps loading.
+        self.advantage_roles = bool(advantage_roles)
+        # How much cheaper that has to be before the other cook stops taking
+        # plates at all. Without a margin a single step of difference hands
+        # every soup to one of them, and two soups finishing together leave the
+        # second standing.
+        self.advantage_margin = float(advantage_margin)
         if share_mode not in ("two", "continuous"):
             raise ValueError("share_mode is 'two' or 'continuous'")
         self.share_mode = share_mode
@@ -385,10 +400,50 @@ class GreedyPlanner:
         room_for_plates = jnp.where(
             stock_plates, True, jnp.where(joined, True, staged_plates < 2)
         )
+        if self.advantage_roles:
+            serving = static == StaticObject.GOAL
+            my_serve = jnp.min(jnp.where(serving, here, jnp.inf))
+            their_serve = jnp.min(jnp.where(serving, partner_here, jnp.inf))
+            my_pile = jnp.min(jnp.where(pile_for_first, here, jnp.inf))
+            their_pile = jnp.min(jnp.where(pile_for_first, partner_here, jnp.inf))
+            my_edge = my_serve - my_pile
+            their_edge = their_serve - their_pile
+            # Ties, and anything inside the margin, leave both of them free to
+            # take a plate; only a clear difference divides the jobs.
+            mine_is_cheaper = jnp.where(
+                first,
+                my_edge <= their_edge + self.advantage_margin,
+                my_edge < their_edge - self.advantage_margin,
+            )
+            # The work does not have to exist yet. A pot that is cooking will
+            # want filling the moment its soup is lifted out, and that is
+            # exactly when this cook should already be carrying the first
+            # ingredient rather than walking a plate to the far end.
+            # The work does not have to exist yet. A pot that is cooking will
+            # want filling the moment its soup is lifted out, and that is
+            # exactly when the cook nearer the pile should already be walking
+            # there. Tying this to the trip length instead -- defer only if the
+            # pot comes free within a round trip -- reads the case backwards:
+            # the cook that is near the pile has the shortest trip and is the
+            # one that should be making it (measured, distance_0 500 -> 400).
+            work_coming = (
+                jnp.any(jnp.any(kitchen["short"], axis=-1))
+                | jnp.any(kitchen["cooking"])
+                | jnp.any(kitchen["cooked"])
+            )
+            defer_plate = (
+                jnp.isfinite(my_serve)
+                & jnp.isfinite(their_serve)
+                & work_coming
+                & ~mine_is_cheaper
+            )
+        else:
+            defer_plate = jnp.bool_(False)
+
         # A cook doing both jobs loads pots before it fetches plates: a soup
         # that is done keeps, an empty pot earns nothing until it is filled.
         # The plate is fetched once nothing is left to load.
-        fetch_plate = ~needs_filling & room_for_plates
+        fetch_plate = ~needs_filling & room_for_plates & ~defer_plate
         # Standing back is only worth it while there is a plate to go and get.
         # With nothing cooking there is no plate job, and a cook waiting for one
         # anyway is half the kitchen doing nothing.
