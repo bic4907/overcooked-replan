@@ -46,34 +46,14 @@ PAPER_ARMS = {
 LOCAL_ARMS = ("h0_local", "h1_local", "h2_local")
 POLICY_ARMS = ("cnn", "rnn", "fcp")
 
-#: Kitchens swept in the first round, whose policies live in the original
-#: training projects; everything else was trained in the newmaps projects.
-#: outage_2 was swept in both rounds and is taken from the newmaps sweep, which
-#: is the one the seven new kitchens were evaluated under.
-FIRST_ROUND_LAYOUTS = (
-    "split_0",
-    "split_1",
-    "split_2",
-    "outage_0",
-    "outage_1",
-    "distance_switch_0",
-    "distance_switch_1",
-    "distance_switch_2",
-    "recipe_switch_0",
-    "recipe_switch_1",
-    "recipe_switch_2",
-)
+#: The 75-step benchmark policies, one project per arm.
 TRAINING_PROJECTS = {
-    ("cnn", True): ("overcooked-v3-ippo_train", "overcooked-v3-newmaps-ippo_cnn-cd"),
-    ("rnn", True): ("overcooked-v3-ippo-rnn_train", "overcooked-v3-newmaps-ippo_rnn-cd"),
-    ("fcp", True): ("overcooked-v3-fcp_train", "overcooked-v3-newmaps-fcp-cd"),
+    "cnn": "overcooked-v3-ippo-cnn-75step-plate-0915_train",
+    "rnn": "overcooked-v3-ippo-rnn-75step-plate-0915_train",
+    "fcp": "overcooked-v3-fcp-75step-plate-0915_train",
 }
-#: How each arm names itself in a run config, in the two rounds.
-ALGORITHMS = {
-    "cnn": ("IPPO", "IPPO-cdon"),
-    "rnn": ("IPPO", "IPPO-cdon"),
-    "fcp": ("FCP", "FCP-cdon"),
-}
+#: How each arm names itself in its run config.
+ALGORITHMS = {"cnn": ("IPPO-CNN",), "rnn": ("IPPO-RNN",), "fcp": ("FCP",)}
 ARCHITECTURES = {"cnn": "cnn", "rnn": "rnn", "fcp": "rnn"}
 
 
@@ -158,46 +138,76 @@ def arm_dials(name, dials_path):
     )
 
 
-def policy_runs(arm, layout, seeds, entity, alias, artifact_dir):
-    """Every training run of one policy arm on one kitchen, newest per seed."""
+def _run_layout(run):
+    config = run.config
+    return (config.get("ENV_KWARGS") or {}).get("layout") or config.get("layout")
+
+
+def _run_algorithm(run):
+    config = run.config
+    return str(config.get("ALGORITHM") or config.get("algorithm") or "")
+
+
+def _run_seed(run):
+    config = run.config
+    seed = config.get("SEED")
+    return config.get("seed") if seed is None else seed
+
+
+def _checkpoint_of(run, alias, artifact_dir, entity):
+    """The final checkpoint of a run, or of the run whose weights it names.
+
+    The 0915 recurrent project holds reference runs: they carry the layout and
+    the seed but no artifacts of their own, and point at the observer sweep the
+    weights came from.
+    """
     import wandb
 
     from baselines.IPPO.eval_wandb_crossplay_matrix_overcooked_v3 import (
-        discover_run_candidates,
         resolve_vmap_checkpoints,
     )
+    from baselines.IPPO.eval_wandb_crossplay_overcooked_v3 import select_final_artifact
 
-    project = TRAINING_PROJECTS[(arm, True)][0 if layout in FIRST_ROUND_LAYOUTS else 1]
-    api = wandb.Api()
-    candidates = discover_run_candidates(
-        api.runs(f"{entity}/{project}", per_page=500),
-        ALGORITHMS[arm],
-        [layout],
-        artifact_alias=alias,
+    source = run
+    named = run.config.get("source_run_path")
+    if not [a for a in run.logged_artifacts() if a.type == "checkpoint"] and named:
+        source = wandb.Api().run(named)
+    artifact = select_final_artifact(source, alias)
+    directory = (
+        Path(artifact_dir) / source.id / artifact.name.replace(":", "-")
     )
-    # FCP's project holds the self-play population it was built from as well,
-    # and both rounds name their runs differently, so the architecture is what
-    # separates an RNN arm from a CNN one.
+    path = Path(artifact.download(root=str(directory)))
+    _, checkpoint = resolve_vmap_checkpoints(path)[0]
+    return source, checkpoint
+
+
+def policy_runs(arm, layout, seeds, entity, alias, artifact_dir):
+    """Every training run of one policy arm on one kitchen, one per seed."""
+    import wandb
+
+    project = TRAINING_PROJECTS[arm]
+    api = wandb.Api()
     candidates = [
-        candidate
-        for candidate in candidates
-        if str(candidate.config.get("ARCHITECTURE")) == ARCHITECTURES[arm]
+        run
+        for run in api.runs(f"{entity}/{project}", per_page=500)
+        if run.state == "finished"
+        and _run_layout(run) == layout
+        and _run_algorithm(run) in ALGORITHMS[arm]
     ]
-    candidates = sorted(candidates, key=lambda item: (item.seed is None, item.seed))
+    by_seed = {}
+    for run in candidates:
+        by_seed.setdefault(_run_seed(run), run)
+    candidates = [by_seed[seed] for seed in sorted(by_seed, key=lambda s: (s is None, s))]
     if len(candidates) < seeds:
         raise SystemExit(
             f"{arm} on {layout}: found {len(candidates)} runs in {project}, need {seeds}"
         )
     loaded = []
-    for candidate in candidates[:seeds]:
-        directory = (
-            Path(artifact_dir)
-            / candidate.run.id
-            / candidate.artifact.name.replace(":", "-")
-        )
-        path = Path(candidate.artifact.download(root=str(directory)))
-        _, checkpoint = resolve_vmap_checkpoints(path)[0]
-        loaded.append((candidate.seed, candidate.run.id, candidate.config, checkpoint))
+    for run in candidates[:seeds]:
+        source, checkpoint = _checkpoint_of(run, alias, artifact_dir, entity)
+        # The environment each game runs in is rebuilt from the run that holds
+        # the weights, so the observation matches what the policy was trained on.
+        loaded.append((_run_seed(run), run.id, dict(source.config), checkpoint))
     return loaded
 
 
