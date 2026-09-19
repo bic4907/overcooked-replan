@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the 13x6 distance_0 inversion FCP study on AICA GPUs 6-7."""
+"""Run default both-agent-warning FCP on the 13x6 distance_0 inversion map."""
 
 import hashlib
 import json
@@ -20,12 +20,12 @@ SOURCE_BASE_COMMIT = "2ba0a476f3d9503bab957cab5e5cee08db1701bc"
 LAYOUT_REVISION = "distance-inversion-shifted-stations-13x6-v2"
 GPUS = ["6", "7"]
 LAYOUTS = ["distance_0"]
-OBSERVERS = ["none", "agent_0", "agent_1", "both"]
+OBSERVERS = ["both"]
 SEEDS = list(range(6))
-PILOT_CELL = ("distance_0", "none")
-POP_PROJECT = "overcooked-v3-fcp-distance0-inversion-0919_population"
-TRAIN_PROJECT = "overcooked-v3-fcp-distance0-inversion-0919_train"
-EVAL_PROJECT = "overcooked-v3-fcp-distance0-inversion-0919_eval"
+PILOT_CELL = ("distance_0", "both")
+POP_PROJECT = "overcooked-v3-fcp-distance0-inversion-both-0919_population"
+TRAIN_PROJECT = "overcooked-v3-fcp-distance0-inversion-both-0919_train"
+EVAL_PROJECT = "overcooked-v3-fcp-distance0-inversion-both-0919_eval"
 POPULATION_ROOT = ROOT / "population"
 FCP_SAVES = ROOT / "fcp_saves"
 EVAL_ROOT = ROOT / "evaluation"
@@ -45,7 +45,7 @@ def observer_label(observer):
 
 
 def stable_id(stage, layout, observer, seed=None):
-    raw = f"fcp-distance0-inversion-0919|{stage}|{layout}|{observer}|{seed}".encode()
+    raw = f"fcp-distance0-inversion-both-0919|{stage}|{layout}|{observer}|{seed}".encode()
     return hashlib.sha256(raw).hexdigest()[:8]
 
 
@@ -154,7 +154,7 @@ def command_for(job, gpu):
     label = job["observer_label"]
     seed = job["seed"]
     common_tags = (
-        f"[0919,75-step,distance0-inversion,13x6,FCP,observer-ablation,"
+        f"[0919,75-step,distance0-inversion,13x6,FCP,default-warning,"
         f"observer-{label},aica]"
     )
     if job["stage"] == "population":
@@ -198,7 +198,7 @@ def command_for(job, gpu):
         "--adaptation-horizon", "75", "--adaptation-window", "30",
         "--drop-baseline-window", "60", "--drop-horizon", "60",
         "--recovery-threshold", "0.9", "--recovery-persistence", "5",
-        "--run-label", f"FCP-greedy-distance0-inversion-0919-{layout}-{label}",
+        "--run-label", f"FCP-greedy-distance0-inversion-both-0919-{layout}-{label}",
     ]
 
 
@@ -239,11 +239,11 @@ def archive_population(state):
     state["stage"] = "archiving_population"
     save_state(state)
     run = wandb.init(
-        entity=ENTITY, project=POP_PROJECT, id="popdist0", resume="allow",
-        name="population-archive-fcp-distance0-inversion-0919",
+        entity=ENTITY, project=POP_PROJECT, id="popd0b19", resume="allow",
+        name="population-archive-fcp-distance0-inversion-both-0919",
         job_type="population-archive",
         tags=["0919", "75-step", "distance0-inversion", "13x6",
-              "FCP-Population", "observer-ablation", "archive"],
+              "FCP-Population", "default-warning", "observer-Both", "archive"],
         config={"layouts": LAYOUTS, "observers": OBSERVERS, "seeds": SEEDS,
                 "snapshots_per_seed": 3, "campaign": ROOT.name},
         dir=str(ROOT / "wandb_archive"), settings=wandb.Settings(init_timeout=180),
@@ -256,7 +256,7 @@ def archive_population(state):
                 f"Expected {expected_files} population checkpoints, found {len(files)}"
             )
         artifact = wandb.Artifact(
-            "fcp-distance0-inversion-population-0919", type="fcp-population",
+            "fcp-distance0-inversion-both-population-0919", type="fcp-population",
             metadata={"layouts": LAYOUTS, "observers": OBSERVERS, "seeds": SEEDS,
                       "snapshots_per_seed": 3, "checkpoint_count": len(files)},
         )
@@ -266,7 +266,7 @@ def archive_population(state):
     finally:
         run.finish()
     state["population_archive"] = {
-        "run_id": "popdist0", "artifact": "fcp-distance0-inversion-population-0919",
+        "run_id": "popd0b19", "artifact": "fcp-distance0-inversion-both-population-0919",
         "checkpoint_count": 432,
     }
 
