@@ -182,6 +182,17 @@ class GreedyPlanner:
         # between them belong to both halves and are reachable from either --
         # so a shut door still looks joined.
         self.phase_regions = jax.vmap(compute_enclosed_spaces)(self.phase_empty)
+        # A kitchen divided in every phase never lets the two cooks share a
+        # room: one works the end with the ingredients, the other the end with
+        # the window, and they pass things over the counters between. That is
+        # where dividing the jobs by what each loses pays. Where a door opens
+        # both of them can reach both ends, and splitting the jobs there leaves
+        # one of them standing -- measured, split_0 220 -> 180 under the same
+        # rule.
+        self.always_divided = all(
+            len({int(room) for room in np.asarray(phase).reshape(-1) if room >= 0}) > 1
+            for phase in self.phase_regions
+        )
         # The distinct halves, fixed for the episode, so a seat can be told to
         # take one that is not the other seat's.
         self.region_ids = jnp.asarray(
@@ -400,7 +411,7 @@ class GreedyPlanner:
         room_for_plates = jnp.where(
             stock_plates, True, jnp.where(joined, True, staged_plates < 2)
         )
-        if self.advantage_roles:
+        if self.advantage_roles and self.always_divided:
             serving = static == StaticObject.GOAL
             my_serve = jnp.min(jnp.where(serving, here, jnp.inf))
             their_serve = jnp.min(jnp.where(serving, partner_here, jnp.inf))
