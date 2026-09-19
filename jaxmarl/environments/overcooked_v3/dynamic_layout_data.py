@@ -1014,6 +1014,39 @@ outage_wide_2_plate = _build_shared_room_outage(
     _SHARED_WIDE_OUTAGE_SOURCE, missing_resource="B"
 )
 
+def _inversion_distance_switch_spec():
+    """Separate the post-switch stations from the central work positions.
+
+    The inner stations are one step from the central pot corridor, while the
+    outer stations sit beyond small counter islands.  Agents that wait beside
+    the pots until a phase changes must traverse their bay before they can use
+    their newly assigned distant station.
+    """
+    return {
+        "width": 13,
+        "height": 6,
+        "left_role_slots": ((0, 1), (4, 2)),
+        "right_role_slots": ((8, 2), (12, 1)),
+        "pot_positions": ((6, 1), (6, 4)),
+        "plate_positions": ((4, 5), (8, 5)),
+        "agent_positions": ((3, 4), (9, 4)),
+        "divider": tuple((6, y) for y in range(1, 5)),
+        "counters": ((2, 1), (3, 2), (4, 2), (8, 2), (9, 2), (10, 1)),
+        "minimum_advantage": 4,
+    }
+
+
+_DISTANCE_SWITCH_INVERSION_SPEC = _inversion_distance_switch_spec()
+_validate_distance_switch_spec(_DISTANCE_SWITCH_INVERSION_SPEC)
+_distance_inversion_a = _distance_switch_grid(_DISTANCE_SWITCH_INVERSION_SPEC)
+_distance_inversion_b = _distance_switch_grid(
+    _DISTANCE_SWITCH_INVERSION_SPEC, roles_swapped=True
+)
+distance_switch_inversion = _alternating_role_phases(
+    _distance_inversion_a, _distance_inversion_b
+)
+
+
 _DISTANCE_SWITCH_WIDE_SPEC = _vertical_distance_switch_spec(13, 6)
 _validate_distance_switch_spec(_DISTANCE_SWITCH_WIDE_SPEC)
 _distance_wide_a = _distance_switch_grid(_DISTANCE_SWITCH_WIDE_SPEC)
@@ -1087,5 +1120,6 @@ outage_0 = outage_narrow_diagonal
 outage_1 = outage
 
 distance_switch = distance_switch_0
-distance_0 = distance_switch
+# Match distance_1's 13x6 footprint, with a distinct counter-island geometry.
+distance_0 = distance_switch_inversion
 distance_1 = distance_switch_wide

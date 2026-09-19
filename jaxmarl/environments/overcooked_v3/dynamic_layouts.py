@@ -211,7 +211,8 @@ ROLE_SCENARIO_LAYOUTS = {
     "recipe_switch": ("recipe_switch_0",),
     "distance_switch": (
         "distance_0", "distance_1", "distance_switch", "distance_switch_0",
-        "distance_switch_1", "distance_switch_wide"
+        "distance_switch_1", "distance_switch_wide",
+        "distance_switch_inversion",
     ),
 }
 ROLE_SCENARIO_LAYOUT_NAMES = tuple(
