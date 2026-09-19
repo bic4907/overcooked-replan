@@ -532,7 +532,9 @@ def main(argv=None):
             project=args.project,
             group=args.group or args.layout,
             mode=args.wandb_mode,
-            name=f"{args.human}-x-{args.partner}",
+            # Named the way the crossplay evaluations are, so a cell reads
+            # the same in either project: who played whom, on which kitchen.
+            name=f"xp-{args.human}-x-{args.partner}-{args.layout}",
             job_type=args.partner,
             tags=[f"human:{args.human}", f"partner:{args.partner}", args.layout],
             config=dict(vars(args), **{f"dial_{k}": v for k, v in human_dials.items()}),
