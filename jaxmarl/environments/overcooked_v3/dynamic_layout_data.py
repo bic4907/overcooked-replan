@@ -1047,6 +1047,47 @@ distance_switch_inversion = _alternating_role_phases(
 )
 
 
+def _inversion_distance_switch_hard_spec():
+    """Move the useful inner stations between the top and bottom corridors.
+
+    The phase-A cook/server positions are beside the upper pot.  After the
+    switch, the efficient local onion/serving stations are on the lower edge.
+    Remaining at the upper corridor incurs a cross-bay trip or forces a long
+    route to the outer station, so an advance warning can be used to move.
+    """
+    return {
+        "width": 13,
+        "height": 6,
+        "pot_positions": ((6, 1), (6, 4)),
+        "plate_positions": ((5, 5), (7, 5)),
+        "agent_positions": ((3, 4), (9, 4)),
+        "divider": tuple((6, y) for y in range(1, 5)),
+        "counters": ((2, 1), (3, 2), (4, 1), (8, 1), (9, 2), (10, 1)),
+        "phase_a_role_resources": (
+            ((0, 1), "0"), ((4, 1), "X"),
+            ((8, 1), "0"), ((12, 1), "X"),
+        ),
+        "phase_b_role_resources": (
+            ((0, 1), "X"), ((3, 5), "0"),
+            ((9, 5), "X"), ((12, 1), "0"),
+        ),
+        "minimum_advantage": 4,
+    }
+
+
+_DISTANCE_SWITCH_INVERSION_HARD_SPEC = _inversion_distance_switch_hard_spec()
+_validate_distance_switch_spec(_DISTANCE_SWITCH_INVERSION_HARD_SPEC)
+_distance_inversion_hard_a = _distance_switch_grid(
+    _DISTANCE_SWITCH_INVERSION_HARD_SPEC
+)
+_distance_inversion_hard_b = _distance_switch_grid(
+    _DISTANCE_SWITCH_INVERSION_HARD_SPEC, roles_swapped=True
+)
+distance_switch_inversion_hard = _alternating_role_phases(
+    _distance_inversion_hard_a, _distance_inversion_hard_b
+)
+
+
 _DISTANCE_SWITCH_WIDE_SPEC = _vertical_distance_switch_spec(13, 6)
 _validate_distance_switch_spec(_DISTANCE_SWITCH_WIDE_SPEC)
 _distance_wide_a = _distance_switch_grid(_DISTANCE_SWITCH_WIDE_SPEC)
@@ -1120,6 +1161,7 @@ outage_0 = outage_narrow_diagonal
 outage_1 = outage
 
 distance_switch = distance_switch_0
-# Match distance_1's 13x6 footprint, with a distinct counter-island geometry.
-distance_0 = distance_switch_inversion
+# Keep the first inversion for its completed FCP checkpoint; benchmark the
+# harder moving-station version under distance_0 on the same 13x6 footprint.
+distance_0 = distance_switch_inversion_hard
 distance_1 = distance_switch_wide

@@ -213,6 +213,7 @@ ROLE_SCENARIO_LAYOUTS = {
         "distance_0", "distance_1", "distance_switch", "distance_switch_0",
         "distance_switch_1", "distance_switch_wide",
         "distance_switch_inversion",
+        "distance_switch_inversion_hard",
     ),
 }
 ROLE_SCENARIO_LAYOUT_NAMES = tuple(
