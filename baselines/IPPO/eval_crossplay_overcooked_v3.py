@@ -2,6 +2,13 @@
 
 import os
 import sys
+from pathlib import Path
+
+# A sweep runs this file by path, so the repository it lives in is not on the
+# import path and the sibling modules' own ``baselines`` imports fail. The
+# fallback below finds the sibling; this finds what the sibling needs.
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 
 def prepare_gpu_argv(argv, environ):
