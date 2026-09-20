@@ -1,0 +1,12 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: blackout_3
+  max_steps: 450
+  random_agent_positions: false
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: blackout
+CONDITION: blackout_3
+WANDB_GROUP: blackout
+LAYOUT_REVISION: blackout-candidates-v1

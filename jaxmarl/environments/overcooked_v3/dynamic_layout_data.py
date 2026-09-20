@@ -1089,3 +1089,32 @@ outage_1 = outage
 distance_switch = distance_switch_0
 distance_0 = distance_switch
 distance_1 = distance_switch_wide
+
+
+# The Blackout candidates, eight kitchens that push the resource-outage idea
+# further than the two in the benchmark: a serving window that shuts, plate
+# piles worth stocking, a divided kitchen where each cook owns one supply, and
+# plates that were expensive before they vanished. Their grids live in
+# ``blackout_candidates`` so they can be edited as pictures rather than as
+# code; each is a pair, and ``ORDER`` says which of the two the episode opens
+# on -- the ones that lose their serving window open shut, so the last phase
+# is one the pair can score in.
+from jaxmarl.environments.overcooked_v3 import blackout_candidates as _blackout
+
+
+def _blackout_phases(name):
+    pair = _blackout.PAIRS[name]
+    first, second = (pair[1], pair[0]) if _blackout.ORDER[name] else pair
+    return [
+        [first, _blackout.PHASE_STEPS],
+        [second, _blackout.PHASE_STEPS],
+        [first, _blackout.PHASE_STEPS],
+        [second, _blackout.PHASE_STEPS],
+        [first, _blackout.PHASE_STEPS],
+        [second, _blackout.FINAL_STEPS],
+    ]
+
+
+for _name in _blackout.PAIRS:
+    globals()[_name] = _blackout_phases(_name)
+del _name

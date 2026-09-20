@@ -242,7 +242,9 @@ dynamic_layouts = {}
 
 def _load_named_dynamic_layout(name, data):
     try:
-        if name.startswith("outage"):
+        # Blackout is the Outage family under the name the paper uses for it,
+        # and shares its two-onion soup.
+        if name.startswith("outage") or name.startswith("blackout"):
             possible_recipes = _OUTAGE_RECIPES
         elif name.startswith("recipe_switch"):
             possible_recipes = _RECIPE_SWITCH_RECIPES
