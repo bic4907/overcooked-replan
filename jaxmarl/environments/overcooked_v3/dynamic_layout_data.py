@@ -1014,6 +1014,47 @@ outage_wide_2_plate = _build_shared_room_outage(
     _SHARED_WIDE_OUTAGE_SOURCE, missing_resource="B"
 )
 
+def _inversion_distance_switch_detour_spec():
+    """Give both roles remote stations with unequal routes to the pots.
+
+    The upper station in each work bay is seven walking steps from a usable
+    pot; the lower station is four. Onion and serving roles swap at the 75-step
+    phase changes, so the useful destination changes before each switch.
+    """
+    return {
+        "width": 13,
+        "height": 6,
+        "pot_positions": ((6, 1), (6, 4)),
+        "plate_positions": ((5, 5), (7, 5)),
+        "agent_positions": ((3, 4), (9, 4)),
+        "divider": tuple((6, y) for y in range(1, 5)),
+        "counters": ((2, 1), (3, 1), (3, 2), (3, 3), (4, 1),
+                     (8, 1), (9, 1), (9, 2), (9, 3), (10, 1)),
+        "phase_a_role_resources": (
+            ((0, 1), "0"), ((1, 5), "X"),
+            ((11, 5), "0"), ((12, 1), "X"),
+        ),
+        "phase_b_role_resources": (
+            ((0, 1), "X"), ((1, 5), "0"),
+            ((11, 5), "X"), ((12, 1), "0"),
+        ),
+        "minimum_advantage": 3,
+    }
+
+
+_DISTANCE_SWITCH_INVERSION_DETOUR_SPEC = _inversion_distance_switch_detour_spec()
+_validate_distance_switch_spec(_DISTANCE_SWITCH_INVERSION_DETOUR_SPEC)
+_distance_inversion_detour_a = _distance_switch_grid(
+    _DISTANCE_SWITCH_INVERSION_DETOUR_SPEC
+)
+_distance_inversion_detour_b = _distance_switch_grid(
+    _DISTANCE_SWITCH_INVERSION_DETOUR_SPEC, roles_swapped=True
+)
+distance_switch_inversion_detour = _alternating_role_phases(
+    _distance_inversion_detour_a, _distance_inversion_detour_b
+)
+
+
 _DISTANCE_SWITCH_WIDE_SPEC = _vertical_distance_switch_spec(13, 6)
 _validate_distance_switch_spec(_DISTANCE_SWITCH_WIDE_SPEC)
 _distance_wide_a = _distance_switch_grid(_DISTANCE_SWITCH_WIDE_SPEC)
@@ -1132,5 +1173,5 @@ outage_0 = _alternating_role_phases(_BLACKOUT_CORRIDOR, _BLACKOUT_CORRIDOR_SUSPE
 outage_1 = _alternating_role_phases(_BLACKOUT_NOOK, _BLACKOUT_NOOK_SUSPENDED)
 
 distance_switch = distance_switch_0
-distance_0 = distance_switch
+distance_0 = distance_switch_inversion_detour
 distance_1 = distance_switch_wide
