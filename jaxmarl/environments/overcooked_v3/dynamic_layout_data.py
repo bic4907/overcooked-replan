@@ -1083,8 +1083,53 @@ split = split_0
 split_0 = split_narrow_diagonal
 split_1 = split
 
-outage_0 = outage_narrow_diagonal
-outage_1 = outage
+# The Outage pair the benchmark runs -- Blackout, in the paper's name. Both ask
+# what a pair does when the plates stop coming, on floors that make fetching a
+# plate expensive in different ways, so that stocking up before the countdown
+# is worth the detour. Each is a pair of whole grids: the second is the first
+# with the plate pile gone, and the two alternate every role phase with the
+# blackout held to the end, like the rest of the family.
+#
+# outage_0 splits the floor lengthways. Cooking is along the top, the single pot
+# at one end and the onions at the other, so a soup is already a walk; the
+# plates are down in the lower corridor, which the top reaches only round its
+# two ends, and the pile stands in the middle and divides it.
+_BLACKOUT_CORRIDOR = """
+WWWWWXWWWWW
+P A     A O
+W WWWRWWW W
+W         W
+WWWWWBWWWWW
+"""
+_BLACKOUT_CORRIDOR_SUSPENDED = """
+WWWWWXWWWWW
+P A     A O
+W WWWRWWW W
+W         W
+WWWWWWWWWWW
+"""
+# outage_1 keeps everything but the plates on one open row: two pots, two onion
+# piles and the recipe above it, two serving windows below. The plates are in
+# a corridor under that, reached by a single one-wide passage down the middle,
+# so only one cook can be fetching at a time.
+_BLACKOUT_PASSAGE = """
+WWP0R0PWW
+WA     AW
+WXWW WWXW
+WWWW WWWW
+WB     BW
+WWWWWWWWW
+"""
+_BLACKOUT_PASSAGE_SUSPENDED = """
+WWP0R0PWW
+WA     AW
+WXWW WWXW
+WWWW WWWW
+WW     WW
+WWWWWWWWW
+"""
+outage_0 = _alternating_role_phases(_BLACKOUT_CORRIDOR, _BLACKOUT_CORRIDOR_SUSPENDED)
+outage_1 = _alternating_role_phases(_BLACKOUT_PASSAGE, _BLACKOUT_PASSAGE_SUSPENDED)
 
 distance_switch = distance_switch_0
 distance_0 = distance_switch
