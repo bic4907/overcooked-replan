@@ -1159,6 +1159,44 @@ distance_switch_inversion_relocated = _alternating_role_phases(
 )
 
 
+def _inversion_distance_switch_maze_spec():
+    """Separate fresh A/B stations with a longer winding pot approach.
+
+    Both phases use disjoint resource positions.  Each bay has one resource
+    four or five walking steps from a pot and another nine or twelve steps
+    away, depending on the phase.  The diagonal counters create the detour.
+    """
+    left_counters = ((2, 2), (3, 3), (4, 4), (5, 1))
+    return {
+        **_DISTANCE_SWITCH_INVERSION_RELOCATED_SPEC,
+        "counters": left_counters + tuple(
+            (12 - x, y) for x, y in left_counters
+        ),
+        "phase_a_role_resources": (
+            ((3, 5), "0"), ((4, 0), "X"),
+            ((8, 0), "0"), ((9, 5), "X"),
+        ),
+        "phase_b_role_resources": (
+            ((3, 0), "0"), ((0, 3), "X"),
+            ((12, 3), "0"), ((9, 0), "X"),
+        ),
+        "minimum_advantage": 4,
+    }
+
+
+_DISTANCE_SWITCH_INVERSION_MAZE_SPEC = _inversion_distance_switch_maze_spec()
+_validate_distance_switch_spec(_DISTANCE_SWITCH_INVERSION_MAZE_SPEC)
+_distance_inversion_maze_a = _distance_switch_grid(
+    _DISTANCE_SWITCH_INVERSION_MAZE_SPEC
+)
+_distance_inversion_maze_b = _distance_switch_grid(
+    _DISTANCE_SWITCH_INVERSION_MAZE_SPEC, roles_swapped=True
+)
+distance_switch_inversion_maze = _alternating_role_phases(
+    _distance_inversion_maze_a, _distance_inversion_maze_b
+)
+
+
 _DISTANCE_SWITCH_WIDE_SPEC = _vertical_distance_switch_spec(13, 6)
 _validate_distance_switch_spec(_DISTANCE_SWITCH_WIDE_SPEC)
 _distance_wide_a = _distance_switch_grid(_DISTANCE_SWITCH_WIDE_SPEC)
@@ -1232,7 +1270,7 @@ outage_0 = outage_narrow_diagonal
 outage_1 = outage
 
 distance_switch = distance_switch_0
-# Preserve earlier inversions for their checkpoints.  Benchmark relocation
-# under distance_0 on the same 13x6 footprint.
-distance_0 = distance_switch_inversion_relocated
+# Preserve earlier inversions for their checkpoints.  Benchmark the longer
+# resource-to-pot detour under distance_0 on the same 13x6 footprint.
+distance_0 = distance_switch_inversion_maze
 distance_1 = distance_switch_wide

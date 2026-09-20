@@ -9,4 +9,4 @@ RECORD_MAX_STEPS: 450
 EXPERIMENT: distance
 CONDITION: distance_0
 WANDB_GROUP: distance
-LAYOUT_REVISION: distance-inversion-relocated-13x6-v5
+LAYOUT_REVISION: distance-inversion-maze-13x6-v6
