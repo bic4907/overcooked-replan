@@ -1270,7 +1270,7 @@ outage_0 = outage_narrow_diagonal
 outage_1 = outage
 
 distance_switch = distance_switch_0
-# Preserve earlier inversions for their checkpoints.  Benchmark the longer
-# resource-to-pot detour under distance_0 on the same 13x6 footprint.
-distance_0 = distance_switch_inversion_maze
+# Keep the completed asymmetric-detour layout as the selected distance_0 map.
+# Other inversion variants retain descriptive aliases for their checkpoints.
+distance_0 = distance_switch_inversion_detour
 distance_1 = distance_switch_wide
