@@ -1084,11 +1084,12 @@ split_0 = split_narrow_diagonal
 split_1 = split
 
 # The Outage pair the benchmark runs -- Blackout, in the paper's name. Both ask
-# what a pair does when the plates stop coming, on floors that make fetching a
-# plate expensive in different ways, so that stocking up before the countdown
-# is worth the detour. Each is a pair of whole grids: the second is the first
-# with the plate pile gone, and the two alternate every role phase with the
-# blackout held to the end, like the rest of the family.
+# what a pair does when the plates stop coming, from opposite ends: one floor
+# makes a plate expensive to fetch, the other makes a stockpile cheap to build,
+# so in each the countdown is worth acting on for a different reason. Each is
+# a pair of whole grids: the second is the first with the plate pile gone, and
+# the two alternate every role phase with the blackout held to the end, like
+# the rest of the family.
 #
 # outage_0 splits the floor lengthways. Cooking is along the top, the single pot
 # at one end and the onions at the other, so a soup is already a walk; the
@@ -1108,28 +1109,27 @@ W WWWRWWW W
 W         W
 WWWWWWWWWWW
 """
-# outage_1 keeps everything but the plates on one open row: two pots, two onion
-# piles and the recipe above it, two serving windows below. The plates are in
-# a corridor under that, reached by a single one-wide passage down the middle,
-# so only one cook can be fetching at a time.
-_BLACKOUT_PASSAGE = """
-WWP0R0PWW
-WA     AW
-WXWW WWXW
-WWWW WWWW
-WB     BW
+# outage_1 puts the plate pile in a nook off the working floor: the pile sits
+# behind a short wall with counters on three sides of the cell in front of it,
+# so a plate can be taken and put down without a step, and a stockpile costs
+# a few steps a plate rather than a round trip. The nook opens onto the floor
+# at two cells, so a cook fetching cannot be shut in by the other.
+_BLACKOUT_NOOK = """
 WWWWWWWWW
+WWWW    O
+WB W    W
+W A   A O
+WWPWXWPWW
 """
-_BLACKOUT_PASSAGE_SUSPENDED = """
-WWP0R0PWW
-WA     AW
-WXWW WWXW
-WWWW WWWW
-WW     WW
+_BLACKOUT_NOOK_SUSPENDED = """
 WWWWWWWWW
+WWWW    O
+WW W    W
+W A   A O
+WWPWXWPWW
 """
 outage_0 = _alternating_role_phases(_BLACKOUT_CORRIDOR, _BLACKOUT_CORRIDOR_SUSPENDED)
-outage_1 = _alternating_role_phases(_BLACKOUT_PASSAGE, _BLACKOUT_PASSAGE_SUSPENDED)
+outage_1 = _alternating_role_phases(_BLACKOUT_NOOK, _BLACKOUT_NOOK_SUSPENDED)
 
 distance_switch = distance_switch_0
 distance_0 = distance_switch
