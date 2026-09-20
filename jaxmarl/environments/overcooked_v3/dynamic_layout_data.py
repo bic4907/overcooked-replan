@@ -1130,6 +1130,35 @@ distance_switch_inversion_detour = _alternating_role_phases(
 )
 
 
+def _inversion_distance_switch_relocated_spec():
+    """Relocate every role station instead of swapping labels in place.
+
+    Phase B uses four counter positions that are inactive in phase A.  In
+    each bay, the nearest resource-to-pot walking routes remain four versus
+    seven steps, while both the onion and serving destinations move.
+    """
+    return {
+        **_DISTANCE_SWITCH_INVERSION_DETOUR_SPEC,
+        "phase_b_role_resources": (
+            ((1, 0), "X"), ((0, 4), "0"),
+            ((12, 4), "X"), ((11, 0), "0"),
+        ),
+    }
+
+
+_DISTANCE_SWITCH_INVERSION_RELOCATED_SPEC = _inversion_distance_switch_relocated_spec()
+_validate_distance_switch_spec(_DISTANCE_SWITCH_INVERSION_RELOCATED_SPEC)
+_distance_inversion_relocated_a = _distance_switch_grid(
+    _DISTANCE_SWITCH_INVERSION_RELOCATED_SPEC
+)
+_distance_inversion_relocated_b = _distance_switch_grid(
+    _DISTANCE_SWITCH_INVERSION_RELOCATED_SPEC, roles_swapped=True
+)
+distance_switch_inversion_relocated = _alternating_role_phases(
+    _distance_inversion_relocated_a, _distance_inversion_relocated_b
+)
+
+
 _DISTANCE_SWITCH_WIDE_SPEC = _vertical_distance_switch_spec(13, 6)
 _validate_distance_switch_spec(_DISTANCE_SWITCH_WIDE_SPEC)
 _distance_wide_a = _distance_switch_grid(_DISTANCE_SWITCH_WIDE_SPEC)
@@ -1203,7 +1232,7 @@ outage_0 = outage_narrow_diagonal
 outage_1 = outage
 
 distance_switch = distance_switch_0
-# Preserve earlier inversions for their checkpoints.  Benchmark the detour
-# variant under distance_0 on the same 13x6 footprint.
-distance_0 = distance_switch_inversion_detour
+# Preserve earlier inversions for their checkpoints.  Benchmark relocation
+# under distance_0 on the same 13x6 footprint.
+distance_0 = distance_switch_inversion_relocated
 distance_1 = distance_switch_wide
