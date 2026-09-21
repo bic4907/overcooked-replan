@@ -5,15 +5,16 @@ metric:
   goal: maximize
   name: train/episode_return
 
-# Six independent RNN policies per layout. Each run saves the 10%, 50%, and
-# final (100%) checkpoints, yielding eighteen frozen partner policies per layout.
+# Six independent RNN policies per layout. Each run saves 10/50/100% checkpoints.
 parameters:
   scenario:
     values:
       - split_0
+      - split_1
       - outage_0
-      - recipe_switch_0
-      - distance_switch_0
+      - outage_1
+      - distance_0
+      - distance_1
   SEED:
     values: [0, 1, 2, 3, 4, 5]
   ENTITY:

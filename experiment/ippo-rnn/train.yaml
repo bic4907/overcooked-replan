@@ -1,11 +1,10 @@
 program: baselines/IPPO/ippo_overcooked_v3.py
-name: ippo-rnn-observer-all
+name: ippo-rnn-role-scenarios
 method: grid
 metric:
   goal: maximize
   name: train/episode_return
 
-# 6 layouts x 4 observer arms x 6 seeds = 144 runs.
 parameters:
   scenario:
     values:
@@ -13,25 +12,21 @@ parameters:
       - split_1
       - outage_0
       - outage_1
-      - distance_switch_0
-      - distance_switch_1
-  TRANSITION_OBSERVER:
-    values: [none, agent_0, agent_1, both]
+      - distance_0
+      - distance_1
+  ARCHITECTURE:
+    value: rnn
   SEED:
     values: [0, 1, 2, 3, 4, 5]
   ENTITY:
     value: cilab-overcooked
   PROJECT:
-    value: overcooked-v3-ippo-rnn-observer_train
-  SAVES_DIR:
-    value: saves/ippo_rnn_observer
+    value: overcooked-v3-ippo-rnn_train
   recording:
-    value: disabled
+    value: enabled
 
 command:
   - ${env}
   - ${interpreter}
   - ${program}
-  - --config-name
-  - ippo_rnn_transition_window_overcooked_v3
   - ${args_no_hyphens}

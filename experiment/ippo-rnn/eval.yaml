@@ -1,5 +1,5 @@
 program: baselines/IPPO/eval_crossplay_overcooked_v3.py
-name: fcp-outage1-v2-seedwise-xp
+name: ippo-rnn-role-scenarios-seedwise-xp
 method: grid
 metric:
   goal: maximize
@@ -7,9 +7,15 @@ metric:
 
 parameters:
   algorithms:
-    value: FCP
+    value: IPPO
   layout:
-    value: outage_1
+    values:
+      - split_0
+      - split_1
+      - outage_0
+      - outage_1
+      - distance_0
+      - distance_1
   episodes:
     value: 20
   max-steps:
@@ -19,11 +25,11 @@ parameters:
   entity:
     value: cilab-overcooked
   output-project:
-    value: cilab-overcooked/overcooked-v3-fcp-outage1-v2_eval
+    value: cilab-overcooked/overcooked-v3-ippo-rnn_eval
 
 command:
   - ${env}
   - ${interpreter}
   - ${program}
-  - cilab-overcooked/overcooked-v3-fcp-outage1-v2_train
+  - cilab-overcooked/overcooked-v3-ippo-rnn_train
   - ${args_no_equals}

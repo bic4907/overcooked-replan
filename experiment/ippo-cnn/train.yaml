@@ -1,5 +1,5 @@
-program: baselines/PolicySwitch/train_overcooked_v3.py
-name: policy-switch-role-scenarios
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: ippo-role-scenarios
 method: grid
 metric:
   goal: maximize
@@ -9,15 +9,19 @@ parameters:
   scenario:
     values:
       - split_0
+      - split_1
       - outage_0
-      - recipe_switch_0
-      - distance_switch_0
+      - outage_1
+      - distance_0
+      - distance_1
   SEED:
     values: [0, 1, 2, 3, 4, 5]
   ENTITY:
     value: cilab-overcooked
   PROJECT:
-    value: overcooked-v3-policyswitch_train
+    value: overcooked-v3-ippo_train
+  recording:
+    value: enabled
 
 command:
   - ${env}

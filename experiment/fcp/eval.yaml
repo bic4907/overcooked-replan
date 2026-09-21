@@ -11,9 +11,11 @@ parameters:
   layout:
     values:
       - split_0
+      - split_1
       - outage_0
-      - recipe_switch_0
-      - distance_switch_0
+      - outage_1
+      - distance_0
+      - distance_1
   episodes:
     value: 20
   max-steps:
