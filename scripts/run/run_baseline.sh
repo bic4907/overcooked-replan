@@ -40,8 +40,8 @@ case "$EXP" in
         PROJECT="overcooked-v3-ippo-rnn-observer-a-0921_train"
         EXTRA=(
             ARCHITECTURE=rnn
-            TRANSITION_OBSERVER=agent_0
-            ENV_KWARGS.transition_observer=agent_0
+            +TRANSITION_OBSERVER=agent_0
+            ++ENV_KWARGS.transition_observer=agent_0
         )
         ;;
     fcp-population)

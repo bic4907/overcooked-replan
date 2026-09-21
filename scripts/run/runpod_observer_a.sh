@@ -28,8 +28,8 @@ env \
         scenario=split_0 \
         SEED=0 \
         ARCHITECTURE=rnn \
-        TRANSITION_OBSERVER=agent_0 \
-        ENV_KWARGS.transition_observer=agent_0 \
+        +TRANSITION_OBSERVER=agent_0 \
+        ++ENV_KWARGS.transition_observer=agent_0 \
         ENTITY=cilab-overcooked \
         PROJECT=overcooked-v3-ippo-rnn-observer-a-0921_dryrun \
         NUM_ENVS=8 \
