@@ -5,23 +5,23 @@
 ## IPPO-CNN
 
 ```bash
-wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo_train experiment/ippo-cnn/train.yaml
-wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo_eval experiment/ippo-cnn/eval.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo_train ippo-cnn/train.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo_eval ippo-cnn/eval.yaml
 ```
 
 ## IPPO-RNN
 
 ```bash
-wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo-rnn_train experiment/ippo-rnn/train.yaml
-wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo-rnn_eval experiment/ippo-rnn/eval.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo-rnn_train ippo-rnn/train.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo-rnn_eval ippo-rnn/eval.yaml
 ```
 
 ## FCP
 
 ```bash
-wandb sweep --entity cilab-overcooked --project overcooked-v3-fcp-population experiment/fcp/population.yaml
-wandb sweep --entity cilab-overcooked --project overcooked-v3-fcp_train experiment/fcp/train.yaml
-wandb sweep --entity cilab-overcooked --project overcooked-v3-fcp_eval experiment/fcp/eval.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-fcp-population fcp/population.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-fcp_train fcp/train.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-fcp_eval fcp/eval.yaml
 ```
 
 ## Agent 실행 예시
