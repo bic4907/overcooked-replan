@@ -16,6 +16,13 @@ wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo-rnn_train ipp
 wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo-rnn_eval ippo-rnn/eval.yaml
 ```
 
+## IPPO-RNN (Observer=A only)
+
+```bash
+wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo-rnn-observer-a-0921_train ippo-rnn-observer-a/train.yaml
+wandb sweep --entity cilab-overcooked --project overcooked-v3-ippo-rnn-observer-a-0921_eval ippo-rnn-observer-a/eval.yaml
+```
+
 ## FCP
 
 ```bash

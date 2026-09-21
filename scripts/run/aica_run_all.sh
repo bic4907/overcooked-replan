@@ -9,3 +9,5 @@ bash "$HERE/run_baseline.sh" ippo-cnn
 bash "$HERE/run_baseline.sh" ippo-cnn-eval
 bash "$HERE/run_baseline.sh" ippo-rnn
 bash "$HERE/run_baseline.sh" ippo-rnn-eval
+bash "$HERE/run_baseline.sh" ippo-rnn-observer-a
+bash "$HERE/run_baseline.sh" ippo-rnn-observer-a-eval

@@ -1,0 +1,38 @@
+program: baselines/IPPO/ippo_overcooked_v3.py
+name: ippo-rnn-observer-a-role-scenarios
+method: grid
+metric:
+  goal: maximize
+  name: train/episode_return
+
+# Selective transition-window observation: only agent A (agent_0) sees the
+# 20-step transition warning; agent B always sees zeros.
+parameters:
+  scenario:
+    values:
+      - split_0
+      - split_1
+      - outage_0
+      - outage_1
+      - distance_0
+      - distance_1
+  ARCHITECTURE:
+    value: rnn
+  TRANSITION_OBSERVER:
+    value: agent_0
+  ENV_KWARGS.transition_observer:
+    value: agent_0
+  SEED:
+    values: [0, 1, 2, 3, 4, 5]
+  ENTITY:
+    value: cilab-overcooked
+  PROJECT:
+    value: overcooked-v3-ippo-rnn-observer-a-0921_train
+  recording:
+    value: enabled
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}

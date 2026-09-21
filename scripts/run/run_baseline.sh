@@ -23,6 +23,7 @@ LAYOUTS=(split_0 split_1 outage_0 outage_1 distance_0 distance_1)
 SEEDS=(0 1 2 3 4 5)
 
 MODE="train"
+EVAL_EXTRA=()
 case "$EXP" in
     ippo-cnn)
         PROGRAM="baselines/IPPO/ippo_overcooked_v3.py"
@@ -33,6 +34,15 @@ case "$EXP" in
         PROGRAM="baselines/IPPO/ippo_overcooked_v3.py"
         PROJECT="overcooked-v3-ippo-rnn-0921_train"
         EXTRA=(ARCHITECTURE=rnn)
+        ;;
+    ippo-rnn-observer-a)
+        PROGRAM="baselines/IPPO/ippo_overcooked_v3.py"
+        PROJECT="overcooked-v3-ippo-rnn-observer-a-0921_train"
+        EXTRA=(
+            ARCHITECTURE=rnn
+            TRANSITION_OBSERVER=agent_0
+            ENV_KWARGS.transition_observer=agent_0
+        )
         ;;
     fcp-population)
         PROGRAM="baselines/IPPO/ippo_overcooked_v3.py"
@@ -62,6 +72,13 @@ case "$EXP" in
         SOURCE_PROJECT="cilab-overcooked/overcooked-v3-ippo-rnn-0921_train"
         OUTPUT_PROJECT="cilab-overcooked/overcooked-v3-ippo-rnn-0921_eval"
         ALGORITHM="IPPO"
+        ;;
+    ippo-rnn-observer-a-eval)
+        MODE="eval"
+        SOURCE_PROJECT="cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_train"
+        OUTPUT_PROJECT="cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_eval"
+        ALGORITHM="IPPO"
+        EVAL_EXTRA=(--transition-observer agent_0)
         ;;
     fcp-eval)
         MODE="eval"
@@ -166,6 +183,7 @@ launch_eval_jobs() {
                 --entity cilab-overcooked \
                 --output-project "$OUTPUT_PROJECT" \
                 --gpus "$gpu" \
+                "${EVAL_EXTRA[@]}" \
                 >"$log_file" 2>&1 &
         GPU_PID[$gpu]="$!"
     done
