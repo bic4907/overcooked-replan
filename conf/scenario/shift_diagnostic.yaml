@@ -1,0 +1,18 @@
+# @package _global_
+
+# The shift-design diagnostic. Every cell is one kitchen schedule from
+# jaxmarl.environments.overcooked_v3.random_shift_layouts: the two static
+# conditions beside a designed shift, and the drawn shifts on the original
+# Overcooked kitchens. Sweep ENV_KWARGS.layout over those names; the schedule,
+# the episode length and the alert are the same in all of them.
+
+ENV_KWARGS:
+  layout: rs_split_0_aa
+  max_steps: 450
+  random_agent_positions: false
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: shift_design_diagnostic
+CONDITION: ${ENV_KWARGS.layout}
+WANDB_GROUP: shift_design_diagnostic
+LAYOUT_REVISION: shift-diagnostic-0916

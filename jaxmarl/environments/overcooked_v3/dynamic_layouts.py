@@ -354,3 +354,10 @@ __all__ = [
     "phase_policy_layout_name",
     "phase_policy_sequence",
 ]
+
+
+# The shift-design diagnostic builds its kitchens from these curated ones; they
+# are registered beside them so any layout name resolves the same way.
+from jaxmarl.environments.overcooked_v3 import random_shift_layouts  # noqa: E402
+
+random_shift_layouts.register_diagnostic_layouts()
