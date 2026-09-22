@@ -33,6 +33,29 @@ def draw_panel(ax, metric, panel_label):
         color = COLORS[method]
 
         for pos, sp_value, xp_value in zip(xpos, sp, xp):
+            if metric == "Episode return" and sp_value == 0 and xp_value == 0:
+                ax.text(
+                    pos,
+                    4.0,
+                    "0",
+                    color=color,
+                    fontsize=5.5,
+                    ha="center",
+                    va="bottom",
+                )
+                continue
+            if not np.isfinite(sp_value) and not np.isfinite(xp_value):
+                ax.text(
+                    pos,
+                    0.02 if metric == "Drop" else 2.0,
+                    "N/A",
+                    color=color,
+                    fontsize=5.0,
+                    ha="center",
+                    va="bottom",
+                    rotation=90,
+                )
+                continue
             sp_style = {
                 "height": sp_value,
                 "color": "white",
@@ -77,7 +100,7 @@ def draw_panel(ax, metric, panel_label):
         ax.yaxis.set_major_formatter(FormatStrFormatter("%.1f"))
         ax.set_ylabel("Drop (lower is better)", fontsize=7.2)
     else:
-        ax.set_ylim(0, 160)
+        ax.set_ylim(0, 80)
         ax.set_ylabel("Steps (lower is better)", fontsize=7.2)
 
 
