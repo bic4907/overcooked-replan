@@ -189,13 +189,53 @@ def _artifact_reference(artifact, source_run):
     return f"{source_run.entity}/{source_run.project}/{artifact.name}"
 
 
+def _architecture(run_config):
+    """Which trunk a run trained, named by the run or by its algorithm.
+
+    Some projects hold reference runs that carry the layout, the seed and a
+    checkpoint but no hyper-parameters -- the recurrent 0915 benchmark runs
+    are the case in hand. Taken as the feed-forward default their recurrent
+    weights load without complaint into a network that never reads them,
+    and the policy stands still for a score of zero. The algorithm name says
+    what was trained; :func:`assert_architecture_matches` then checks it
+    against the weights themselves.
+    """
+    named = run_config.get("ARCHITECTURE")
+    if named is not None:
+        return str(named).lower()
+    algorithm = str(
+        run_config.get("ALGORITHM") or run_config.get("algorithm") or ""
+    ).lower()
+    if "rnn" in algorithm or algorithm.startswith("fcp"):
+        return "rnn"
+    return "cnn"
+
+
 def _policy_config(run_config):
     return {
-        "ARCHITECTURE": str(run_config.get("ARCHITECTURE", "cnn")).lower(),
+        "ARCHITECTURE": _architecture(run_config),
         "ACTIVATION": run_config.get("ACTIVATION", "relu"),
         "FC_DIM_SIZE": int(run_config.get("FC_DIM_SIZE", 128)),
         "GRU_HIDDEN_DIM": int(run_config.get("GRU_HIDDEN_DIM", 128)),
     }
+
+
+def assert_architecture_matches(policy_config, params, label=""):
+    """Fail when a checkpoint's trunk is not the one the config asks for.
+
+    A recurrent checkpoint carries ``ScannedRNN_0`` and a feed-forward one
+    does not; flax ignores the leftover weights either way, so without this
+    check the mismatch shows up only as a policy that scores nothing.
+    """
+    recurrent = "ScannedRNN_0" in params.get("params", params)
+    if recurrent != (policy_config["ARCHITECTURE"] == "rnn"):
+        where = f" for {label}" if label else ""
+        raise ValueError(
+            f"Checkpoint{where} holds "
+            f"{'recurrent' if recurrent else 'feed-forward'} weights but the run "
+            f"config asks for {policy_config['ARCHITECTURE']}. Pass the run that "
+            "trained these weights, or set ARCHITECTURE on it."
+        )
 
 
 def _transition_observer(run_config):
@@ -346,6 +386,10 @@ def evaluate_crossplay(
     runtime = runtime or prepare_crossplay_runtime(run_configs, args)
     if params is None:
         params = tuple(load_params(checkpoint) for checkpoint in checkpoints)
+    for seat, (config, seat_params) in enumerate(zip(run_configs, params)):
+        assert_architecture_matches(
+            _policy_config(config), seat_params, f"agent_{seat} ({checkpoints[seat]})"
+        )
     key = jax.random.PRNGKey(args.seed)
     returns = []
     lengths = []
