@@ -179,6 +179,14 @@ def parse_args(argv=None):
         ),
     )
     parser.add_argument(
+        "--eval-transition-observer",
+        choices=("none", "agent_0", "agent_1", "both"),
+        help=(
+            "Override warning visibility during evaluation while selecting "
+            "checkpoints with --transition-observer."
+        ),
+    )
+    parser.add_argument(
         "--vmap-indices",
         nargs="+",
         type=int,
@@ -537,7 +545,8 @@ def _record_key(layout, left_model_id, right_model_id, args):
         args.max_steps,
         args.seed,
         args.stochastic,
-        getattr(args, "transition_observer", None),
+        getattr(args, "eval_transition_observer", None)
+        or getattr(args, "transition_observer", None),
         *adaptation_config_dict(adaptation_config).values(),
         bool(getattr(args, "save_adaptation_traces", False)),
         AGENT_REWARD_VERSION,
@@ -782,7 +791,11 @@ def build_pair_task(layout, left, right, args, progress_index, total_pairs):
         "max_steps": args.max_steps,
         "evaluation_seed": args.seed,
         "stochastic": args.stochastic,
-        "transition_observer": args.transition_observer,
+        "transition_observer": (
+            getattr(args, "eval_transition_observer", None)
+            or args.transition_observer
+        ),
+        "source_transition_observer": args.transition_observer,
         "save_adaptation_traces": bool(
             getattr(args, "save_adaptation_traces", False)
         ),
@@ -809,6 +822,17 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
         recovery_persistence=task["recovery_persistence"],
     )
     run_configs = (task["agent_0_config"], task["agent_1_config"])
+    if task.get("source_transition_observer") != task["transition_observer"]:
+        run_configs = tuple(
+            {
+                **config,
+                "ENV_KWARGS": {
+                    **(config.get("ENV_KWARGS") or {}),
+                    "transition_observer": task["transition_observer"],
+                },
+            }
+            for config in run_configs
+        )
     signature = evaluation_signature(run_configs, pair_args)
     runtime = runtime_cache.get(signature)
     if runtime is None:
@@ -853,6 +877,7 @@ def evaluate_pair_task(task, runtime_cache=None, params_cache=None):
         "evaluation_seed",
         "stochastic",
         "transition_observer",
+        "source_transition_observer",
         "save_adaptation_traces",
         "adaptation_metrics_version",
         "adaptation_window",
@@ -1054,6 +1079,9 @@ def main():
             "algorithms": args.algorithms,
             "layout": args.layout,
             "transition_observer": args.transition_observer,
+            "eval_transition_observer": (
+                args.eval_transition_observer or args.transition_observer
+            ),
             "training_seeds": args.seeds,
             "vmap_indices": args.vmap_indices,
             "episodes": args.episodes,
@@ -1368,8 +1396,11 @@ def main():
             {
                 "map": args.layout,
                 "transition_observer": (
-                    args.transition_observer or next(iter(selected_observers))
+                    args.eval_transition_observer
+                    or args.transition_observer
+                    or next(iter(selected_observers))
                 ),
+                "source_transition_observer": next(iter(selected_observers)),
                 "overall": {
                     key: _json_safe(value)
                     for key, value in {**summary, **scalar_metrics}.items()
@@ -1382,8 +1413,11 @@ def main():
             type="crossplay-evaluation",
             metadata={
                 "transition_observer": (
-                    args.transition_observer or next(iter(selected_observers))
+                    args.eval_transition_observer
+                    or args.transition_observer
+                    or next(iter(selected_observers))
                 ),
+                "source_transition_observer": next(iter(selected_observers)),
                 **{
                     key: _json_safe(value) for key, value in scalar_metrics.items()
                 },

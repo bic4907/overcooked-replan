@@ -72,3 +72,11 @@ CAMPAIGN=handoff-site-0924-v4-d23-cnn10 ALGORITHMS=cnn \
   GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" \
   bash scripts/run/run_topology_inversion.sh main eval
 ```
+
+## 전환 예고 제거 진단
+
+SP/XP 차이가 작으면 동일한 학습 체크포인트를 대상으로 `--transition-observer
+agent_0 --eval-transition-observer none`을 지정해 평가한다. 첫 옵션은 학습된
+체크포인트 선택 조건이고 두 번째 옵션은 평가 환경에서 예고 신호를 가리는 조건이다.
+학습이나 맵은 바꾸지 않으며, 결과는 별도 평가 디렉터리와 W&B project에 저장한다.
+기본 평가와 SP/XP, phase 전환 직후 reward drop을 비교해 예고 신호 의존도를 본다.
