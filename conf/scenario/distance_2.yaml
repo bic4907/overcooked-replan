@@ -1,0 +1,12 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: distance_2
+  max_steps: 450
+  random_agent_positions: false
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: distance
+CONDITION: distance_2
+WANDB_GROUP: handoff-site-inversion
+LAYOUT_REVISION: private-pot-open-shortcuts-11x7-v4

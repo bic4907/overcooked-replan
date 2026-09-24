@@ -1,0 +1,312 @@
+{
+  "revision": "handoff-site-compact-11x7-v4",
+  "kind": "static floor graph, no policy rollouts",
+  "excluded": [
+    "facing",
+    "interaction",
+    "other-agent occupancy",
+    "production opportunity cost"
+  ],
+  "routes": [
+    {
+      "layout": "distance_2",
+      "transition": "A->B: incoming supplier B",
+      "start": [
+        7,
+        2
+      ],
+      "staging": [
+        7,
+        4
+      ],
+      "next_handoff_floor": [
+        6,
+        4
+      ],
+      "cross_before": 2,
+      "cross_after": 2,
+      "cross_multiplier": 1.0,
+      "prepared_post_change_moves": 1,
+      "unprepared_post_change_moves": 3,
+      "prepared_total_moves": 3,
+      "net_moves_saved": 0,
+      "new_source_floor": [
+        6,
+        5
+      ],
+      "first_supply_prepared_post_moves": 3,
+      "first_supply_unprepared_post_moves": 5,
+      "first_supply_prepared_total_moves": 5,
+      "first_supply_net_moves_saved": 0,
+      "pre_route": [
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          4
+        ]
+      ],
+      "late_route": [
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          4
+        ]
+      ]
+    },
+    {
+      "layout": "distance_2",
+      "transition": "B->A: incoming supplier A",
+      "start": [
+        3,
+        4
+      ],
+      "staging": [
+        3,
+        2
+      ],
+      "next_handoff_floor": [
+        4,
+        2
+      ],
+      "cross_before": 2,
+      "cross_after": 2,
+      "cross_multiplier": 1.0,
+      "prepared_post_change_moves": 1,
+      "unprepared_post_change_moves": 3,
+      "prepared_total_moves": 3,
+      "net_moves_saved": 0,
+      "new_source_floor": [
+        4,
+        1
+      ],
+      "first_supply_prepared_post_moves": 3,
+      "first_supply_unprepared_post_moves": 5,
+      "first_supply_prepared_total_moves": 5,
+      "first_supply_net_moves_saved": 0,
+      "pre_route": [
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "late_route": [
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          2
+        ]
+      ]
+    },
+    {
+      "layout": "distance_3",
+      "transition": "A->B: incoming supplier B",
+      "start": [
+        7,
+        2
+      ],
+      "staging": [
+        7,
+        4
+      ],
+      "next_handoff_floor": [
+        6,
+        4
+      ],
+      "cross_before": 2,
+      "cross_after": 10,
+      "cross_multiplier": 5.0,
+      "prepared_post_change_moves": 1,
+      "unprepared_post_change_moves": 11,
+      "prepared_total_moves": 3,
+      "net_moves_saved": 8,
+      "new_source_floor": [
+        6,
+        5
+      ],
+      "first_supply_prepared_post_moves": 3,
+      "first_supply_unprepared_post_moves": 11,
+      "first_supply_prepared_total_moves": 5,
+      "first_supply_net_moves_saved": 6,
+      "pre_route": [
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          3
+        ],
+        [
+          7,
+          4
+        ]
+      ],
+      "late_route": [
+        [
+          7,
+          2
+        ],
+        [
+          7,
+          1
+        ],
+        [
+          8,
+          1
+        ],
+        [
+          9,
+          1
+        ],
+        [
+          9,
+          2
+        ],
+        [
+          9,
+          3
+        ],
+        [
+          9,
+          4
+        ],
+        [
+          9,
+          5
+        ],
+        [
+          8,
+          5
+        ],
+        [
+          7,
+          5
+        ],
+        [
+          7,
+          4
+        ]
+      ]
+    },
+    {
+      "layout": "distance_3",
+      "transition": "B->A: incoming supplier A",
+      "start": [
+        3,
+        4
+      ],
+      "staging": [
+        3,
+        2
+      ],
+      "next_handoff_floor": [
+        4,
+        2
+      ],
+      "cross_before": 2,
+      "cross_after": 10,
+      "cross_multiplier": 5.0,
+      "prepared_post_change_moves": 1,
+      "unprepared_post_change_moves": 11,
+      "prepared_total_moves": 3,
+      "net_moves_saved": 8,
+      "new_source_floor": [
+        4,
+        1
+      ],
+      "first_supply_prepared_post_moves": 3,
+      "first_supply_unprepared_post_moves": 11,
+      "first_supply_prepared_total_moves": 5,
+      "first_supply_net_moves_saved": 6,
+      "pre_route": [
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          3
+        ],
+        [
+          3,
+          2
+        ]
+      ],
+      "late_route": [
+        [
+          3,
+          4
+        ],
+        [
+          3,
+          5
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          1,
+          5
+        ],
+        [
+          1,
+          4
+        ],
+        [
+          1,
+          3
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          2,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ]
+      ]
+    }
+  ]
+}

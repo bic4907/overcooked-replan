@@ -1175,3 +1175,188 @@ outage_1 = _alternating_role_phases(_BLACKOUT_CORRIDOR, _BLACKOUT_CORRIDOR_SUSPE
 distance_switch = distance_switch_0
 distance_0 = distance_switch_inversion_detour
 distance_1 = distance_switch_wide
+
+
+def _topology_inversion_grid(bay_width, reversed_routes=False, relay=False):
+    """Keep stations fixed and swap the near/far openings in four baffles.
+
+    Each bay has an upper supply aisle, a middle shared-pot aisle, and a
+    lower serving aisle. Non-storage blockers prevent passing items through
+    a baffle. The two movement regions remain connected internally in A/B.
+    In A the left upper / right lower routes are short; B reverses them.
+    Relay additionally exposes two permanent handoff counters and provides
+    onions only on the left and plates only on the right.
+    """
+    center = bay_width + 1
+    width = 2 * bay_width + 3
+    rows = [["W"] * width for _ in range(7)]
+    for y in range(1, 6):
+        for x in range(1, width - 1):
+            rows[y][x] = " "
+        rows[y][center] = "N"
+
+    rows[0][center] = "R"
+    rows[3][center] = "P"
+    rows[0][center - 1] = "0"
+    rows[6][center + 1] = "B"
+    rows[6][center - 2] = "X"
+    rows[6][center + 2] = "X"
+    if relay:
+        rows[1][center] = "W"
+        rows[5][center] = "W"
+    else:
+        rows[0][center + 1] = "0"
+        rows[6][center - 1] = "B"
+
+    for right_bay in (False, True):
+        inner_x = center + 1 if right_bay else center - 1
+        outer_x = width - 2 if right_bay else 1
+        bay_xs = range(center + 1, width - 1) if right_bay else range(1, center)
+        upper_is_short = right_bay == reversed_routes
+        for y, is_short in ((2, upper_is_short), (4, not upper_is_short)):
+            for x in bay_xs:
+                rows[y][x] = "N"
+            rows[y][inner_x if is_short else outer_x] = " "
+        rows[3][inner_x] = "A"
+
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+# Geometry-only inversion candidates; preserve distance_0/1 for old runs.
+# All stations and spawn cells are identical across A/B; only N/floor change.
+distance_topology_short_legacy = _alternating_role_phases(
+    _topology_inversion_grid(3),
+    _topology_inversion_grid(3, reversed_routes=True),
+)
+distance_topology_long_legacy = _alternating_role_phases(
+    _topology_inversion_grid(4),
+    _topology_inversion_grid(4, reversed_routes=True),
+)
+distance_4 = _alternating_role_phases(
+    _topology_inversion_grid(4, relay=True),
+    _topology_inversion_grid(4, reversed_routes=True, relay=True),
+)
+
+
+def _private_pot_supply_grid(bay_width, supplier_right=False, detour=False):
+    """Reverse onion access while each agent keeps a physically private pot.
+
+    A fixed central onion pile has exactly one usable interaction floor in
+    each phase. Only its left/right approach cells change between floor and
+    non-storage blocker. Two permanent shared counters support onion handoff;
+    the divider never permits agents to cross. Optional fixed baffles make
+    delivery to the counters slower, increasing the value of a supply buffer.
+    """
+    center = bay_width + 1
+    width = 2 * bay_width + 3
+    rows = [["W"] * width for _ in range(7)]
+    for y in range(1, 6):
+        for x in range(1, width - 1):
+            rows[y][x] = " "
+        rows[y][center] = "N"
+
+    rows[0][center] = "R"
+    rows[1][center] = "0"
+    rows[3][center] = "W"
+    rows[4][center] = "W"
+    rows[1][center - 1] = "N" if supplier_right else " "
+    rows[1][center + 1] = " " if supplier_right else "N"
+
+    for right_bay in (False, True):
+        outer_x = width - 2 if right_bay else 1
+        inner_x = center + 1 if right_bay else center - 1
+        boundary_x = width - 1 if right_bay else 0
+        rows[3][boundary_x] = "P"
+        rows[6][outer_x] = "B"
+        rows[6][inner_x] = "X"
+        rows[3][center + 2 if right_bay else center - 2] = "A"
+        if detour:
+            bay_xs = range(center + 1, width - 1) if right_bay else range(1, center)
+            for x in bay_xs:
+                rows[2][x] = "N"
+            rows[2][outer_x] = " "
+
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+# Private-pot revision: supplier A -> B in phase A, B -> A in phase B.
+# No station moves/disappears, and shared counter contents survive transitions.
+distance_5 = _alternating_role_phases(
+    _private_pot_supply_grid(3),
+    _private_pot_supply_grid(3, supplier_right=True),
+)
+distance_6 = _alternating_role_phases(
+    _private_pot_supply_grid(4, detour=True),
+    _private_pot_supply_grid(4, supplier_right=True, detour=True),
+)
+
+
+def _handoff_site_grid(supplier_right=False, deadline_gate=False):
+    """Make late role changes costly without lengthening the active work loop.
+
+    Each private kitchen has upper/lower aisles around its own fixed pot.
+    Phase A uses the upper source and handoff; B uses the lower ones. A plate
+    pile and goal in each aisle keep both phases locally productive.
+    The incoming supplier's inner shortcut closes at the transition. Crossing
+    before it closes takes two moves. A three-cell baffle folds the permanent
+    bypass around the upper/lower edges: ten moves in an 11x7 footprint.
+    Counter contents and private pot contents survive every map change.
+    """
+    center, width, height = 5, 11, 7
+    rows = [["N"] * width for _ in range(height)]
+    for y in range(1, height - 1):
+        for x in range(1, width - 1):
+            if x != center:
+                rows[y][x] = " "
+
+    rows[0][center] = "R"
+    rows[1][center] = "0"
+    rows[5][center] = "0"
+    rows[2][center] = "W"
+    rows[4][center] = "W"
+    # The two fixed sources have complementary one-sided access.
+    rows[1][center - 1] = "N" if supplier_right else " "
+    rows[1][center + 1] = "N"
+    rows[5][center - 1] = "N"
+    rows[5][center + 1] = " " if supplier_right else "N"
+
+    for y, accessible in ((2, not supplier_right), (4, supplier_right)):
+        for x in (center - 1, center + 1):
+            rows[y][x] = " " if accessible else "N"
+
+    for right_bay in (False, True):
+        inner_x = center + 1 if right_bay else center - 1
+        outer_x = width - 2 if right_bay else 1
+        boundary_x = width - 1 if right_bay else 0
+        gate_x = center + 2 if right_bay else center - 2
+        baffle_x = center + 3 if right_bay else center - 3
+        bay_xs = range(center + 1, width - 1) if right_bay else range(1, center)
+        for x in bay_xs:
+            rows[3][x] = "N"
+        # Fold the bypass via rows 1 and 5 instead of widening the room.
+        for y in (2, 3, 4):
+            rows[y][baffle_x] = "N"
+        rows[3][outer_x] = " "  # Permanent bypass; never isolates either aisle.
+        shortcut_open = not deadline_gate or right_bay != supplier_right
+        rows[3][gate_x] = " " if shortcut_open else "N"
+        rows[3][inner_x] = "P"  # Borders the active handoff approach in either aisle.
+        rows[3][boundary_x] = "W"  # One private storage slot at the bypass.
+        for y in (0, height - 1):
+            rows[y][baffle_x] = "B"
+            rows[y][gate_x] = "X"
+        rows[2][gate_x] = "A"
+
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+# Same source/role/handoff inversion and production stations in both maps.
+# Control 2 keeps both shortcuts open. In 3 the incoming supplier must cross
+# its closing shortcut before the boundary, or use the ten-move folded bypass.
+distance_2 = _alternating_role_phases(
+    _handoff_site_grid(),
+    _handoff_site_grid(supplier_right=True),
+)
+distance_3 = _alternating_role_phases(
+    _handoff_site_grid(deadline_gate=True),
+    _handoff_site_grid(supplier_right=True, deadline_gate=True),
+)

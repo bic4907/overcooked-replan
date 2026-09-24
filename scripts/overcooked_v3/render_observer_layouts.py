@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from jaxmarl import make
-from jaxmarl.environments.overcooked_v3.common import Direction, Position
+from jaxmarl.environments.overcooked_v3.common import Direction, Position, StaticObject
 from jaxmarl.viz.overcooked_v3_visualizer import OvercookedV3Visualizer
 
 
@@ -30,6 +30,10 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wide", action="store_true", help="Render the three wide maps")
     parser.add_argument("--layouts", nargs="+", help="Render named layouts, one per row")
+    parser.add_argument(
+        "--annotate-handoff", action="store_true",
+        help="Label handoffs, shortcuts, and private storage in distance_2/3",
+    )
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -83,7 +87,53 @@ def _phase_state(env, initial_state, phase_index):
     return env._set_transition_awareness(state)
 
 
-def _render_layout(layout_name, tile_size, seed):
+def _annotate_handoff_frame(frame, static_objects, tile_size):
+    """Render labels from the phase's actual access floors, keeping native tiles."""
+    annotated = Image.new("RGB", (frame.width, frame.height + 64), "white")
+    annotated.paste(frame, (0, 0))
+    draw = ImageDraw.Draw(annotated)
+    label_font = _load_font(max(10, tile_size // 4), bold=True)
+    height, width = static_objects.shape
+    center = width // 2
+    handoff_rows = np.flatnonzero(static_objects[:, center] == StaticObject.WALL)
+    labels = [(f"H{i + 1}", center, int(y), "handoff") for i, y in enumerate(handoff_rows)]
+    labels += [
+        ("S", x, int(y), "storage")
+        for x in (0, width - 1)
+        for y in np.flatnonzero(static_objects[:, x] == StaticObject.WALL)
+    ]
+    labels += [("GA", center - 2, height // 2, "gate"), ("GB", center + 2, height // 2, "gate")]
+    for label, x, y, kind in labels:
+        if kind == "handoff":
+            accessible = all(
+                static_objects[y, neighbor_x] == StaticObject.EMPTY
+                for neighbor_x in (x - 1, x + 1)
+            )
+            color = "#008577" if accessible else "#b85c00"
+        elif kind == "gate":
+            color = "#008577" if static_objects[y, x] == StaticObject.EMPTY else "#b85c00"
+        else:
+            color = "#2769b0"
+        left, top = x * tile_size, y * tile_size
+        draw.rectangle(
+            (left + 3, top + 3, left + tile_size - 4, top + tile_size - 4),
+            outline=color, width=max(2, tile_size // 14),
+        )
+        draw.text(
+            (left + tile_size // 2, top + tile_size // 2), label,
+            font=label_font, fill="white", anchor="mm",
+            stroke_width=2, stroke_fill=color,
+        )
+    legend_font = _load_font(12)
+    draw.text((8, frame.height + 7), "H1/H2: handoff. GA/GB: shortcut. Teal = open; orange = closed.", font=legend_font, fill="black")
+    draw.text((8, frame.height + 27), "S: private storage. Outer bypasses always stay open.", font=legend_font, fill="black")
+    draw.text((8, frame.height + 47), "Each pot belongs to one agent and works from both aisles.", font=legend_font, fill="black")
+    return annotated
+
+
+def _render_layout(layout_name, tile_size, seed, annotate_handoff=False):
+    if annotate_handoff and layout_name not in {"distance_2", "distance_3"}:
+        raise ValueError("Handoff labels are only defined for distance_2/3")
     env = make(
         "overcooked_v3",
         layout=layout_name,
@@ -92,7 +142,7 @@ def _render_layout(layout_name, tile_size, seed):
     )
     _, initial_state = env.reset(jax.random.PRNGKey(seed))
     visualizer = OvercookedV3Visualizer(tile_size=tile_size)
-    return {
+    frames = {
         label: Image.fromarray(
             np.asarray(
                 visualizer._render_frame(
@@ -102,6 +152,14 @@ def _render_layout(layout_name, tile_size, seed):
         )
         for label, phase_index in PHASES
     }
+    if annotate_handoff:
+        frames = {
+            label: _annotate_handoff_frame(
+                frames[label], np.asarray(env.phase_static_objects[phase_index]), tile_size
+            )
+            for label, phase_index in PHASES
+        }
+    return frames
 
 
 def _pair_sheet(layout_name, frames):
@@ -192,7 +250,7 @@ def main():
     pair_sheets = {}
     for layout_row in layout_rows:
         for layout_name in layout_row:
-            frames = _render_layout(layout_name, args.tile_size, args.seed)
+            frames = _render_layout(layout_name, args.tile_size, args.seed, args.annotate_handoff)
             for label, _ in PHASES:
                 phase_name = label.lower().replace(" ", "_")
                 frames[label].save(

@@ -1,0 +1,12 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: distance_6
+  max_steps: 450
+  random_agent_positions: false
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: distance
+CONDITION: distance_6
+WANDB_GROUP: private-pot-inversion
+LAYOUT_REVISION: private-pot-supply-detour-11x7-v1
