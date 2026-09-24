@@ -27,20 +27,25 @@ tracked 파일에 현재 맵/설정/runner 변경을 덧씌워 만들었다. 압
 
 실행 전 GPU의 실제 점유 상태와 SSHFS 마운트를 다시 확인한다. 9/24 13:50 KST에
 aica H100 0/1/5/6/7은 메모리 0이었고 HPC A100 0–3은 사용 중이었다.
+이번 실행에서 aica는 사용자 지정 GPU **0/1/6/7만** 사용한다.
 사용자가 HPC가 16–17시경 확보된다고 알려 주었다.
 
 아래 명령은 **실행하지 않은 준비 명령**이다. 같은 캠페인 이름이지만 각 호스트의
 격리 코드 경로에 분리 저장되고, W&B train/eval project는 알고리즘별로 나뉜다.
+기본 campaign `handoff-site-0924-v4-d23-seed10`을 사용하므로 W&B project 이름에도
+`0924`가 포함된다. aica 명령의 `GPU_ALLOWLIST`는 0/1/6/7 밖의 GPU 지정을 거부한다.
+30분 간격 GPU 확인을 설정했으며, 학습 시작은 사용자에게 준비 완료를 보고한 뒤
+별도 지시를 받을 때까지 보류한다.
 
 ```bash
 # aica: 먼저 pilot 결과 확인
 cd /home/inchang/handoff-d23-seed10-0924
-ALGORITHMS="rnn fcp" GPUS="1 5 6 7" bash scripts/run/run_topology_inversion.sh pilot train
-ALGORITHMS="rnn fcp" GPUS="1 5 6 7" bash scripts/run/run_topology_inversion.sh pilot eval
+ALGORITHMS="rnn fcp" GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" bash scripts/run/run_topology_inversion.sh pilot train
+ALGORITHMS="rnn fcp" GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" bash scripts/run/run_topology_inversion.sh pilot eval
 
 # aica: FCP population → FCP best-response → eval
-ALGORITHMS="fcp" GPUS="1 5 6 7" bash scripts/run/run_topology_inversion.sh main train
-ALGORITHMS="fcp" GPUS="1 5 6 7" bash scripts/run/run_topology_inversion.sh main eval
+ALGORITHMS="fcp" GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" bash scripts/run/run_topology_inversion.sh main train
+ALGORITHMS="fcp" GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" bash scripts/run/run_topology_inversion.sh main eval
 
 # HPC: GPU가 확보된 뒤
 cd /home/jovyan/handoff-d23-seed10-0924

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Explicit launch only. Linux/Bash; run from an isolated copy on the GPU host.
-# GPUS="1 5 6 7" bash scripts/run/run_topology_inversion.sh pilot train
-# LAYOUTS="distance_2 distance_3" GPUS="1 5 6 7" bash scripts/run/run_topology_inversion.sh main train
+# GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" bash scripts/run/run_topology_inversion.sh pilot train
+# LAYOUTS="distance_2 distance_3" GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" bash scripts/run/run_topology_inversion.sh main train
 # ALGORITHMS="fcp" on H100 and ALGORITHMS="rnn" on HPC split ownership.
 # Repeat with the same settings and action=eval after training finishes.
 set -euo pipefail
@@ -23,6 +23,14 @@ for gpu in "${GPU_LIST[@]}"; do
     }
     SEEN_GPUS[$gpu]=1
 done
+if [[ -n "${GPU_ALLOWLIST:-}" ]]; then
+    for gpu in "${GPU_LIST[@]}"; do
+        case " $GPU_ALLOWLIST " in
+            *" $gpu "*) ;;
+            *) echo "GPU $gpu is outside GPU_ALLOWLIST=$GPU_ALLOWLIST" >&2; exit 1 ;;
+        esac
+    done
+fi
 case "$PROFILE" in
     pilot)
         read -r -a MAPS <<< "${LAYOUTS:-distance_2 distance_3}"

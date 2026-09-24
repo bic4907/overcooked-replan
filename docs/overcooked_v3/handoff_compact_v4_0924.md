@@ -86,12 +86,12 @@ Runner는 `scripts/run/run_topology_inversion.sh`, 기본 campaign은
 이전 v1–v3 checkpoint·그림·비용 수치를 현재 결과와 섞지 않는다.
 
 ```bash
-GPUS="1 5 6 7" bash scripts/run/run_topology_inversion.sh pilot train
-GPUS="1 5 6 7" bash scripts/run/run_topology_inversion.sh pilot eval
+GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" bash scripts/run/run_topology_inversion.sh pilot train
+GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" bash scripts/run/run_topology_inversion.sh pilot eval
 # 예비 학습 행동 확인 후, 각 호스트의 독립 checkout에서 실행한다.
 # H100: FCP population + best response. GPU 번호는 시작 시 재확인한다.
-ALGORITHMS="fcp" GPUS="1 5 6 7" bash scripts/run/run_topology_inversion.sh main train
-ALGORITHMS="fcp" GPUS="1 5 6 7" bash scripts/run/run_topology_inversion.sh main eval
+ALGORITHMS="fcp" GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" bash scripts/run/run_topology_inversion.sh main train
+ALGORITHMS="fcp" GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" bash scripts/run/run_topology_inversion.sh main eval
 # HPC: IPPO-RNN. 아래 GPU 번호는 실제 할당에 맞춘다.
 ALGORITHMS="rnn" GPUS="0 1 2 3" bash scripts/run/run_topology_inversion.sh main train
 ALGORITHMS="rnn" GPUS="0 1 2 3" bash scripts/run/run_topology_inversion.sh main eval
