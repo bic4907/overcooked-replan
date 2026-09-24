@@ -46,6 +46,9 @@ case "$PROFILE" in
         ;;
     *) echo "Unknown profile: $PROFILE" >&2; exit 1 ;;
 esac
+if [[ -n "${SEED_IDS:-}" ]]; then read -r -a SEEDS <<< "$SEED_IDS"; fi
+if [[ -n "${POP_SEED_IDS:-}" ]]; then read -r -a POP_SEEDS <<< "$POP_SEED_IDS"; fi
+EPISODES="${EVAL_EPISODES:-$EPISODES}"
 read -r -a ALGORITHM_LIST <<< "${ALGORITHMS:-rnn fcp}"
 (( ${#ALGORITHM_LIST[@]} > 0 )) || exit 1
 declare -A SEEN_ALGORITHMS=()
@@ -58,7 +61,7 @@ case "$ACTION" in train|eval) ;; *) echo "Use train or eval" >&2; exit 1 ;; esac
 (( ${#MAPS[@]} > 0 )) || exit 1
 case "$OBSERVER" in both|agent_0|agent_1|none) ;; *) exit 1 ;; esac
 for layout in "${MAPS[@]}"; do
-    case "$layout" in distance_2|distance_3) ;; *) exit 1 ;; esac
+    case "$layout" in distance_2|distance_3|distance_7) ;; *) exit 1 ;; esac
 done
 
 CAMPAIGN="${CAMPAIGN:-handoff-site-0924-v4-d23-seed10}"
@@ -71,9 +74,11 @@ cd "$ROOT"
 # Keep pilot, main, observer conditions, and populations separate. Refuse
 # source/settings drift when resuming a directory that already contains runs.
 manifest="$(
-    printf '%s\n' "$PYTHON" "$OBSERVER" "${MAPS[*]}" "${SEEDS[*]}" "${POP_SEEDS[*]}" "${ALGORITHM_LIST[*]}" 'steps=30000000'
+    printf '%s\n' "$PYTHON" "$OBSERVER" "${MAPS[*]}" "${SEEDS[*]}" "${POP_SEEDS[*]}" "${ALGORITHM_LIST[*]}" "episodes=$EPISODES" 'steps=30000000'
+    scenario_files=()
+    for layout in "${MAPS[@]}"; do scenario_files+=("conf/scenario/$layout.yaml"); done
     sha256sum jaxmarl/environments/overcooked_v3/{dynamic_layout_data,dynamic_layouts}.py \
-        conf/scenario/distance_{2,3}.yaml conf/{ippo,fcp}_overcooked_v3.yaml \
+        "${scenario_files[@]}" conf/{ippo,fcp}_overcooked_v3.yaml \
         baselines/IPPO/ippo_overcooked_v3.py baselines/FCP/fcp_overcooked_v3.py \
         scripts/run/run_topology_inversion.sh
 )"

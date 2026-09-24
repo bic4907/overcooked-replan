@@ -24,3 +24,18 @@ phase B에는 오른쪽만 접근할 수 있어 B→A 공급이 필요하다. �
 진단까지 확인한 다음, 추가 맵이 필요할 때만 소규모 다중 시드 학습으로
 위/아래 선택의 다양성, off-diagonal XP 손실, 전환 직후 reward drop을 확인한다.
 그 근거가 있으면 10-seed 본실험으로 확장한다.
+
+독립된 4-seed 확인 실행은 기존 campaign과 W&B project를 덮어쓰지 않도록
+`handoff-convention-0924-d7-pilot4`를 사용한다. 기존 평가가 모두 끝나고
+HPC GPU가 비었을 때 다음 명령을 실행한다. `SEED_IDS`는 0–3으로 제한하지만
+각 run의 학습 길이는 본실험과 같은 30M steps다.
+
+```bash
+cd /home/jovyan/handoff-d23-seed10-0924
+CAMPAIGN=handoff-convention-0924-d7-pilot4 LAYOUTS=distance_7 \
+  SEED_IDS="0 1 2 3" ALGORITHMS=rnn GPUS="0 1 2 3" \
+  bash scripts/run/run_topology_inversion.sh main train
+CAMPAIGN=handoff-convention-0924-d7-pilot4 LAYOUTS=distance_7 \
+  SEED_IDS="0 1 2 3" ALGORITHMS=rnn GPUS="0 1 2 3" \
+  bash scripts/run/run_topology_inversion.sh main eval
+```
