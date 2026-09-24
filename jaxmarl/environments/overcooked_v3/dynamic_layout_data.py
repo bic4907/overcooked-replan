@@ -1360,3 +1360,38 @@ distance_3 = _alternating_role_phases(
     _handoff_site_grid(deadline_gate=True),
     _handoff_site_grid(supplier_right=True, deadline_gate=True),
 )
+
+
+def _dual_handoff_convention_grid(supplier_right=False):
+    """Two equal supply/transfer lanes make the partner's choice consequential.
+
+    Both stations and both handoff counters stay fixed. The ingredient sources
+    are accessible only from the phase's supplier side. Each side's inner
+    shortcut is closed, so changing lanes after reaching a handoff requires
+    the long outer bypass. Agents start midway between the two choices.
+    """
+    rows = [list(row) for row in _handoff_site_grid(
+        supplier_right=supplier_right, deadline_gate=True
+    ).strip("\n").splitlines()]
+    center = len(rows[0]) // 2
+    for y in (1, 5):
+        rows[y][center - 1] = "N" if supplier_right else " "
+        rows[y][center + 1] = " " if supplier_right else "N"
+    for y in (2, 4):
+        rows[y][center - 1] = " "
+        rows[y][center + 1] = " "
+    for x in (center - 2, center + 2):
+        rows[2][x] = " "
+        rows[3][x] = "N"
+    rows[3][1] = "A"
+    rows[3][-2] = "A"
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+# Candidate for seed-specific handoff conventions. The top and bottom lanes
+# have equal access costs, while a mismatched supplier/chef pair pays a long
+# lane-switch detour. Phase A requires A to supply B; phase B reverses roles.
+distance_7 = _alternating_role_phases(
+    _dual_handoff_convention_grid(),
+    _dual_handoff_convention_grid(supplier_right=True),
+)
