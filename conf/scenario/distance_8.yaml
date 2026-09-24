@@ -1,0 +1,12 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: distance_8
+  max_steps: 450
+  random_agent_positions: false
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: distance
+CONDITION: distance_8
+WANDB_GROUP: handoff-convention-deadline
+LAYOUT_REVISION: dual-handoff-deadline-11x7-v1

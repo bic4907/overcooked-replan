@@ -10,7 +10,10 @@ import runpy
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "artifacts/layouts/handoff_convention_0924"
 DATA = runpy.run_path(str(ROOT / "jaxmarl/environments/overcooked_v3/dynamic_layout_data.py"))
-GRIDS = [phase[0].strip("\n").splitlines() for phase in DATA["distance_7"][:2]]
+GRIDS = {
+    name: [phase[0].strip("\n").splitlines() for phase in DATA[name][:2]]
+    for name in ("distance_7", "distance_8")
+}
 
 
 def distance(grid, start, target):
@@ -35,9 +38,9 @@ def distance(grid, start, target):
     return None
 
 
-def routes():
+def routes(layout_name):
     records = []
-    for phase, grid in enumerate(GRIDS):
+    for phase, grid in enumerate(GRIDS[layout_name]):
         for side, start, source_x, handoff_x in (
             ("left", (1, 3), 4, 4),
             ("right", (9, 3), 6, 6),
@@ -58,7 +61,7 @@ def routes():
     return records
 
 
-def svg():
+def svg(layout_name):
     cell, left_margin, top = 42, 42, 78
     gap = 80
     colors = {
@@ -78,9 +81,9 @@ def svg():
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
         '<rect width="100%" height="100%" fill="#fff"/>',
         '<style>text{font-family:Arial,sans-serif;fill:#1d2939}.title{font-weight:700;font-size:23px}.phase{font-weight:700;font-size:19px}.tile{font-size:17px;font-weight:700;text-anchor:middle;dominant-baseline:middle}.note{font-size:15px}</style>',
-        f'<text class="title" x="{width/2}" y="34" text-anchor="middle">distance_7: dual-handoff convention candidate</text>',
+        f'<text class="title" x="{width/2}" y="34" text-anchor="middle">{layout_name}: dual-handoff convention candidate</text>',
     ]
-    for phase, grid in enumerate(GRIDS):
+    for phase, grid in enumerate(GRIDS[layout_name]):
         x0 = left_margin + phase * (11 * cell + gap)
         parts.append(
             f'<text class="phase" x="{x0}" y="65">Phase {"A" if phase == 0 else "B"}: {"left" if phase == 0 else "right"} supplies</text>'
@@ -102,7 +105,7 @@ def svg():
     parts.extend(
         [
             f'<text class="note" x="{left_margin}" y="{y}">H: handoff  S: storage  O: onion  P: private pot  A: spawn  X: delivery  B: plate</text>',
-            f'<text class="note" x="{left_margin}" y="{y+26}">Upper/lower routes are equal from spawn; switching lanes at a handoff costs 12 floor moves.</text>',
+            f'<text class="note" x="{left_margin}" y="{y+26}">Upper/lower routes are equal from spawn; switching lanes after the gate closes costs 12 floor moves.</text>',
             f'<text class="note" x="{left_margin}" y="{y+52}">A/B changes who can reach onions; partner pairs must agree on the upper or lower lane.</text>',
             '</svg>',
         ]
@@ -112,12 +115,15 @@ def svg():
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "distance_7.svg").write_text(svg(), encoding="utf-8")
-    (OUT / "route_costs.json").write_text(
-        json.dumps({"layout": "distance_7", "floor_routes": routes()}, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    print(OUT / "distance_7.svg")
+    for name in GRIDS:
+        (OUT / f"{name}.svg").write_text(svg(name), encoding="utf-8")
+        route_name = "route_costs.json" if name == "distance_7" else f"route_costs_{name}.json"
+        (OUT / route_name).write_text(
+            json.dumps({"layout": name, "floor_routes": routes(name)}, indent=2)
+            + "\n",
+            encoding="utf-8",
+        )
+        print(OUT / f"{name}.svg")
 
 
 if __name__ == "__main__":

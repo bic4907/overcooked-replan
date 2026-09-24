@@ -1362,13 +1362,14 @@ distance_3 = _alternating_role_phases(
 )
 
 
-def _dual_handoff_convention_grid(supplier_right=False):
+def _dual_handoff_convention_grid(supplier_right=False, deadline_gate=False):
     """Two equal supply/transfer lanes make the partner's choice consequential.
 
     Both stations and both handoff counters stay fixed. The ingredient sources
-    are accessible only from the phase's supplier side. Each side's inner
-    shortcut is closed, so changing lanes after reaching a handoff requires
-    the long outer bypass. Agents start midway between the two choices.
+    are accessible only from the phase's supplier side. In the base version,
+    both inner shortcuts are closed. With deadline_gate, the next supplier's
+    shortcut stays open only until the role switch. Agents start midway
+    between the two choices.
     """
     rows = [list(row) for row in _handoff_site_grid(
         supplier_right=supplier_right, deadline_gate=True
@@ -1382,7 +1383,8 @@ def _dual_handoff_convention_grid(supplier_right=False):
         rows[y][center + 1] = " "
     for x in (center - 2, center + 2):
         rows[2][x] = " "
-        rows[3][x] = "N"
+        if not deadline_gate:
+            rows[3][x] = "N"
     rows[3][1] = "A"
     rows[3][-2] = "A"
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
@@ -1394,4 +1396,13 @@ def _dual_handoff_convention_grid(supplier_right=False):
 distance_7 = _alternating_role_phases(
     _dual_handoff_convention_grid(),
     _dual_handoff_convention_grid(supplier_right=True),
+)
+
+
+# In 8, the incoming supplier can change lanes cheaply before the role switch;
+# its inner gate closes afterward. Its preferred upper/lower handoff must be
+# inferred from the partner early or corrected through the long outer bypass.
+distance_8 = _alternating_role_phases(
+    _dual_handoff_convention_grid(deadline_gate=True),
+    _dual_handoff_convention_grid(supplier_right=True, deadline_gate=True),
 )
