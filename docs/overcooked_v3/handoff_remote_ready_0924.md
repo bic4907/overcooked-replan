@@ -55,3 +55,20 @@ ALGORITHMS="rnn" GPUS="0 1 2 3" bash scripts/run/run_topology_inversion.sh main 
 
 평가는 알고리즘 내부 10×10 ordered seed pair ×20 episodes ×2 maps이며 전체
 8,000 episodes다. 학습 runner가 완료 marker를 확인한 뒤에만 평가한다.
+
+## 추가 IPPO-CNN (9/24 23시 요청)
+
+기존 RNN/FCP 캠페인의 완료 marker 및 manifest를 그대로 보존하기 위해 CNN은
+`handoff-site-0924-v4-d23-cnn10`이라는 별도 campaign을 쓴다. aica에서만
+GPU 0/1/6/7을 사용하며, 두 맵 × 10 seeds × 30M steps를 학습한 후 같은
+10×10 ordered seed pair ×20 episodes로 평가한다. 실행 명령은 아래와 같다.
+
+```bash
+cd /home/inchang/handoff-d23-seed10-0924
+CAMPAIGN=handoff-site-0924-v4-d23-cnn10 ALGORITHMS=cnn \
+  GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" \
+  bash scripts/run/run_topology_inversion.sh main train
+CAMPAIGN=handoff-site-0924-v4-d23-cnn10 ALGORITHMS=cnn \
+  GPU_ALLOWLIST="0 1 6 7" GPUS="0 1 6 7" \
+  bash scripts/run/run_topology_inversion.sh main eval
+```

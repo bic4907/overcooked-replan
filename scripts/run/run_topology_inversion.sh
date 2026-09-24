@@ -50,7 +50,7 @@ read -r -a ALGORITHM_LIST <<< "${ALGORITHMS:-rnn fcp}"
 (( ${#ALGORITHM_LIST[@]} > 0 )) || exit 1
 declare -A SEEN_ALGORITHMS=()
 for kind in "${ALGORITHM_LIST[@]}"; do
-    case "$kind" in rnn|fcp) ;; *) echo "Use ALGORITHMS='rnn fcp', 'rnn', or 'fcp'." >&2; exit 1 ;; esac
+    case "$kind" in cnn|rnn|fcp) ;; *) echo "Use ALGORITHMS='cnn', 'rnn', or 'fcp'." >&2; exit 1 ;; esac
     [[ -z "${SEEN_ALGORITHMS[$kind]:-}" ]] || { echo "Duplicate algorithm: $kind" >&2; exit 1; }
     SEEN_ALGORITHMS[$kind]=1
 done
@@ -111,6 +111,7 @@ train_job() {
     local kind="$1" gpu="$2" layout="$3" seed="$4"
     local program=baselines/IPPO/ippo_overcooked_v3.py
     local extra=(ARCHITECTURE=rnn)
+    if [[ "$kind" == cnn ]]; then extra=(ARCHITECTURE=cnn); fi
     local video_mode=disabled run_wandb_mode=online
     # Inspect pilot partners as well as learners; retain a main seed-0 replay.
     if [[ "$PROFILE" == pilot || ( "$kind" != population && "$seed" == 0 ) ]]; then
