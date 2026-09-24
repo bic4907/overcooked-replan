@@ -5,6 +5,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
+export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
 PYTHON="${PYTHON:-$HOME/overcooked-replan-venv/bin/python}"
 read -r -a GPU_LIST <<< "${GPUS:-0 1 2 3}"
 read -r -a KIND_LIST <<< "${KINDS:-fcp rnn}"
