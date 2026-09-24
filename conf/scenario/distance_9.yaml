@@ -1,0 +1,12 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: distance_9
+  max_steps: 450
+  random_agent_positions: false
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: distance
+CONDITION: distance_9
+WANDB_GROUP: handoff-convention-private-pots
+LAYOUT_REVISION: dual-handoff-private-pots-11x7-v1

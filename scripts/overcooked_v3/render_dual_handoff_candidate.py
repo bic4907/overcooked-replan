@@ -5,6 +5,7 @@ import html
 import json
 from pathlib import Path
 import runpy
+import sys
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -12,7 +13,7 @@ OUT = ROOT / "artifacts/layouts/handoff_convention_0924"
 DATA = runpy.run_path(str(ROOT / "jaxmarl/environments/overcooked_v3/dynamic_layout_data.py"))
 GRIDS = {
     name: [phase[0].strip("\n").splitlines() for phase in DATA[name][:2]]
-    for name in ("distance_7", "distance_8")
+    for name in ("distance_7", "distance_8", "distance_9")
 }
 
 
@@ -115,7 +116,10 @@ def svg(layout_name):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    for name in GRIDS:
+    selected = sys.argv[1:] or list(GRIDS)
+    if any(name not in GRIDS for name in selected):
+        raise ValueError(f"Choose from {', '.join(GRIDS)}")
+    for name in selected:
         (OUT / f"{name}.svg").write_text(svg(name), encoding="utf-8")
         route_name = "route_costs.json" if name == "distance_7" else f"route_costs_{name}.json"
         (OUT / route_name).write_text(

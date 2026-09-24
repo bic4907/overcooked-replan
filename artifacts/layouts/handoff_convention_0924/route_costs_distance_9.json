@@ -1,0 +1,41 @@
+{
+  "layout": "distance_9",
+  "floor_routes": [
+    {
+      "phase": "A",
+      "side": "left",
+      "start_to_upper_source": 5,
+      "start_to_lower_source": 5,
+      "start_to_upper_handoff": 6,
+      "start_to_lower_handoff": 6,
+      "switch_between_handoffs": 12
+    },
+    {
+      "phase": "A",
+      "side": "right",
+      "start_to_upper_source": null,
+      "start_to_lower_source": null,
+      "start_to_upper_handoff": 6,
+      "start_to_lower_handoff": 6,
+      "switch_between_handoffs": 4
+    },
+    {
+      "phase": "B",
+      "side": "left",
+      "start_to_upper_source": null,
+      "start_to_lower_source": null,
+      "start_to_upper_handoff": 6,
+      "start_to_lower_handoff": 6,
+      "switch_between_handoffs": 4
+    },
+    {
+      "phase": "B",
+      "side": "right",
+      "start_to_upper_source": 5,
+      "start_to_lower_source": 5,
+      "start_to_upper_handoff": 6,
+      "start_to_lower_handoff": 6,
+      "switch_between_handoffs": 12
+    }
+  ]
+}

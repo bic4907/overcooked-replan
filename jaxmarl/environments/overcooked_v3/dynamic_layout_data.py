@@ -1406,3 +1406,24 @@ distance_8 = _alternating_role_phases(
     _dual_handoff_convention_grid(deadline_gate=True),
     _dual_handoff_convention_grid(supplier_right=True, deadline_gate=True),
 )
+
+
+def _dual_handoff_private_pots_grid(supplier_right=False):
+    """Commit the receiver to one handoff by separating its two pot loops."""
+    rows = [list(row) for row in _dual_handoff_convention_grid(
+        supplier_right=supplier_right, deadline_gate=True
+    ).strip("\n").splitlines()]
+    for inner_x, outer_x in ((4, 0), (6, 10)):
+        rows[3][inner_x] = "N"
+        rows[1][outer_x] = "P"
+        rows[5][outer_x] = "P"
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+# In 8 the chef can serve either handoff from a central pot. In 9 each side
+# instead has an upper and lower private pot. A chef waiting at the wrong
+# counter must also change production loop; matched teams can stay in one lane.
+distance_9 = _alternating_role_phases(
+    _dual_handoff_private_pots_grid(),
+    _dual_handoff_private_pots_grid(supplier_right=True),
+)
