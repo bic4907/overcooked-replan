@@ -1,0 +1,395 @@
+{
+  "note": "Superseded distance_0 private-pot runs; archive before selective deletion after new priority baseline succeeds.",
+  "runs": [
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "j2vh6sv8",
+      "name": "cnn_distance_0_both_seed0",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 0,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/j2vh6sv8"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "7wjott5x",
+      "name": "cnn_distance_0_both_seed1",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 1,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/7wjott5x"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "4iphjd4n",
+      "name": "cnn_distance_0_both_seed3",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 3,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/4iphjd4n"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "1256kkh8",
+      "name": "cnn_distance_0_both_seed2",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 2,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/1256kkh8"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "yf12mrlf",
+      "name": "cnn_distance_0_both_seed5",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 5,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/yf12mrlf"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "onp048xl",
+      "name": "cnn_distance_0_both_seed4",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 4,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/onp048xl"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "1t6zp6t4",
+      "name": "cnn_distance_0_both_seed7",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 7,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/1t6zp6t4"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "ftztohge",
+      "name": "cnn_distance_0_both_seed6",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 6,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/ftztohge"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "a4j1raxo",
+      "name": "cnn_distance_0_both_seed9",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 9,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/a4j1raxo"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "jjmxfq7b",
+      "name": "cnn_distance_0_both_seed8",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 8,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/jjmxfq7b"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "3olrz1no",
+      "name": "rnn_distance_0_both_seed2",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 2,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/3olrz1no"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "6jhdswji",
+      "name": "rnn_distance_0_both_seed3",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 3,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/6jhdswji"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "czftkld1",
+      "name": "rnn_distance_0_both_seed1",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 1,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/czftkld1"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "i68xican",
+      "name": "rnn_distance_0_both_seed0",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 0,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/i68xican"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "ip7j15bb",
+      "name": "rnn_distance_0_both_seed6",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 6,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/ip7j15bb"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "alkomjcw",
+      "name": "rnn_distance_0_both_seed4",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 4,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/alkomjcw"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "ijnlr826",
+      "name": "rnn_distance_0_both_seed7",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 7,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/ijnlr826"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "wjgq72rt",
+      "name": "rnn_distance_0_both_seed5",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 5,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/wjgq72rt"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "6sn9f444",
+      "name": "rnn_distance_0_both_seed9",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 9,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/6sn9f444"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "18lu3k6u",
+      "name": "rnn_distance_0_both_seed8",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 8,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/18lu3k6u"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "px20zei5",
+      "name": "fcp_distance_0_both_seed1",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 1,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/px20zei5"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "z82o1jp8",
+      "name": "fcp_distance_0_both_seed0",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 0,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/z82o1jp8"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "vosj2wun",
+      "name": "fcp_distance_0_both_seed3",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 3,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/vosj2wun"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "v1oqvvtl",
+      "name": "fcp_distance_0_both_seed2",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 2,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/v1oqvvtl"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "633mud2d",
+      "name": "fcp_distance_0_both_seed4",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 4,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/633mud2d"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "vfxliziq",
+      "name": "fcp_distance_0_both_seed5",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 5,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/vfxliziq"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "9zsrqbti",
+      "name": "fcp_distance_0_both_seed6",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 6,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/9zsrqbti"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "vu77rsj6",
+      "name": "fcp_distance_0_both_seed7",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 7,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/vu77rsj6"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "anu9ioje",
+      "name": "fcp_distance_0_both_seed9",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 9,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/anu9ioje"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "w7p40gut",
+      "name": "fcp_distance_0_both_seed8",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 8,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/w7p40gut"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "ciizje4d",
+      "name": "population_distance_0_both_seed100",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 100,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921-population/runs/ciizje4d"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "tv0nrnzn",
+      "name": "population_distance_0_both_seed101",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 101,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921-population/runs/tv0nrnzn"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "gzvgneo0",
+      "name": "population_distance_0_both_seed102",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 102,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921-population/runs/gzvgneo0"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "t2a44s4l",
+      "name": "population_distance_0_both_seed103",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 103,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921-population/runs/t2a44s4l"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "lyqzxf2m",
+      "name": "population_distance_0_both_seed104",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 104,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921-population/runs/lyqzxf2m"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "n8mgb1r4",
+      "name": "population_distance_0_both_seed105",
+      "state": "finished",
+      "layout_revision": "dual-handoff-private-pots-11x7-v1",
+      "transition_observer": "both",
+      "seed": 105,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921-population/runs/n8mgb1r4"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_eval",
+      "id": "yb1ukjys",
+      "name": "xp-ippo-distance_0-observer-both",
+      "state": "finished",
+      "layout_revision": null,
+      "transition_observer": "both",
+      "seed": null,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_eval/runs/yb1ukjys"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_eval",
+      "id": "wv1l1233",
+      "name": "xp-ippo-distance_0-observer-both",
+      "state": "finished",
+      "layout_revision": null,
+      "transition_observer": "both",
+      "seed": null,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_eval/runs/wv1l1233"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_eval",
+      "id": "q8plpl84",
+      "name": "xp-fcp-distance_0-observer-both",
+      "state": "finished",
+      "layout_revision": null,
+      "transition_observer": "both",
+      "seed": null,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_eval/runs/q8plpl84"
+    }
+  ]
+}
