@@ -36,3 +36,12 @@ and SHA-256 verified at
 `/Users/inchang/Desktop/overcooked-replan/artifacts/wandb/distance0_privatepots_0921_full_20260926`.
 A second hash-verified copy is on HPC Weka under
 `/home/jovyan/pcgteam/handoff-d23-seed10-0924-share/archive/`.
+
+After the three both-observer baseline campaigns finish, repeat the original
+0921 observer-a experiment: IPPO-RNN only, ten fresh seeds, with
+`transition_observer=agent_0`. The wrapper
+`scripts/run/orchestrate_distance0_observer_a_0926.sh` writes training and
+10×10×20 evaluation to `overcooked-v3-ippo-rnn-observer-a-0921_train` and
+`overcooked-v3-ippo-rnn-observer-a-0921_eval`, selecting only the new
+`distance_0` layout revision. Older observer-a runs remain untouched until
+the new evaluation succeeds and their existing archive is verified.
