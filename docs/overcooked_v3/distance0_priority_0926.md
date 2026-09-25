@@ -20,3 +20,19 @@ finish and the legacy/private-pot run inventory is backed up. The 51-run
 original legacy backup is at
 `artifacts/wandb/distance0_legacy_0921_full_20260925`, with a verified second
 copy on HPC Weka. The separate map-search W&B projects remain intact.
+
+Learner training runs upload their final checkpoint as a `checkpoint` artifact
+owned by that exact run. FCP population training stores the 10%, 50%, and
+100% snapshots locally for partner sampling; after each population run is
+finished, `scripts/run/attach_distance0_population_artifacts_0926.py` links
+those snapshots and the resolved config to the same W&B run. Completion
+requires checking 10 CNN, 10 RNN, 10 FCP, and six population run-artifact
+associations.
+
+The 39 historical private-pot `distance_0` runs in the main 0921 projects
+are inventoried in `artifacts/wandb/distance0_privatepots_0921_manifest_20260926.json`.
+Their 504 run files and 28 supplemental population/source files are archived
+and SHA-256 verified at
+`/Users/inchang/Desktop/overcooked-replan/artifacts/wandb/distance0_privatepots_0921_full_20260926`.
+A second hash-verified copy is on HPC Weka under
+`/home/jovyan/pcgteam/handoff-d23-seed10-0924-share/archive/`.
