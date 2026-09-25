@@ -158,6 +158,10 @@ train_job() {
 
 eval_job() {
     local kind="$1" gpu="$2" layout="$3" algorithm=IPPO
+    if [[ "$layout" == distance_0 && -z "${LAYOUT_REVISION_REQUIRE:-}" ]]; then
+        echo "distance_0 evaluation requires LAYOUT_REVISION_REQUIRE" >&2
+        exit 1
+    fi
     local source_project="${TRAIN_PROJECT_OVERRIDE:-$PROJECT_PREFIX-${kind}_train}"
     local output_project="${EVAL_PROJECT_OVERRIDE:-$PROJECT_PREFIX-${kind}_eval}"
     local source_args=()

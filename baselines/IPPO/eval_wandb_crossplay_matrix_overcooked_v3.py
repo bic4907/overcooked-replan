@@ -764,6 +764,10 @@ def _validate_args(args):
         raise ValueError("Pass GPU IDs separated by spaces, for example --gpus 0 1")
     if args.workers_per_gpu < 1:
         raise ValueError("--workers-per-gpu must be at least 1")
+    if args.layout == "distance_0" and not args.layout_revision:
+        raise ValueError(
+            "distance_0 has multiple historical geometries; pass --layout-revision"
+        )
     adaptation_config_from_args(args, args.layout)
 
 
@@ -1091,8 +1095,21 @@ def main():
         raise RuntimeError(
             "No matching runs with final checkpoint artifacts were found. Check "
             "--algorithms, --layout, --seeds, --transition-observer, and "
-            "--artifact-alias."
+            "--layout-revision, and --artifact-alias."
         )
+    if args.seeds is not None:
+        expected = {
+            (algorithm.casefold(), seed)
+            for algorithm in args.algorithms
+            for seed in args.seeds
+        }
+        missing = expected - seen_seeds
+        unexpected = seen_seeds - expected
+        if missing or unexpected:
+            raise RuntimeError(
+                "Incomplete checkpoint set for evaluation: "
+                f"missing={sorted(missing)}, unexpected={sorted(unexpected)}"
+            )
     selected_observers = {
         _transition_observer(candidate.config) for candidate in candidates
     }
