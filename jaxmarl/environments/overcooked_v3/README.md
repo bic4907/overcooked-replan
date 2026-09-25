@@ -71,10 +71,10 @@ that had already started cooking before a switch remains deliverable, but a new
 pot can start only when its contents match the current recipe. Recipe Relay
 adds two next-recipe preview channels to the standard V3 observation.
 
-`distance_0` is the original 13×6 inversion-detour layout used by the 0921
-baseline runs. `distance_0_legacy` remains an identical alias for those
-checkpoints. The 11×7 private-pot dual-handoff candidate remains available as
-`distance_9`. `distance_1` retains the wide Distance layout.
+`distance_0` is the 11×7 recipe-priority dual-handoff layout, identical to the
+validated `distance_10` candidate. Its onion-major and tomato-major recipes
+alternate with the role phases, so this layout uses the recipe preview channels.
+`distance_0_legacy` preserves the original 13×6 inversion-detour layout and its
+0921 checkpoint compatibility. The 11×7 private-pot candidate remains
+available as `distance_9`; `distance_1` retains the wide Distance layout.
 The former `distance_switch` and `distance_switch_wide` names remain available.
-Because no recipe is scheduled, this layout uses the standard 31-channel V3
-observation rather than next-recipe preview channels.

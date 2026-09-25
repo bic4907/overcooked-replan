@@ -1452,5 +1452,7 @@ distance_10 = [
     )
 ]
 
-# Restore the original 0921 benchmark; the private-pot candidate remains distance_9.
-distance_0 = distance_switch_inversion_detour
+# Canonical 0921 distance_0 now uses the validated recipe-priority handoff map.
+# Keep distance_10 as an identical alias for its original map-search runs, and
+# distance_0_legacy for the former inversion-detour checkpoints.
+distance_0 = distance_10
