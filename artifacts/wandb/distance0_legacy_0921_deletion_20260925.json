@@ -1,0 +1,204 @@
+{
+  "started_at": "2026-09-25T08:07:37.333093+00:00",
+  "target_count": 39,
+  "delete_artifacts": false,
+  "deleted": [
+    {
+      "project": "overcooked-v3-ippo-0921_eval",
+      "id": "7dobpq67",
+      "name": "xp-ippo-distance_0"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_eval",
+      "id": "1w8uvrh3",
+      "name": "xp-ippo-distance_0"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_eval",
+      "id": "2o8hc8m2",
+      "name": "xp-fcp-distance_0"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "inv2z0fg",
+      "name": "ippo_cnn_distance_0_seed0"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "bndmnim6",
+      "name": "ippo_cnn_distance_0_seed1"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "lcsfty4j",
+      "name": "ippo_cnn_distance_0_seed2"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "5awl8iyd",
+      "name": "ippo_cnn_distance_0_seed3"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "zbzj19bt",
+      "name": "ippo_cnn_distance_0_seed4"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "jnss1t2b",
+      "name": "ippo_cnn_distance_0_seed5"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "r45w94ep",
+      "name": "ippo_cnn_distance_0_seed6"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "03vifzpg",
+      "name": "ippo_cnn_distance_0_seed7"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "7kmtdvum",
+      "name": "ippo_cnn_distance_0_seed8"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "txig6u2x",
+      "name": "ippo_cnn_distance_0_seed9"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "bswhre9y",
+      "name": "ippo_rnn_distance_0_seed0"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "dd5n7bxz",
+      "name": "ippo_rnn_distance_0_seed1"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "u8stwv9u",
+      "name": "ippo_rnn_distance_0_seed2"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "5jc19k2w",
+      "name": "ippo_rnn_distance_0_seed3"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "ddcipp2s",
+      "name": "ippo_rnn_distance_0_seed4"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "m88ey052",
+      "name": "ippo_rnn_distance_0_seed5"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "h8olevs1",
+      "name": "ippo_rnn_distance_0_seed7"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "kl3smp3r",
+      "name": "ippo_rnn_distance_0_seed8"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "p1rnywwr",
+      "name": "ippo_rnn_distance_0_seed6"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "ds2rqjjq",
+      "name": "ippo_rnn_distance_0_seed9"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "kn9u647g",
+      "name": "fcp-self-play-ippo_rnn_distance_0_seed0"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "qlao0nga",
+      "name": "fcp-self-play-ippo_rnn_distance_0_seed1"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "h8n8016y",
+      "name": "fcp-self-play-ippo_rnn_distance_0_seed2"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "l8wwyap8",
+      "name": "fcp-self-play-ippo_rnn_distance_0_seed3"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "pckj6gjd",
+      "name": "fcp-self-play-ippo_rnn_distance_0_seed4"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "wck0w422",
+      "name": "fcp-self-play-ippo_rnn_distance_0_seed5"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "kj953d36",
+      "name": "fcp_rnn_distance_0_seed0"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "s2poxnhg",
+      "name": "fcp_rnn_distance_0_seed1"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "uqunhgm5",
+      "name": "fcp_rnn_distance_0_seed2"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "os4lf5tk",
+      "name": "fcp_rnn_distance_0_seed3"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "wbr58pdq",
+      "name": "fcp_rnn_distance_0_seed4"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "o72zu42d",
+      "name": "fcp_rnn_distance_0_seed5"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "i0sotp8w",
+      "name": "fcp_rnn_distance_0_seed7"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "dw8n5weg",
+      "name": "fcp_rnn_distance_0_seed6"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "rms59q4s",
+      "name": "fcp_rnn_distance_0_seed8"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "vghqqtq0",
+      "name": "fcp_rnn_distance_0_seed9"
+    }
+  ],
+  "completed_at": "2026-09-25T08:07:53.366919+00:00",
+  "status": "complete"
+}
