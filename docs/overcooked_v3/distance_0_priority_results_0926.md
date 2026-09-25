@@ -1,0 +1,17 @@
+# Canonical distance_0 recipe-priority baseline (2026-09-26)
+
+`distance_0` now uses the 11×7 recipe-priority layout (`dual-handoff-recipe-priority-11x7-v1`). The former 13×6 layout remains available as `distance_0_legacy`; `distance_10` remains a map-search alias.
+
+All three canonical runs used `transition_observer=both`, 10 fresh 30M-step learner seeds, 10×10 ordered evaluation pairs, and 20 episodes per pair. Results from the original 0921 W&B projects:
+
+| Algorithm | SP | XP | SP−XP | Train project | Eval project |
+| --- | ---: | ---: | ---: | --- | --- |
+| IPPO-CNN | 156.00 | 122.00 | +34.00 | `overcooked-v3-ippo-0921_train` | `overcooked-v3-ippo-0921_eval` |
+| IPPO-RNN | 152.00 | 136.67 | +15.33 | `overcooked-v3-ippo-rnn-0921_train` | `overcooked-v3-ippo-rnn-0921_eval` |
+| FCP | 96.00 | 95.78 | +0.22 | `overcooked-v3-fcp-0921_train` | `overcooked-v3-fcp-0921_eval` |
+
+FCP used six fresh population seeds 100–105 in `overcooked-v3-fcp-0921-population`. All 30 learner runs and six population runs have a committed checkpoint artifact associated with their exact W&B run. Each evaluation selected the new revision only. The FCP gap is small, while the RNN SP exceeds FCP SP by 56 points, satisfying the agreed alternative criterion.
+
+The superseded main-project `distance_0` runs were backed up and then selectively removed from W&B: 39 legacy 13×6 runs plus 39 private-pot runs. [The receipt](../../artifacts/wandb/distance0_0921_main_cleanup_receipt_20260926.jsonl) records the exact 78 run IDs. Post-cleanup, each main training project contains only the 10 new-revision `distance_0` runs, the FCP population project only its six new-revision runs, and each main evaluation project only its new-revision `distance_0` run. Other maps were untouched. The archived backups remain intact both locally and on HPC Weka.
+
+The historical observer-a IPPO-RNN repeat on this layout started after the three both-observer evaluations completed. Its results and selective observer-a cleanup are pending.
