@@ -1173,7 +1173,7 @@ outage_0 = _alternating_role_phases(_BLACKOUT_NOOK, _BLACKOUT_NOOK_SUSPENDED)
 outage_1 = _alternating_role_phases(_BLACKOUT_CORRIDOR, _BLACKOUT_CORRIDOR_SUSPENDED)
 
 distance_switch = distance_switch_0
-distance_0 = distance_switch_inversion_detour
+distance_0_legacy = distance_switch_inversion_detour
 distance_1 = distance_switch_wide
 
 
@@ -1222,7 +1222,8 @@ def _topology_inversion_grid(bay_width, reversed_routes=False, relay=False):
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-# Geometry-only inversion candidates; preserve distance_0/1 for old runs.
+# Geometry-only inversion candidates; preserve the original distance_0 as
+# distance_0_legacy for reproducing old runs.
 # All stations and spawn cells are identical across A/B; only N/floor change.
 distance_topology_short_legacy = _alternating_role_phases(
     _topology_inversion_grid(3),
@@ -1427,3 +1428,7 @@ distance_9 = _alternating_role_phases(
     _dual_handoff_private_pots_grid(),
     _dual_handoff_private_pots_grid(supplier_right=True),
 )
+
+# Canonical distance benchmark now uses the private-pot handoff layout.
+# Keep distance_9 as the source label of already trained checkpoints.
+distance_0 = distance_9

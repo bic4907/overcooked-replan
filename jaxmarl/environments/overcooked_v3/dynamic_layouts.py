@@ -210,7 +210,7 @@ ROLE_SCENARIO_LAYOUTS = {
     ),
     "recipe_switch": ("recipe_switch_0",),
     "distance_switch": (
-        "distance_0", "distance_1", "distance_2", "distance_3", "distance_4",
+        "distance_0", "distance_0_legacy", "distance_1", "distance_2", "distance_3", "distance_4",
         "distance_5", "distance_6", "distance_7", "distance_8", "distance_9",
         "distance_topology_short_legacy", "distance_topology_long_legacy",
         "distance_switch", "distance_switch_0",

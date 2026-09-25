@@ -1,0 +1,515 @@
+{
+  "note": "Legacy distance_0 run inventory before canonical layout replacement; metadata only; no runs deleted.",
+  "runs": [
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "inv2z0fg",
+      "name": "ippo_cnn_distance_0_seed0",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 0,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/inv2z0fg"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "bndmnim6",
+      "name": "ippo_cnn_distance_0_seed1",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 1,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/bndmnim6"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "lcsfty4j",
+      "name": "ippo_cnn_distance_0_seed2",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 2,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/lcsfty4j"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "5awl8iyd",
+      "name": "ippo_cnn_distance_0_seed3",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 3,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/5awl8iyd"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "zbzj19bt",
+      "name": "ippo_cnn_distance_0_seed4",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 4,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/zbzj19bt"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "jnss1t2b",
+      "name": "ippo_cnn_distance_0_seed5",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 5,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/jnss1t2b"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "r45w94ep",
+      "name": "ippo_cnn_distance_0_seed6",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 6,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/r45w94ep"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "03vifzpg",
+      "name": "ippo_cnn_distance_0_seed7",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 7,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/03vifzpg"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "7kmtdvum",
+      "name": "ippo_cnn_distance_0_seed8",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 8,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/7kmtdvum"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_train",
+      "id": "txig6u2x",
+      "name": "ippo_cnn_distance_0_seed9",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 9,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_train/runs/txig6u2x"
+    },
+    {
+      "project": "overcooked-v3-ippo-0921_eval",
+      "id": "7dobpq67",
+      "name": "xp-ippo-distance_0",
+      "state": "finished",
+      "layout_revision": null,
+      "transition_observer": "both",
+      "seed": null,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-0921_eval/runs/7dobpq67"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "bswhre9y",
+      "name": "ippo_rnn_distance_0_seed0",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 0,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/bswhre9y"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "dd5n7bxz",
+      "name": "ippo_rnn_distance_0_seed1",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 1,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/dd5n7bxz"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "u8stwv9u",
+      "name": "ippo_rnn_distance_0_seed2",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 2,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/u8stwv9u"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "5jc19k2w",
+      "name": "ippo_rnn_distance_0_seed3",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 3,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/5jc19k2w"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "ddcipp2s",
+      "name": "ippo_rnn_distance_0_seed4",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 4,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/ddcipp2s"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "m88ey052",
+      "name": "ippo_rnn_distance_0_seed5",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 5,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/m88ey052"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "h8olevs1",
+      "name": "ippo_rnn_distance_0_seed7",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 7,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/h8olevs1"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "kl3smp3r",
+      "name": "ippo_rnn_distance_0_seed8",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 8,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/kl3smp3r"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "p1rnywwr",
+      "name": "ippo_rnn_distance_0_seed6",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 6,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/p1rnywwr"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_train",
+      "id": "ds2rqjjq",
+      "name": "ippo_rnn_distance_0_seed9",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 9,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_train/runs/ds2rqjjq"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-0921_eval",
+      "id": "1w8uvrh3",
+      "name": "xp-ippo-distance_0",
+      "state": "finished",
+      "layout_revision": null,
+      "transition_observer": "both",
+      "seed": null,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-0921_eval/runs/1w8uvrh3"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-a-0921_train",
+      "id": "6buabcub",
+      "name": "ippo_rnn_distance_0_seed0",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "agent_0",
+      "seed": 0,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_train/runs/6buabcub"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-a-0921_train",
+      "id": "0t174ybd",
+      "name": "ippo_rnn_distance_0_seed1",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "agent_0",
+      "seed": 1,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_train/runs/0t174ybd"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-a-0921_train",
+      "id": "fxfqwba8",
+      "name": "ippo_rnn_distance_0_seed2",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "agent_0",
+      "seed": 2,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_train/runs/fxfqwba8"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-a-0921_train",
+      "id": "ae2i33vu",
+      "name": "ippo_rnn_distance_0_seed3",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "agent_0",
+      "seed": 3,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_train/runs/ae2i33vu"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-a-0921_train",
+      "id": "h83pdbf6",
+      "name": "ippo_rnn_distance_0_seed4",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "agent_0",
+      "seed": 4,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_train/runs/h83pdbf6"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-a-0921_train",
+      "id": "162nh9ll",
+      "name": "ippo_rnn_distance_0_seed5",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "agent_0",
+      "seed": 5,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_train/runs/162nh9ll"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-a-0921_train",
+      "id": "4727204e",
+      "name": "ippo_rnn_distance_0_seed6",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "agent_0",
+      "seed": 6,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_train/runs/4727204e"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-a-0921_train",
+      "id": "65ec9063",
+      "name": "ippo_rnn_distance_0_seed7",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "agent_0",
+      "seed": 7,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_train/runs/65ec9063"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-a-0921_train",
+      "id": "a5273ce8",
+      "name": "ippo_rnn_distance_0_seed8",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "agent_0",
+      "seed": 8,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_train/runs/a5273ce8"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-a-0921_train",
+      "id": "59c70b5d",
+      "name": "ippo_rnn_distance_0_seed9",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "agent_0",
+      "seed": 9,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_train/runs/59c70b5d"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-a-0921_eval",
+      "id": "qagrirbm",
+      "name": "xp-ippo-distance_0-observer-agent_0",
+      "state": "finished",
+      "layout_revision": null,
+      "transition_observer": "both",
+      "seed": null,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_eval/runs/qagrirbm"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-a-0921_eval",
+      "id": "aca5df08",
+      "name": "xp-IPPO-RNN-A-seed10-distance_0-0923-distance_0-observer-agent_0",
+      "state": "finished",
+      "layout_revision": null,
+      "transition_observer": "both",
+      "seed": null,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-a-0921_eval/runs/aca5df08"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "kn9u647g",
+      "name": "fcp-self-play-ippo_rnn_distance_0_seed0",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 0,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921-population/runs/kn9u647g"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "qlao0nga",
+      "name": "fcp-self-play-ippo_rnn_distance_0_seed1",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 1,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921-population/runs/qlao0nga"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "h8n8016y",
+      "name": "fcp-self-play-ippo_rnn_distance_0_seed2",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 2,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921-population/runs/h8n8016y"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "l8wwyap8",
+      "name": "fcp-self-play-ippo_rnn_distance_0_seed3",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 3,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921-population/runs/l8wwyap8"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "pckj6gjd",
+      "name": "fcp-self-play-ippo_rnn_distance_0_seed4",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 4,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921-population/runs/pckj6gjd"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921-population",
+      "id": "wck0w422",
+      "name": "fcp-self-play-ippo_rnn_distance_0_seed5",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 5,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921-population/runs/wck0w422"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "kj953d36",
+      "name": "fcp_rnn_distance_0_seed0",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 0,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/kj953d36"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "s2poxnhg",
+      "name": "fcp_rnn_distance_0_seed1",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 1,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/s2poxnhg"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "uqunhgm5",
+      "name": "fcp_rnn_distance_0_seed2",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 2,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/uqunhgm5"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "os4lf5tk",
+      "name": "fcp_rnn_distance_0_seed3",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 3,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/os4lf5tk"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "wbr58pdq",
+      "name": "fcp_rnn_distance_0_seed4",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 4,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/wbr58pdq"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "o72zu42d",
+      "name": "fcp_rnn_distance_0_seed5",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 5,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/o72zu42d"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "i0sotp8w",
+      "name": "fcp_rnn_distance_0_seed7",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 7,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/i0sotp8w"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "dw8n5weg",
+      "name": "fcp_rnn_distance_0_seed6",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 6,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/dw8n5weg"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "rms59q4s",
+      "name": "fcp_rnn_distance_0_seed8",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 8,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/rms59q4s"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_train",
+      "id": "vghqqtq0",
+      "name": "fcp_rnn_distance_0_seed9",
+      "state": "finished",
+      "layout_revision": "distance-inversion-detour-13x6-v4",
+      "transition_observer": "both",
+      "seed": 9,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_train/runs/vghqqtq0"
+    },
+    {
+      "project": "overcooked-v3-fcp-0921_eval",
+      "id": "2o8hc8m2",
+      "name": "xp-fcp-distance_0",
+      "state": "finished",
+      "layout_revision": null,
+      "transition_observer": "both",
+      "seed": null,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-fcp-0921_eval/runs/2o8hc8m2"
+    }
+  ]
+}

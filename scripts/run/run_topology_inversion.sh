@@ -61,20 +61,20 @@ case "$ACTION" in train|eval) ;; *) echo "Use train or eval" >&2; exit 1 ;; esac
 (( ${#MAPS[@]} > 0 )) || exit 1
 case "$OBSERVER" in both|agent_0|agent_1|none) ;; *) exit 1 ;; esac
 for layout in "${MAPS[@]}"; do
-    case "$layout" in distance_2|distance_3|distance_7|distance_8|distance_9) ;; *) exit 1 ;; esac
+    case "$layout" in distance_0|distance_2|distance_3|distance_7|distance_8|distance_9) ;; *) exit 1 ;; esac
 done
 
 CAMPAIGN="${CAMPAIGN:-handoff-site-0924-v4-d23-seed10}"
 RUN_ROOT="$ROOT/campaigns/$CAMPAIGN/$PROFILE/$OBSERVER"
-PROJECT_PREFIX="overcooked-v3-$CAMPAIGN-$PROFILE-$OBSERVER"
-POP_ROOT="$RUN_ROOT/population"
+PROJECT_PREFIX="${PROJECT_PREFIX:-overcooked-v3-$CAMPAIGN-$PROFILE-$OBSERVER}"
+POP_ROOT="${REUSE_POPULATION_DIR:-$RUN_ROOT/population}"
 mkdir -p "$RUN_ROOT/logs" "$RUN_ROOT/state" "$POP_ROOT"
 cd "$ROOT"
 
 # Keep pilot, main, observer conditions, and populations separate. Refuse
 # source/settings drift when resuming a directory that already contains runs.
 manifest="$(
-    printf '%s\n' "$PYTHON" "$OBSERVER" "${MAPS[*]}" "${SEEDS[*]}" "${POP_SEEDS[*]}" "${ALGORITHM_LIST[*]}" "episodes=$EPISODES" 'steps=30000000'
+    printf '%s\n' "$PYTHON" "$OBSERVER" "${MAPS[*]}" "${SEEDS[*]}" "${POP_SEEDS[*]}" "${ALGORITHM_LIST[*]}" "episodes=$EPISODES" 'steps=30000000' "project=$PROJECT_PREFIX" "train_project=${TRAIN_PROJECT_OVERRIDE:-}" "eval_project=${EVAL_PROJECT_OVERRIDE:-}" "population_project=${POPULATION_PROJECT_OVERRIDE:-}" "population=$POP_ROOT" "population_source=${POPULATION_SOURCE_LAYOUT:-}"
     scenario_files=()
     for layout in "${MAPS[@]}"; do scenario_files+=("conf/scenario/$layout.yaml"); done
     sha256sum jaxmarl/environments/overcooked_v3/{dynamic_layout_data,dynamic_layouts}.py \
@@ -114,6 +114,10 @@ trap 'cleanup; exit 130' INT TERM
 
 train_job() {
     local kind="$1" gpu="$2" layout="$3" seed="$4"
+    local project="${TRAIN_PROJECT_OVERRIDE:-$PROJECT_PREFIX-${kind}_train}"
+    if [[ "$kind" == population ]]; then
+        project="${POPULATION_PROJECT_OVERRIDE:-$PROJECT_PREFIX-population_train}"
+    fi
     local program=baselines/IPPO/ippo_overcooked_v3.py
     local extra=(ARCHITECTURE=rnn)
     if [[ "$kind" == cnn ]]; then extra=(ARCHITECTURE=cnn); fi
@@ -130,6 +134,9 @@ train_job() {
         program=baselines/FCP/fcp_overcooked_v3.py
         extra+=("FCP.population_dir=$POP_ROOT" FCP.snapshots_per_policy=3
             "FCP.minimum_population_size=$((${#POP_SEEDS[@]} * 3))")
+        if [[ -n "${POPULATION_SOURCE_LAYOUT:-}" ]]; then
+            extra+=("+FCP.population_source_layout=$POPULATION_SOURCE_LAYOUT")
+        fi
     fi
     local id="${kind}_${layout}_seed${seed}"
     [[ -f "$RUN_ROOT/state/$id.done" ]] && return 0
@@ -138,7 +145,7 @@ train_job() {
         "$PYTHON" -u "$program" "scenario=$layout" "SEED=$seed" NUM_SEEDS=1 \
         TOTAL_TIMESTEPS=30000000 REW_SHAPING_HORIZON=15000000 \
         "recording=$video_mode" "wandb_mode=$run_wandb_mode" ENTITY=cilab-overcooked \
-        "PROJECT=$PROJECT_PREFIX-${kind}_train" "SAVES_DIR=$RUN_ROOT/saves/$kind" \
+        "PROJECT=$project" "SAVES_DIR=$RUN_ROOT/saves/$kind" \
         "EXPERIMENT_FOLDER=$CAMPAIGN-$PROFILE-$OBSERVER" \
         "++ENV_KWARGS.transition_observer=$OBSERVER" \
         "RUN_NAME=${kind}_${layout}_${OBSERVER}_seed${seed}" \
@@ -149,15 +156,17 @@ train_job() {
 
 eval_job() {
     local kind="$1" gpu="$2" layout="$3" algorithm=IPPO
+    local source_project="${TRAIN_PROJECT_OVERRIDE:-$PROJECT_PREFIX-${kind}_train}"
+    local output_project="${EVAL_PROJECT_OVERRIDE:-$PROJECT_PREFIX-${kind}_eval}"
     [[ "$kind" == fcp ]] && algorithm=FCP
     local id="eval_${kind}_${layout}"
     [[ -f "$RUN_ROOT/state/$id.done" ]] && return 0
     env -u LD_LIBRARY_PATH "$PYTHON" -u baselines/IPPO/eval_crossplay_overcooked_v3.py \
-        "cilab-overcooked/$PROJECT_PREFIX-${kind}_train" \
+        "cilab-overcooked/$source_project" \
         --algorithms "$algorithm" --layout "$layout" --seeds "${SEEDS[@]}" \
         --transition-observer "$OBSERVER" --episodes "$EPISODES" --max-steps 450 \
         --gpus "$gpu" --workers-per-gpu 4 --wandb-mode online \
-        --output-project "cilab-overcooked/$PROJECT_PREFIX-${kind}_eval" \
+        --output-project "cilab-overcooked/$output_project" \
         --output-dir "$RUN_ROOT/evaluation/$kind/$layout" \
         --save-adaptation-traces --adaptation-horizon 75 --adaptation-window 30 \
         --drop-baseline-window 60 --drop-horizon 60 \
@@ -200,7 +209,9 @@ run_stage() {
 }
 
 if [[ "$ACTION" == train ]]; then
-    if [[ -n "${SEEN_ALGORITHMS[fcp]:-}" ]]; then run_stage population; fi
+    if [[ -n "${SEEN_ALGORITHMS[fcp]:-}" && -z "${REUSE_POPULATION_DIR:-}" ]]; then
+        run_stage population
+    fi
 else
     # Never silently evaluate a partial seed set as the completed campaign.
     for kind in "${ALGORITHM_LIST[@]}"; do

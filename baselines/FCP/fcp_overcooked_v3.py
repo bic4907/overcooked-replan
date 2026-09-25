@@ -180,7 +180,12 @@ def discover_population_checkpoints(config):
         raise FileNotFoundError(f"FCP population directory not found: {population_dir}")
 
     architecture = _architecture(config)
-    layout = config["ENV_KWARGS"]["layout"]
+    # A renamed layout may reuse a population trained on identical geometry.
+    # Keep the source label explicit so unrelated checkpoints are never mixed.
+    layout = (
+        fcp_config.get("population_source_layout")
+        or config["ENV_KWARGS"]["layout"]
+    )
     expected_prefix = f"ippo_{architecture}_overcooked_v3_{layout}_seed"
     groups = {}
     for path in population_dir.rglob("*.safetensors"):

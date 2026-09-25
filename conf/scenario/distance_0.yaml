@@ -8,5 +8,5 @@ RECORD_MAX_STEPS: 450
 
 EXPERIMENT: distance
 CONDITION: distance_0
-WANDB_GROUP: distance
-LAYOUT_REVISION: distance-inversion-detour-13x6-v4
+WANDB_GROUP: distance0-private-pots-0925
+LAYOUT_REVISION: dual-handoff-private-pots-11x7-v1

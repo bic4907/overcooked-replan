@@ -132,6 +132,18 @@ def parse_args(argv=None):
         ),
     )
     parser.add_argument(
+        "--additional-source",
+        action="append",
+        nargs=2,
+        metavar=("PROJECT", "LAYOUT"),
+        default=[],
+        help="Also load checkpoints from this project and training-layout label.",
+    )
+    parser.add_argument(
+        "--layout-revision",
+        help="Require this LAYOUT_REVISION on every source checkpoint run.",
+    )
+    parser.add_argument(
         "--layout",
         "--layouts",
         dest="layout",
@@ -324,6 +336,7 @@ def discover_run_candidates(
     seeds=None,
     latest_per_seed=True,
     transition_observer=None,
+    layout_revision=None,
 ):
     """Filter W&B runs locally and retain checkpoint-bearing candidates."""
     layouts = set(layouts)
@@ -341,6 +354,10 @@ def discover_run_candidates(
             layout not in layouts
             or (seeds is not None and seed not in seeds)
             or (transition_observer is not None and observer != transition_observer)
+            or (
+                layout_revision is not None
+                and config.get("LAYOUT_REVISION") != layout_revision
+            )
         ):
             continue
         try:
@@ -751,7 +768,11 @@ def _validate_args(args):
 
 
 def build_run_filters(
-    layouts, seeds=None, run_state="finished", transition_observer=None
+    layouts,
+    seeds=None,
+    run_state="finished",
+    transition_observer=None,
+    layout_revision=None,
 ):
     """Push stable layout/seed/state selectors into the W&B API query."""
     filters = {"config.ENV_KWARGS.layout": {"$in": list(layouts)}}
@@ -759,6 +780,8 @@ def build_run_filters(
         filters["config.SEED"] = {"$in": list(seeds)}
     if transition_observer is not None:
         filters["config.ENV_KWARGS.transition_observer"] = transition_observer
+    if layout_revision is not None:
+        filters["config.LAYOUT_REVISION"] = layout_revision
     if run_state != "all":
         filters["state"] = run_state
     return filters
@@ -1028,23 +1051,41 @@ def main():
 
     api = wandb.Api()
     source_layout = args.source_layout or args.layout
-    filters = build_run_filters(
-        [source_layout],
-        args.seeds,
-        args.run_state,
-        args.transition_observer,
-    )
-    LOGGER.info("Scanning W&B project %s/%s", source_entity, source_project)
-    runs = api.runs(f"{source_entity}/{source_project}", filters=filters)
-    candidates = discover_run_candidates(
-        runs,
-        args.algorithms,
-        [source_layout],
-        artifact_alias=args.artifact_alias,
-        seeds=args.seeds,
-        latest_per_seed=args.latest_per_seed,
-        transition_observer=args.transition_observer,
-    )
+    sources = [(source_entity, source_project, source_layout)]
+    for project_path, layout in args.additional_source:
+        entity, project = split_project_path(project_path, args.entity)
+        sources.append((entity, project, layout))
+    candidates = []
+    for entity, project, layout in sources:
+        filters = build_run_filters(
+            [layout],
+            args.seeds,
+            args.run_state,
+            args.transition_observer,
+            args.layout_revision,
+        )
+        LOGGER.info("Scanning W&B project %s/%s layout=%s", entity, project, layout)
+        runs = api.runs(f"{entity}/{project}", filters=filters)
+        candidates.extend(
+            discover_run_candidates(
+                runs,
+                args.algorithms,
+                [layout],
+                artifact_alias=args.artifact_alias,
+                seeds=args.seeds,
+                latest_per_seed=args.latest_per_seed,
+                transition_observer=args.transition_observer,
+                layout_revision=args.layout_revision,
+            )
+        )
+    seen_seeds = set()
+    for candidate in candidates:
+        key = (candidate.algorithm.casefold(), candidate.seed)
+        if key in seen_seeds:
+            raise RuntimeError(
+                f"Duplicate checkpoint source for {key}; select one run per seed"
+            )
+        seen_seeds.add(key)
     LOGGER.info("Selected %d checkpoint artifact(s)", len(candidates))
     if not candidates:
         raise RuntimeError(
@@ -1076,6 +1117,8 @@ def main():
         config={
             "source_project": f"{source_entity}/{source_project}",
             "source_layout": source_layout,
+            "additional_sources": args.additional_source,
+            "layout_revision": args.layout_revision,
             "algorithms": args.algorithms,
             "layout": args.layout,
             "transition_observer": args.transition_observer,
