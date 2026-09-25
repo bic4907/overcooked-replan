@@ -28,6 +28,14 @@ fi
 
 PREFIX="overcooked-v3-mapsearch-0925-d10-priority-${SCALE}"
 OUTPUT_DIR="$ROOT/campaigns/distance10-priority-0925-mixed-${SCALE}/${KIND}-fcp"
+FCP_SOURCES=(--additional-source "$ENTITY/$PREFIX-fcp_train" distance_10)
+if [[ "$SCALE" == full10 ]]; then
+    # Pilot seeds 0-3 and extension seeds 4-9 share the same population.
+    FCP_SOURCES=(
+        --additional-source "$ENTITY/overcooked-v3-mapsearch-0925-d10-priority-pilot4-fcp_train" distance_10
+        --additional-source "$ENTITY/$PREFIX-fcp_train" distance_10
+    )
+fi
 mkdir -p "$OUTPUT_DIR"
 if [[ -f "$OUTPUT_DIR/eval.done" ]]; then
     echo "Already evaluated: $OUTPUT_DIR"
@@ -47,7 +55,7 @@ cd "$ROOT"
 env -u LD_LIBRARY_PATH "$PYTHON" -u \
     baselines/IPPO/eval_crossplay_overcooked_v3.py \
     "$ENTITY/$PREFIX-${KIND}_train" \
-    --additional-source "$ENTITY/$PREFIX-fcp_train" distance_10 \
+    "${FCP_SOURCES[@]}" \
     --algorithms IPPO FCP --layout distance_10 \
     --layout-revision "$REVISION" --seeds "${SEEDS[@]}" \
     --transition-observer both --episodes 20 --max-steps 450 \
