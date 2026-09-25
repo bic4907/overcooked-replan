@@ -1429,5 +1429,28 @@ distance_9 = _alternating_role_phases(
     _dual_handoff_private_pots_grid(supplier_right=True),
 )
 
+
+def _dual_handoff_priority_grid(supplier_right=False):
+    """Upper and lower handoffs provide different recipe ingredients."""
+    rows = [list(row) for row in _dual_handoff_private_pots_grid(
+        supplier_right=supplier_right
+    ).strip("\n").splitlines()]
+    rows[5][5] = "1"
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+# Both lanes remain viable, but their ingredients differ. The onion-major
+# recipe makes the upper source attractive in A; the tomato-major recipe
+# makes the lower source attractive in B. A supplier must infer which pot and
+# handoff its partner is committing to, because a late lane switch is costly.
+_distance_10_a = _dual_handoff_priority_grid()
+_distance_10_b = _dual_handoff_priority_grid(supplier_right=True)
+distance_10 = [
+    [grid, steps, _RECIPE_ONION_MAJOR if index % 2 == 0 else _RECIPE_TOMATO_MAJOR]
+    for index, (grid, steps) in enumerate(
+        _alternating_role_phases(_distance_10_a, _distance_10_b)
+    )
+]
+
 # Restore the original 0921 benchmark; the private-pot candidate remains distance_9.
 distance_0 = distance_switch_inversion_detour

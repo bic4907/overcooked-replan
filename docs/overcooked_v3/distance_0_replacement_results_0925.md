@@ -1,6 +1,13 @@
 # distance_0 private-pot replacement: 2026-09-25 results
 
-The canonical distance_0 now uses the 11×7 private-pot geometry also
+Historical diagnostic: this replacement was reverted. The canonical
+`distance_0` again uses the 0921 13×6 inversion-detour geometry; the
+private-pot candidate remains `distance_9`.
+The 39 deleted main-project legacy W&B runs were subsequently recovered
+under their original run IDs; the private-pot runs remain as separate
+historical records in those projects.
+
+At the time of this campaign, distance_0 used the 11×7 private-pot geometry also
 registered as distance_9. The former 13×6 layout remains available as
 distance_0_legacy. The replacement was trained from scratch in the
 original 0921 W&B projects with transition_observer=both: ten 30M-step

@@ -211,7 +211,7 @@ ROLE_SCENARIO_LAYOUTS = {
     "recipe_switch": ("recipe_switch_0",),
     "distance_switch": (
         "distance_0", "distance_0_legacy", "distance_1", "distance_2", "distance_3", "distance_4",
-        "distance_5", "distance_6", "distance_7", "distance_8", "distance_9",
+        "distance_5", "distance_6", "distance_7", "distance_8", "distance_9", "distance_10",
         "distance_topology_short_legacy", "distance_topology_long_legacy",
         "distance_switch", "distance_switch_0",
         "distance_switch_1", "distance_switch_wide",
@@ -248,7 +248,7 @@ def _load_named_dynamic_layout(name, data):
     try:
         if name.startswith("outage"):
             possible_recipes = _OUTAGE_RECIPES
-        elif name.startswith("recipe_switch"):
+        elif name.startswith("recipe_switch") or name == "distance_10":
             possible_recipes = _RECIPE_SWITCH_RECIPES
         else:
             possible_recipes = _DEFAULT_RECIPES

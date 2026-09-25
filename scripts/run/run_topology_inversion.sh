@@ -61,7 +61,7 @@ case "$ACTION" in train|eval) ;; *) echo "Use train or eval" >&2; exit 1 ;; esac
 (( ${#MAPS[@]} > 0 )) || exit 1
 case "$OBSERVER" in both|agent_0|agent_1|none) ;; *) exit 1 ;; esac
 for layout in "${MAPS[@]}"; do
-    case "$layout" in distance_0|distance_2|distance_3|distance_7|distance_8|distance_9) ;; *) exit 1 ;; esac
+    case "$layout" in distance_0|distance_2|distance_3|distance_7|distance_8|distance_9|distance_10) ;; *) exit 1 ;; esac
 done
 
 CAMPAIGN="${CAMPAIGN:-handoff-site-0924-v4-d23-seed10}"
