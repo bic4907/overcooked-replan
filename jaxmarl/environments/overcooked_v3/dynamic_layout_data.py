@@ -1222,8 +1222,8 @@ def _topology_inversion_grid(bay_width, reversed_routes=False, relay=False):
     return "\n" + "\n".join("".join(row) for row in rows) + "\n"
 
 
-# Geometry-only inversion candidates; preserve the original distance_0 as
-# distance_0_legacy for reproducing old runs.
+# Geometry-only inversion candidates; distance_0_legacy is an explicit alias
+# for the original distance_0 used by the 0921 runs.
 # All stations and spawn cells are identical across A/B; only N/floor change.
 distance_topology_short_legacy = _alternating_role_phases(
     _topology_inversion_grid(3),
@@ -1429,6 +1429,5 @@ distance_9 = _alternating_role_phases(
     _dual_handoff_private_pots_grid(supplier_right=True),
 )
 
-# Canonical distance benchmark now uses the private-pot handoff layout.
-# Keep distance_9 as the source label of already trained checkpoints.
-distance_0 = distance_9
+# Restore the original 0921 benchmark; the private-pot candidate remains distance_9.
+distance_0 = distance_switch_inversion_detour

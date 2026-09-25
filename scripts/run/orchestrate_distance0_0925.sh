@@ -5,6 +5,10 @@ set -euo pipefail
 
 KIND="${1:?use cnn or fcp}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+if ! grep -q '^LAYOUT_REVISION: dual-handoff-private-pots-11x7-v1$' "$ROOT/conf/scenario/distance_0.yaml"; then
+    echo 'This private-pot distance_0 campaign is retired; distance_0 is the original 0921 layout again.' >&2
+    exit 2
+fi
 export PYTHON="${PYTHON:-/home/inchang/overcooked-replan-venv/bin/python}"
 export GPU_ALLOWLIST="0 1 6 7"
 export OBSERVER=both

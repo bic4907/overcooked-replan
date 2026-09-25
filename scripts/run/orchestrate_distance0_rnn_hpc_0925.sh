@@ -4,6 +4,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+if ! grep -q '^LAYOUT_REVISION: dual-handoff-private-pots-11x7-v1$' "$ROOT/conf/scenario/distance_0.yaml"; then
+    echo 'This private-pot distance_0 campaign is retired; distance_0 is the original 0921 layout again.' >&2
+    exit 2
+fi
 PREDECESSOR=/home/jovyan/handoff-d9-pilot4-0925/orchestrator_d9_rnn_seed10.done
 QUEUE_LOG="$ROOT/orchestrator_distance0_rnn_queue.log"
 TRAIN_LOG="$ROOT/orchestrator_distance0_rnn_train.log"
