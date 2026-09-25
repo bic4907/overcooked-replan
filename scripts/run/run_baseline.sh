@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch IPPO/FCP training or evaluation for the 6 selected layouts x 6 seeds
+# Launch IPPO/FCP training or evaluation for the 6 selected layouts
 # without relying on W&B sweeps.
 #
 # Usage:
@@ -21,6 +21,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 read -r -a GPU_LIST <<< "$GPUS"
 LAYOUTS=(split_0 split_1 outage_0 outage_1 distance_0 distance_1)
 SEEDS=(0 1 2 3 4 5)
+EVAL_SEEDS=(0 1 2 3 4 5)
 
 MODE="train"
 EVAL_EXTRA=()
@@ -66,12 +67,16 @@ case "$EXP" in
         SOURCE_PROJECT="cilab-overcooked/overcooked-v3-ippo-0921_train"
         OUTPUT_PROJECT="cilab-overcooked/overcooked-v3-ippo-0921_eval"
         ALGORITHM="IPPO"
+        EVAL_SEEDS=(0 1 2 3 4 5 6 7 8 9)
+        EVAL_EXTRA=(--transition-observer both)
         ;;
     ippo-rnn-eval)
         MODE="eval"
         SOURCE_PROJECT="cilab-overcooked/overcooked-v3-ippo-rnn-0921_train"
         OUTPUT_PROJECT="cilab-overcooked/overcooked-v3-ippo-rnn-0921_eval"
         ALGORITHM="IPPO"
+        EVAL_SEEDS=(0 1 2 3 4 5 6 7 8 9)
+        EVAL_EXTRA=(--transition-observer both)
         ;;
     ippo-rnn-observer-a-eval)
         MODE="eval"
@@ -85,6 +90,8 @@ case "$EXP" in
         SOURCE_PROJECT="cilab-overcooked/overcooked-v3-fcp-0921_train"
         OUTPUT_PROJECT="cilab-overcooked/overcooked-v3-fcp-0921_eval"
         ALGORITHM="FCP"
+        EVAL_SEEDS=(0 1 2 3 4 5 6 7 8 9)
+        EVAL_EXTRA=(--transition-observer both)
         ;;
     *)
         echo "unknown experiment: $EXP" >&2
@@ -166,6 +173,10 @@ launch_eval_jobs() {
         gpu="$(pick_free_gpu)"
         log_file="$LOG_DIR/${layout}_gpu${gpu}.log"
         log "launch $EXP layout=$layout GPU=$gpu -> $(basename "$log_file")"
+        revision_args=()
+        if [[ "$layout" == distance_0 ]]; then
+            revision_args=(--layout-revision distance-inversion-detour-13x6-v4)
+        fi
         env \
             -u LD_LIBRARY_PATH \
             PYTHONPATH="$REPO_ROOT" \
@@ -177,12 +188,14 @@ launch_eval_jobs() {
                 "$SOURCE_PROJECT" \
                 --algorithms "$ALGORITHM" \
                 --layout "$layout" \
+                --seeds "${EVAL_SEEDS[@]}" \
                 --episodes 20 \
                 --max-steps 450 \
                 --workers-per-gpu 8 \
                 --entity cilab-overcooked \
                 --output-project "$OUTPUT_PROJECT" \
                 --gpus "$gpu" \
+                "${revision_args[@]}" \
                 "${EVAL_EXTRA[@]}" \
                 >"$log_file" 2>&1 &
         GPU_PID[$gpu]="$!"
