@@ -74,7 +74,7 @@ cd "$ROOT"
 # Keep pilot, main, observer conditions, and populations separate. Refuse
 # source/settings drift when resuming a directory that already contains runs.
 manifest="$(
-    printf '%s\n' "$PYTHON" "$OBSERVER" "${MAPS[*]}" "${SEEDS[*]}" "${POP_SEEDS[*]}" "${ALGORITHM_LIST[*]}" "episodes=$EPISODES" 'steps=30000000' "project=$PROJECT_PREFIX" "train_project=${TRAIN_PROJECT_OVERRIDE:-}" "eval_project=${EVAL_PROJECT_OVERRIDE:-}" "population_project=${POPULATION_PROJECT_OVERRIDE:-}" "population=$POP_ROOT" "population_source=${POPULATION_SOURCE_LAYOUT:-}"
+    printf '%s\n' "$PYTHON" "$OBSERVER" "${MAPS[*]}" "${SEEDS[*]}" "${POP_SEEDS[*]}" "${ALGORITHM_LIST[*]}" "episodes=$EPISODES" 'steps=30000000' "project=$PROJECT_PREFIX" "train_project=${TRAIN_PROJECT_OVERRIDE:-}" "eval_project=${EVAL_PROJECT_OVERRIDE:-}" "population_project=${POPULATION_PROJECT_OVERRIDE:-}" "population_wandb_mode=${POPULATION_WANDB_MODE:-disabled}" "population=$POP_ROOT" "population_source=${POPULATION_SOURCE_LAYOUT:-}" "layout_revision_require=${LAYOUT_REVISION_REQUIRE:-}" "source_layout=${SOURCE_LAYOUT_OVERRIDE:-}"
     scenario_files=()
     for layout in "${MAPS[@]}"; do scenario_files+=("conf/scenario/$layout.yaml"); done
     sha256sum jaxmarl/environments/overcooked_v3/{dynamic_layout_data,dynamic_layouts}.py \
@@ -129,7 +129,9 @@ train_job() {
     if [[ "$kind" == population ]]; then
         extra+=("SAVES_DIR=$POP_ROOT" 'CHECKPOINT_FRACTIONS=[0.1,0.5,1.0]'
             upload_final_checkpoint=false)
-        if [[ "$PROFILE" == main ]]; then run_wandb_mode=disabled; fi
+        if [[ "$PROFILE" == main ]]; then
+            run_wandb_mode="${POPULATION_WANDB_MODE:-disabled}"
+        fi
     elif [[ "$kind" == fcp ]]; then
         program=baselines/FCP/fcp_overcooked_v3.py
         extra+=("FCP.population_dir=$POP_ROOT" FCP.snapshots_per_policy=3
@@ -158,6 +160,13 @@ eval_job() {
     local kind="$1" gpu="$2" layout="$3" algorithm=IPPO
     local source_project="${TRAIN_PROJECT_OVERRIDE:-$PROJECT_PREFIX-${kind}_train}"
     local output_project="${EVAL_PROJECT_OVERRIDE:-$PROJECT_PREFIX-${kind}_eval}"
+    local source_args=()
+    if [[ -n "${LAYOUT_REVISION_REQUIRE:-}" ]]; then
+        source_args+=(--layout-revision "$LAYOUT_REVISION_REQUIRE")
+    fi
+    if [[ -n "${SOURCE_LAYOUT_OVERRIDE:-}" ]]; then
+        source_args+=(--source-layout "$SOURCE_LAYOUT_OVERRIDE")
+    fi
     [[ "$kind" == fcp ]] && algorithm=FCP
     local id="eval_${kind}_${layout}"
     [[ -f "$RUN_ROOT/state/$id.done" ]] && return 0
@@ -165,6 +174,7 @@ eval_job() {
         "cilab-overcooked/$source_project" \
         --algorithms "$algorithm" --layout "$layout" --seeds "${SEEDS[@]}" \
         --transition-observer "$OBSERVER" --episodes "$EPISODES" --max-steps 450 \
+        "${source_args[@]}" \
         --gpus "$gpu" --workers-per-gpu 4 --wandb-mode online \
         --output-project "cilab-overcooked/$output_project" \
         --output-dir "$RUN_ROOT/evaluation/$kind/$layout" \

@@ -22,3 +22,11 @@ revision filter. No training run should be relabeled as though it were trained
 under a different source name. The 2026-09-21 W&B `distance_0` records are
 inventoried in `artifacts/wandb/distance0_legacy_0921_manifest.json` before
 any selective deletion.
+
+The 2026-09-21 six-layout baseline uses `transition_observer=both`. The
+existing `distance_9` RNN and FCP pilots used `agent_0`, so they are separate
+diagnostics and cannot replace the baseline checkpoints. The replacement
+baseline trains CNN, RNN, FCP population, and FCP best responses with `both`,
+ten learner seeds, 30M steps per run, and a 10×10 ordered cross-play matrix
+with 20 episodes per pair. New runs use the original 0921 W&B projects and
+must be filtered by the private-pot `LAYOUT_REVISION` during evaluation.
