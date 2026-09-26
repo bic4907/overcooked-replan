@@ -1,0 +1,45 @@
+{
+  "note": "Four interrupted new-layout observer-none RNN runs with no checkpoints; exact IDs before cleanup.",
+  "runs": [
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-none-0921_train",
+      "id": "jupqrddw",
+      "name": "rnn_distance_0_none_seed0",
+      "state": "running",
+      "layout_revision": "dual-handoff-recipe-priority-11x7-v1",
+      "transition_observer": "none",
+      "seed": 0,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-none-0921_train/runs/jupqrddw"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-none-0921_train",
+      "id": "u3ky4k5b",
+      "name": "rnn_distance_0_none_seed1",
+      "state": "running",
+      "layout_revision": "dual-handoff-recipe-priority-11x7-v1",
+      "transition_observer": "none",
+      "seed": 1,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-none-0921_train/runs/u3ky4k5b"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-none-0921_train",
+      "id": "0ctjqy5w",
+      "name": "rnn_distance_0_none_seed2",
+      "state": "running",
+      "layout_revision": "dual-handoff-recipe-priority-11x7-v1",
+      "transition_observer": "none",
+      "seed": 2,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-none-0921_train/runs/0ctjqy5w"
+    },
+    {
+      "project": "overcooked-v3-ippo-rnn-observer-none-0921_train",
+      "id": "hwy88ovh",
+      "name": "rnn_distance_0_none_seed3",
+      "state": "running",
+      "layout_revision": "dual-handoff-recipe-priority-11x7-v1",
+      "transition_observer": "none",
+      "seed": 3,
+      "url": "https://wandb.ai/cilab-overcooked/overcooked-v3-ippo-rnn-observer-none-0921_train/runs/hwy88ovh"
+    }
+  ]
+}
