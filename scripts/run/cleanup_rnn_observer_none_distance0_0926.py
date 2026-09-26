@@ -117,8 +117,15 @@ def main():
     verify_replacements(api, {e["id"] for e in entries})
     old_train_ids = {e["id"] for e in old_train}
     pending = []
+    already_absent = []
+    live_ids = {project: {run.id for run in api.runs(f"{ENTITY}/{project}")}
+                for project in PROJECT_COUNTS}
     for entry in entries:
         if run_path(entry) in receipts:
+            continue
+        if entry["id"] not in live_ids[entry["project"]]:
+            already_absent.append(entry)
+            print(f"ALREADY_ABSENT {run_path(entry)}", flush=True)
             continue
         run = api.run(run_path(entry))
         c = run.config
@@ -138,17 +145,30 @@ def main():
                 raise ValueError(f"Historical eval provenance mismatch: {run.path}")
         pending.append((entry, run))
         print(f"VERIFIED {run_path(entry)}", flush=True)
-    print(f"AUDIT_OK pending={len(pending)} already_deleted={len(receipts)}", flush=True)
+    print(f"AUDIT_OK pending={len(pending)} already_absent={len(already_absent)} receipted={len(receipts)}", flush=True)
     if not args.apply:
         return
+    args.receipt.parent.mkdir(parents=True, exist_ok=True)
+    for entry in already_absent:
+        with args.receipt.open("a") as handle:
+            handle.write(json.dumps({"run": run_path(entry), "revision": OLD_REVISION,
+                                     "status": "already_absent; no deletion attempted"}) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
     for entry, run in sorted(pending, key=lambda pair: pair[0]["project"] != TEST and pair[0]["project"] != TEST10):
         run.delete(delete_artifacts=False)
-        args.receipt.parent.mkdir(parents=True, exist_ok=True)
         with args.receipt.open("a") as handle:
-            handle.write(json.dumps({"run": run_path(entry), "revision": OLD_REVISION}) + "\n")
+            handle.write(json.dumps({"run": run_path(entry), "revision": OLD_REVISION,
+                                     "status": "deleted"}) + "\n")
             handle.flush()
             os.fsync(handle.fileno())
         print(f"DELETED {run_path(entry)}", flush=True)
+    fresh = wandb.Api(timeout=120)
+    remaining = {project: {run.id for run in fresh.runs(f"{ENTITY}/{project}")}
+                 for project in PROJECT_COUNTS}
+    if any(entry["id"] in remaining[entry["project"]] for entry in entries):
+        raise ValueError("Some historical distance_0 runs remain visible")
+    print("HISTORICAL_RUNS_ABSENT", flush=True)
 
 
 if __name__ == "__main__":
