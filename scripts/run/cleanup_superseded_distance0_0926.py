@@ -56,7 +56,7 @@ def check_training(run, entry, observer):
         raise ValueError(f"Wrong observer: {run_path(entry)}")
 
 
-def check_eval(run, entry, allowed_train_ids, observer):
+def check_eval(run, entry, allowed_train_ids, observer, allowed_counts):
     config = run.config
     selected = config.get("selected_models") or []
     model_ids = {item.get("run", "").rsplit("/", 1)[-1] for item in selected}
@@ -64,7 +64,7 @@ def check_eval(run, entry, allowed_train_ids, observer):
         raise ValueError(f"Wrong eval layout: {run_path(entry)}")
     if config.get("episodes") != 20:
         raise ValueError(f"Wrong eval episode count: {run_path(entry)}")
-    if len(selected) != 10 or len(model_ids) != 10:
+    if len(selected) not in allowed_counts or len(model_ids) != len(selected):
         raise ValueError(f"Wrong eval model count: {run_path(entry)}")
     if model_ids != allowed_train_ids:
         raise ValueError(f"Eval references unexpected models: {run_path(entry)}")
@@ -134,12 +134,13 @@ def main():
                 and other["project"].endswith("_train")
             ]
             revisions = {other["layout_revision"] for other in matching}
-            if len(matching) != 10 or len(revisions) != 1:
+            allowed_counts = {6, 10} if args.scope == "observer-a" else {10}
+            if len(matching) not in allowed_counts or len(revisions) != 1:
                 raise ValueError(f"Cannot establish eval source revision: {path}")
             if next(iter(revisions)) not in expected_revisions:
                 raise ValueError(f"Unexpected eval source revision: {path}")
             allowed = {other["id"] for other in matching}
-            check_eval(run, entry, allowed, observer)
+            check_eval(run, entry, allowed, observer, allowed_counts)
         else:
             check_training(run, entry, observer)
         checked.append((entry, run))
