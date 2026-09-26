@@ -1,12 +1,12 @@
 # @package _global_
 
 ENV_KWARGS:
-  layout: distance_0
+  layout: distance_10
   max_steps: 450
   random_agent_positions: false
 RECORD_MAX_STEPS: 450
 
 EXPERIMENT: distance
-CONDITION: distance_0
-WANDB_GROUP: distance
+CONDITION: distance_10
+WANDB_GROUP: distance10-recipe-handoff-0925
 LAYOUT_REVISION: dual-handoff-recipe-priority-11x7-v1

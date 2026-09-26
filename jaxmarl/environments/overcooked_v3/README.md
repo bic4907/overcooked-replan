@@ -71,10 +71,11 @@ that had already started cooking before a switch remains deliverable, but a new
 pot can start only when its contents match the current recipe. Recipe Relay
 adds two next-recipe preview channels to the standard V3 observation.
 
-`distance_0` and `distance_1` are Distance-Driven Role Switch layouts based on
-`asymm_advantages`. The first is the canonical 9×5 layout and the second is the
-selected 13×6 wide layout. Both reverse which agent has the short onion-input
-and serving loops every 75 steps. The former `distance_switch` and
-`distance_switch_wide` names remain compatible aliases.
-Because no recipe is scheduled, this layout uses the standard 31-channel V3
-observation rather than next-recipe preview channels.
+`distance_0` is the 11×7 recipe-priority dual-handoff layout. Upper and lower
+lanes have different ingredients and private pots. The supplier side and the
+onion-major/tomato-major recipe alternate every 75 steps, so this layout uses
+the recipe preview channels. `distance_10` remains an identical alias for
+earlier map-search checkpoints. `distance_0_legacy` preserves the former 13×6
+inversion-detour layout for its earlier checkpoints. `distance_1` retains the
+wide Distance layout, and `distance_switch` and `distance_switch_wide` remain
+available under their descriptive names.

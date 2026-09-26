@@ -1173,5 +1173,108 @@ outage_0 = _alternating_role_phases(_BLACKOUT_NOOK, _BLACKOUT_NOOK_SUSPENDED)
 outage_1 = _alternating_role_phases(_BLACKOUT_CORRIDOR, _BLACKOUT_CORRIDOR_SUSPENDED)
 
 distance_switch = distance_switch_0
-distance_0 = distance_switch_inversion_detour
+distance_0_legacy = distance_switch_inversion_detour
 distance_1 = distance_switch_wide
+
+
+def _handoff_site_grid(supplier_right=False, deadline_gate=False):
+    """Keep private work loops compact while making a late lane switch costly."""
+    center, width, height = 5, 11, 7
+    rows = [["N"] * width for _ in range(height)]
+    for y in range(1, height - 1):
+        for x in range(1, width - 1):
+            if x != center:
+                rows[y][x] = " "
+
+    rows[0][center] = "R"
+    rows[1][center] = "0"
+    rows[5][center] = "0"
+    rows[2][center] = "W"
+    rows[4][center] = "W"
+    rows[1][center - 1] = "N" if supplier_right else " "
+    rows[1][center + 1] = "N"
+    rows[5][center - 1] = "N"
+    rows[5][center + 1] = " " if supplier_right else "N"
+
+    for y, accessible in ((2, not supplier_right), (4, supplier_right)):
+        for x in (center - 1, center + 1):
+            rows[y][x] = " " if accessible else "N"
+
+    for right_bay in (False, True):
+        inner_x = center + 1 if right_bay else center - 1
+        outer_x = width - 2 if right_bay else 1
+        boundary_x = width - 1 if right_bay else 0
+        gate_x = center + 2 if right_bay else center - 2
+        baffle_x = center + 3 if right_bay else center - 3
+        bay_xs = range(center + 1, width - 1) if right_bay else range(1, center)
+        for x in bay_xs:
+            rows[3][x] = "N"
+        for y in (2, 3, 4):
+            rows[y][baffle_x] = "N"
+        rows[3][outer_x] = " "
+        shortcut_open = not deadline_gate or right_bay != supplier_right
+        rows[3][gate_x] = " " if shortcut_open else "N"
+        rows[3][inner_x] = "P"
+        rows[3][boundary_x] = "W"
+        for y in (0, height - 1):
+            rows[y][baffle_x] = "B"
+            rows[y][gate_x] = "X"
+        rows[2][gate_x] = "A"
+
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+def _dual_handoff_convention_grid(supplier_right=False, deadline_gate=False):
+    """Provide two handoff lanes with an expensive wrong-lane detour."""
+    rows = [list(row) for row in _handoff_site_grid(
+        supplier_right=supplier_right, deadline_gate=True
+    ).strip("\n").splitlines()]
+    center = len(rows[0]) // 2
+    for y in (1, 5):
+        rows[y][center - 1] = "N" if supplier_right else " "
+        rows[y][center + 1] = " " if supplier_right else "N"
+    for y in (2, 4):
+        rows[y][center - 1] = " "
+        rows[y][center + 1] = " "
+    for x in (center - 2, center + 2):
+        rows[2][x] = " "
+        if not deadline_gate:
+            rows[3][x] = "N"
+    rows[3][1] = "A"
+    rows[3][-2] = "A"
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+def _dual_handoff_private_pots_grid(supplier_right=False):
+    """Separate upper and lower pot loops in each private bay."""
+    rows = [list(row) for row in _dual_handoff_convention_grid(
+        supplier_right=supplier_right, deadline_gate=True
+    ).strip("\n").splitlines()]
+    for inner_x, outer_x in ((4, 0), (6, 10)):
+        rows[3][inner_x] = "N"
+        rows[1][outer_x] = "P"
+        rows[5][outer_x] = "P"
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+def _dual_handoff_priority_grid(supplier_right=False):
+    """Put onions in the upper lane and tomatoes in the lower lane."""
+    rows = [list(row) for row in _dual_handoff_private_pots_grid(
+        supplier_right=supplier_right
+    ).strip("\n").splitlines()]
+    rows[5][5] = "1"
+    return "\n" + "\n".join("".join(row) for row in rows) + "\n"
+
+
+# Alternate supplier side and recipe priority every 75 steps. Both handoff
+# lanes stay viable, but a supplier must coordinate its ingredient/lane choice
+# with the partner's private pot. Preserve the former 13x6 map separately.
+_distance_0_priority_a = _dual_handoff_priority_grid()
+_distance_0_priority_b = _dual_handoff_priority_grid(supplier_right=True)
+distance_0 = [
+    [grid, steps, _RECIPE_ONION_MAJOR if index % 2 == 0 else _RECIPE_TOMATO_MAJOR]
+    for index, (grid, steps) in enumerate(
+        _alternating_role_phases(_distance_0_priority_a, _distance_0_priority_b)
+    )
+]
+distance_10 = distance_0  # Alias for the original map-search checkpoints.

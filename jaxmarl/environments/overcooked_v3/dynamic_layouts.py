@@ -245,7 +245,7 @@ def _load_named_dynamic_layout(name, data):
     try:
         if name.startswith("outage"):
             possible_recipes = _OUTAGE_RECIPES
-        elif name.startswith("recipe_switch"):
+        elif name.startswith("recipe_switch") or name in ("distance_0", "distance_10"):
             possible_recipes = _RECIPE_SWITCH_RECIPES
         else:
             possible_recipes = _DEFAULT_RECIPES

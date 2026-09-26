@@ -1,0 +1,12 @@
+# @package _global_
+
+ENV_KWARGS:
+  layout: distance_0_legacy
+  max_steps: 450
+  random_agent_positions: false
+RECORD_MAX_STEPS: 450
+
+EXPERIMENT: distance
+CONDITION: distance_0_legacy
+WANDB_GROUP: distance0-legacy
+LAYOUT_REVISION: distance-inversion-detour-13x6-v4
