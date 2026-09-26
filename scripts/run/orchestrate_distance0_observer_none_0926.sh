@@ -36,6 +36,11 @@ if [[ ! -f "$EVAL10_DONE" ]]; then
 fi
 if [[ ! -f "$EVAL6_DONE" ]]; then
     cd "$ROOT"
+    if [[ -z "${WANDB_API_KEY:-}" && -f "$HOME/.netrc" ]]; then
+        WANDB_API_KEY="$("$PYTHON" -c 'import netrc; a=netrc.netrc().authenticators("api.wandb.ai"); print(a[2] if a else "")')"
+        export WANDB_API_KEY
+    fi
+    [[ -n "${WANDB_API_KEY:-}" ]] || { echo 'W&B credentials required for evaluation' >&2; exit 1; }
     export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
     export XLA_PYTHON_CLIENT_PREALLOCATE=false
     export XLA_PYTHON_CLIENT_MEM_FRACTION=0.75
