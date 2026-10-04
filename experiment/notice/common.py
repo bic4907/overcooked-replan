@@ -43,19 +43,41 @@ BENCHMARK_LAYOUTS = ("split_0", "split_1", "outage_0", "outage_1", "distance_0",
 #: Internal kitchen family -> the paper's scenario name.
 FAMILY_OF = {"split": "Partition", "outage": "Blackout", "distance": "Inversion"}
 #: Internal arm -> the paper's baseline name.
-BASELINE_NAMES = {"rnn": "IPPO-RNN", "fcp": "FCP", "cnn": "IPPO-0"}
-#: The benchmark's own training projects come first. The 0915 project's
-#: distance_0 recurrent checkpoints are of the kitchen before it was widened
-#: to 13x6, so that one kitchen falls through to the 0920 retraining -- the
-#: same split the paper's alert-group figure makes with its OVERRIDES.
-TRAINING_PROJECTS = {
-    "cnn": ("overcooked-v3-ippo-cnn-75step-plate-0915_train",),
-    "rnn": ("overcooked-v3-ippo-rnn-75step-plate-0915_train", "overcooked-v3-ippo-rnn-0920_train"),
-    "fcp": ("overcooked-v3-fcp-75step-plate-0915_train",),
+BASELINE_NAMES = {
+    "cnn": "IPPO-0",
+    "rnn": "IPPO-RNN",
+    "rnn_a": "IPPO-RNN-A",
+    "fcp": "FCP",
 }
-ALGORITHMS = {"cnn": ("IPPO-CNN", "IPPO"), "rnn": ("IPPO-RNN", "IPPO"), "fcp": ("FCP",)}
-ARCHITECTURES = {"cnn": "cnn", "rnn": "rnn", "fcp": "rnn"}
+#: The ten-seed 0921 training projects, one per arm. ``rnn`` and ``fcp``
+#: trained with the warning visible to both seats; ``rnn_a`` trained with it
+#: visible to agent_0 alone, which is the seat the intervention informs, so
+#: that arm is only meaningful with ``--informed-seat 0``.
+TRAINING_PROJECTS = {
+    "cnn": ("overcooked-v3-ippo-0921_train",),
+    "rnn": ("overcooked-v3-ippo-rnn-0921_train",),
+    "rnn_a": ("overcooked-v3-ippo-rnn-observer-a-0921_train",),
+    "fcp": ("overcooked-v3-fcp-0921_train",),
+}
+ALGORITHMS = {
+    "cnn": ("IPPO-CNN", "IPPO"),
+    "rnn": ("IPPO-RNN", "IPPO"),
+    "rnn_a": ("IPPO-RNN", "IPPO"),
+    "fcp": ("FCP",),
+}
+ARCHITECTURES = {"cnn": "cnn", "rnn": "rnn", "rnn_a": "rnn", "fcp": "rnn"}
+#: Which seat the arm's training let see the warning at all.
+TRAINED_OBSERVER = {"cnn": "both", "rnn": "both", "rnn_a": "agent_0", "fcp": "both"}
 ENTITY = "cilab-overcooked"
+
+#: The best self-play return each kitchen reached under the alert-both
+#: policies: the maximum over the ten-seed 09-22 evaluations of IPPO-RNN
+#: (`overcooked-v3-ippo-rnn-0921_eval`), FCP and IPPO-0. Return is read
+#: against this so kitchens with different ceilings can be compared.
+OPTIMAL_RETURN = {
+    "split_0": 260.0, "split_1": 356.0, "outage_0": 392.0,
+    "outage_1": 150.0, "distance_0": 152.0, "distance_1": 460.0,
+}
 
 EVENT_NAMES = ("ingredient_acquire", "pot_insert", "plate_acquire", "soup_acquire")
 #: Steps of warning before a boundary, the benchmark default.
@@ -105,7 +127,7 @@ def _named_final_checkpoint(run, artifact_dir):
     return run, resolve_vmap_checkpoints(path)[0][1]
 
 
-def fetch_policies(arm, layout, seeds=6, entity=ENTITY, alias="final", artifact_dir="artifacts"):
+def fetch_policies(arm, layout, seeds=10, minimum=6, entity=ENTITY, alias="final", artifact_dir="artifacts"):
     """One training run per seed of an arm, on the kitchen as it is now.
 
     Returns ``[(seed, run_id, run_config, params)]`` in seed order. The
@@ -142,6 +164,8 @@ def fetch_policies(arm, layout, seeds=6, entity=ENTITY, alias="final", artifact_
     loaded = []
     for seed in range(seeds):
         chosen = None
+        if seed not in candidates:
+            continue
         ordered = sorted(
             candidates.get(seed, []), key=lambda item: (item[0], _negated(item[1].created_at))
         )
@@ -166,8 +190,15 @@ def fetch_policies(arm, layout, seeds=6, entity=ENTITY, alias="final", artifact_
             )
             break
         if chosen is None:
-            raise SystemExit(f"{arm} on {layout}: no checkpoint of seed {seed} fits the current kitchen")
+            print(f"  {arm} {layout} seed {seed}: no checkpoint fits the current kitchen", flush=True)
+            continue
         loaded.append(chosen)
+    if len(loaded) < minimum:
+        raise SystemExit(
+            f"{arm} on {layout}: {len(loaded)} usable seeds, fewer than the {minimum} required"
+        )
+    if len(loaded) < seeds:
+        print(f"  {arm} {layout}: running on {len(loaded)} seeds, not {seeds}", flush=True)
     return loaded
 
 
